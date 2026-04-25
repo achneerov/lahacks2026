@@ -9,6 +9,15 @@ DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS conversations;
 DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS job_postings;
+DROP TABLE IF EXISTS user_eeo;
+DROP TABLE IF EXISTS user_legal;
+DROP TABLE IF EXISTS user_about_me;
+DROP TABLE IF EXISTS user_references;
+DROP TABLE IF EXISTS user_languages;
+DROP TABLE IF EXISTS user_skills;
+DROP TABLE IF EXISTS user_education;
+DROP TABLE IF EXISTS user_work_experience;
+DROP TABLE IF EXISTS user_documents;
 DROP TABLE IF EXISTS user_profiles;
 DROP TABLE IF EXISTS users;
 
@@ -22,25 +31,26 @@ CREATE TABLE users (
   created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
--- Profile data for Applicants only. Enforced via triggers below.
+-- Personal info & address for Applicants only
 CREATE TABLE user_profiles (
-  user_id         INTEGER PRIMARY KEY,
-  full_name       TEXT,
-  phone           TEXT,
-  address_line1   TEXT,
-  address_line2   TEXT,
-  city            TEXT,
-  state           TEXT,
-  postal_code     TEXT,
-  country         TEXT,
-  headline        TEXT,
-  bio             TEXT,
-  resume_url      TEXT,
-  linkedin_url    TEXT,
-  github_url      TEXT,
-  portfolio_url   TEXT,
-  years_experience INTEGER,
-  updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+  user_id           INTEGER PRIMARY KEY,
+  first_name        TEXT,
+  middle_initial    TEXT,
+  last_name         TEXT,
+  preferred_name    TEXT,
+  pronouns          TEXT,
+  date_of_birth     TEXT,
+  phone_number      TEXT,
+  alternative_phone TEXT,
+  street_address    TEXT,
+  apt_suite_unit    TEXT,
+  city              TEXT,
+  state             TEXT,
+  zip_code          TEXT,
+  linkedin_url      TEXT,
+  website_portfolio TEXT,
+  github_or_other_portfolio TEXT,
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -60,6 +70,126 @@ BEGIN
   SELECT RAISE(ABORT, 'user_profiles.user_id must reference a user with role = Applicant');
 END;
 
+-- Documents (resume URL, writing samples, etc.)
+CREATE TABLE user_documents (
+  user_id           INTEGER PRIMARY KEY,
+  resume            TEXT,
+  writing_samples   TEXT, -- JSON array of URLs
+  portfolio_work_samples TEXT, -- JSON array of URLs
+  transcripts       TEXT, -- JSON array of URLs
+  certifications    TEXT, -- JSON array of URLs
+  other_documents   TEXT, -- JSON array of URLs
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Work experience (repeatable)
+CREATE TABLE user_work_experience (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         INTEGER NOT NULL,
+  job_title       TEXT,
+  company         TEXT,
+  city            TEXT,
+  state           TEXT,
+  employment_type TEXT,
+  start_date      TEXT,
+  end_date        TEXT,
+  current_job     INTEGER NOT NULL DEFAULT 0 CHECK (current_job IN (0, 1)),
+  responsibilities TEXT,
+  key_achievements TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_work_experience_user ON user_work_experience(user_id);
+
+-- Education (repeatable)
+CREATE TABLE user_education (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         INTEGER NOT NULL,
+  school          TEXT,
+  city            TEXT,
+  state           TEXT,
+  degree          TEXT,
+  major           TEXT,
+  minor           TEXT,
+  start_date      TEXT,
+  graduation_date TEXT,
+  graduated       INTEGER NOT NULL DEFAULT 0 CHECK (graduated IN (0, 1)),
+  gpa             TEXT,
+  honors          TEXT,
+  relevant_coursework TEXT, -- JSON array of strings
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_education_user ON user_education(user_id);
+
+-- Skills (repeatable)
+CREATE TABLE user_skills (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         INTEGER NOT NULL,
+  skill           TEXT NOT NULL,
+  proficiency     TEXT,
+  years           INTEGER,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_skills_user ON user_skills(user_id);
+
+-- Languages (repeatable)
+CREATE TABLE user_languages (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         INTEGER NOT NULL,
+  language        TEXT NOT NULL,
+  proficiency     TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_languages_user ON user_languages(user_id);
+
+-- References (repeatable)
+CREATE TABLE user_references (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         INTEGER NOT NULL,
+  name            TEXT,
+  relationship    TEXT,
+  company         TEXT,
+  title           TEXT,
+  phone           TEXT,
+  email           TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_references_user ON user_references(user_id);
+
+-- About me (one-to-one)
+CREATE TABLE user_about_me (
+  user_id                INTEGER PRIMARY KEY,
+  challenge_you_overcame TEXT,
+  greatest_strength      TEXT,
+  greatest_weakness      TEXT,
+  five_year_goals        TEXT,
+  leadership_experience  TEXT,
+  anything_else          TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Legal eligibility (one-to-one)
+CREATE TABLE user_legal (
+  user_id                INTEGER PRIMARY KEY,
+  us_work_authorization  INTEGER NOT NULL DEFAULT 0 CHECK (us_work_authorization IN (0, 1)),
+  requires_sponsorship   INTEGER NOT NULL DEFAULT 0 CHECK (requires_sponsorship IN (0, 1)),
+  visa_type              TEXT,
+  over_18                INTEGER NOT NULL DEFAULT 0 CHECK (over_18 IN (0, 1)),
+  security_clearance     TEXT,
+  needs_accommodation    INTEGER NOT NULL DEFAULT 0 CHECK (needs_accommodation IN (0, 1)),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- EEO voluntary disclosures (one-to-one)
+CREATE TABLE user_eeo (
+  user_id           INTEGER PRIMARY KEY,
+  gender            TEXT,
+  race_ethnicity    TEXT,
+  disability_status TEXT,
+  veteran_status    TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Job postings
 CREATE TABLE job_postings (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   poster_id       INTEGER NOT NULL,
@@ -114,7 +244,6 @@ CREATE TABLE conversations (
 
 CREATE INDEX idx_conversations_job_posting ON conversations(job_posting_id);
 
--- Prevent duplicate conversations between the same pair, regardless of order.
 CREATE UNIQUE INDEX idx_conversations_unique_pair
   ON conversations (MIN(user_1_id, user_2_id), MAX(user_1_id, user_2_id));
 

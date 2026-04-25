@@ -5,122 +5,21 @@ const { reviewProfileChanges } = require('./profileReview');
 
 const router = express.Router();
 
-const PROFILE_FIELDS = [
-  'full_name',
-  'phone',
-  'address_line1',
-  'address_line2',
-  'city',
-  'state',
-  'postal_code',
-  'country',
-  'headline',
-  'bio',
-  'resume_url',
-  'linkedin_url',
-  'github_url',
-  'portfolio_url',
-  'years_experience',
+const PROFILE_COLS = [
+  'first_name', 'middle_initial', 'last_name', 'preferred_name', 'pronouns',
+  'date_of_birth', 'phone_number', 'alternative_phone',
+  'street_address', 'apt_suite_unit', 'city', 'state', 'zip_code',
+  'linkedin_url', 'website_portfolio', 'github_or_other_portfolio',
 ];
 
 const PROFILE_TEXT_FIELDS = [
-  'full_name',
-  'phone',
-  'address_line1',
-  'address_line2',
-  'city',
-  'state',
-  'postal_code',
-  'country',
-  'headline',
-  'bio',
+  'first_name', 'middle_initial', 'last_name', 'preferred_name', 'pronouns',
+  'date_of_birth', 'phone_number', 'alternative_phone',
+  'street_address', 'apt_suite_unit', 'city', 'state', 'zip_code',
 ];
 
-const PROFILE_URL_FIELDS = ['resume_url', 'linkedin_url', 'github_url', 'portfolio_url'];
-
+const PROFILE_URL_FIELDS = ['linkedin_url', 'website_portfolio', 'github_or_other_portfolio'];
 const URL_RE = /^https?:\/\/[^\s]+$/i;
-
-function sanitizeProfileUpdate(raw) {
-  if (!raw || typeof raw !== 'object') {
-    const err = new Error('profile body must be an object');
-    err.code = 'invalid_profile';
-    throw err;
-  }
-
-  const out = {};
-
-  for (const key of PROFILE_TEXT_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
-    const v = raw[key];
-    if (v === null || v === undefined) {
-      out[key] = null;
-      continue;
-    }
-    if (typeof v !== 'string') {
-      const err = new Error(`profile.${key} must be a string`);
-      err.code = 'invalid_profile';
-      throw err;
-    }
-    const trimmed = v.trim();
-    out[key] = trimmed === '' ? null : trimmed;
-  }
-
-  for (const key of PROFILE_URL_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
-    const v = raw[key];
-    if (v === null || v === undefined) {
-      out[key] = null;
-      continue;
-    }
-    if (typeof v !== 'string') {
-      const err = new Error(`profile.${key} must be a string`);
-      err.code = 'invalid_profile';
-      throw err;
-    }
-    const trimmed = v.trim();
-    if (trimmed === '') {
-      out[key] = null;
-      continue;
-    }
-    if (!URL_RE.test(trimmed)) {
-      const err = new Error(`profile.${key} must be an http(s) URL`);
-      err.code = 'invalid_profile_url';
-      throw err;
-    }
-    out[key] = trimmed;
-  }
-
-  if (Object.prototype.hasOwnProperty.call(raw, 'years_experience')) {
-    const v = raw.years_experience;
-    if (v === null || v === undefined || v === '') {
-      out.years_experience = null;
-    } else {
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 80) {
-        const err = new Error('profile.years_experience must be an integer between 0 and 80');
-        err.code = 'invalid_profile_years';
-        throw err;
-      }
-      out.years_experience = n;
-    }
-  }
-
-  return out;
-}
-
-function loadProfileRow(userId) {
-  return db
-    .prepare(`SELECT ${PROFILE_FIELDS.join(', ')}, updated_at FROM user_profiles WHERE user_id = ?`)
-    .get(userId);
-}
-
-function ensureProfileRow(userId) {
-  const existing = db
-    .prepare('SELECT 1 FROM user_profiles WHERE user_id = ?')
-    .get(userId);
-  if (existing) return;
-  db.prepare('INSERT INTO user_profiles (user_id) VALUES (?)').run(userId);
-}
 
 function requireApplicant(req, res, next) {
   if (!req.user || req.user.role !== 'Applicant') {
@@ -129,25 +28,227 @@ function requireApplicant(req, res, next) {
   next();
 }
 
-function computeProfileCompleteness(profile) {
-  if (!profile) return 0;
-  let filled = 0;
-  for (const f of PROFILE_FIELDS) {
-    const v = profile[f];
-    if (v !== null && v !== undefined && v !== '') filled += 1;
+function sanitizeProfileUpdate(raw) {
+  if (!raw || typeof raw !== 'object') {
+    const err = new Error('profile body must be an object');
+    err.code = 'invalid_profile';
+    throw err;
   }
-  return Math.round((filled / PROFILE_FIELDS.length) * 100);
+  const out = {};
+  for (const key of PROFILE_TEXT_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === null || v === undefined) { out[key] = null; continue; }
+    if (typeof v !== 'string') { const e = new Error(`profile.${key} must be a string`); e.code = 'invalid_profile'; throw e; }
+    const trimmed = v.trim();
+    out[key] = trimmed === '' ? null : trimmed;
+  }
+  for (const key of PROFILE_URL_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === null || v === undefined) { out[key] = null; continue; }
+    if (typeof v !== 'string') { const e = new Error(`profile.${key} must be a string`); e.code = 'invalid_profile'; throw e; }
+    const trimmed = v.trim();
+    if (trimmed === '') { out[key] = null; continue; }
+    if (!URL_RE.test(trimmed)) { const e = new Error(`profile.${key} must be an http(s) URL`); e.code = 'invalid_profile_url'; throw e; }
+    out[key] = trimmed;
+  }
+  // Pass through sub-table data
+  if (Array.isArray(raw.work_experience)) out.work_experience = raw.work_experience;
+  if (Array.isArray(raw.education)) out.education = raw.education;
+  if (Array.isArray(raw.skills)) out.skills = raw.skills;
+  if (Array.isArray(raw.languages)) out.languages = raw.languages;
+  if (Array.isArray(raw.references)) out.references = raw.references;
+  if (raw.documents && typeof raw.documents === 'object') out.documents = raw.documents;
+  if (raw.about_me && typeof raw.about_me === 'object') out.about_me = raw.about_me;
+  if (raw.legal && typeof raw.legal === 'object') out.legal = raw.legal;
+  if (raw.eeo && typeof raw.eeo === 'object') out.eeo = raw.eeo;
+  return out;
+}
+
+function loadFullProfile(userId) {
+  const profile = db.prepare(`SELECT ${PROFILE_COLS.join(', ')}, updated_at FROM user_profiles WHERE user_id = ?`).get(userId);
+  const documents = db.prepare('SELECT resume, writing_samples, portfolio_work_samples, transcripts, certifications, other_documents FROM user_documents WHERE user_id = ?').get(userId);
+  const work_experience = db.prepare('SELECT id, job_title, company, city, state, employment_type, start_date, end_date, current_job, responsibilities, key_achievements FROM user_work_experience WHERE user_id = ? ORDER BY id').all(userId);
+  const education = db.prepare('SELECT id, school, city, state, degree, major, minor, start_date, graduation_date, graduated, gpa, honors, relevant_coursework FROM user_education WHERE user_id = ? ORDER BY id').all(userId);
+  const skills = db.prepare('SELECT id, skill, proficiency, years FROM user_skills WHERE user_id = ? ORDER BY id').all(userId);
+  const languages = db.prepare('SELECT id, language, proficiency FROM user_languages WHERE user_id = ? ORDER BY id').all(userId);
+  const references = db.prepare('SELECT id, name, relationship, company, title, phone, email FROM user_references WHERE user_id = ? ORDER BY id').all(userId);
+  const about_me = db.prepare('SELECT challenge_you_overcame, greatest_strength, greatest_weakness, five_year_goals, leadership_experience, anything_else FROM user_about_me WHERE user_id = ?').get(userId);
+  const legal = db.prepare('SELECT us_work_authorization, requires_sponsorship, visa_type, over_18, security_clearance, needs_accommodation FROM user_legal WHERE user_id = ?').get(userId);
+  const eeo = db.prepare('SELECT gender, race_ethnicity, disability_status, veteran_status FROM user_eeo WHERE user_id = ?').get(userId);
+
+  // Parse JSON arrays
+  for (const e of education) {
+    try { e.relevant_coursework = e.relevant_coursework ? JSON.parse(e.relevant_coursework) : []; } catch { e.relevant_coursework = []; }
+  }
+  const docs = documents ? {
+    resume: documents.resume,
+    writing_samples: tryParseJson(documents.writing_samples, []),
+    portfolio_work_samples: tryParseJson(documents.portfolio_work_samples, []),
+    transcripts: tryParseJson(documents.transcripts, []),
+    certifications: tryParseJson(documents.certifications, []),
+    other_documents: tryParseJson(documents.other_documents, []),
+  } : null;
+
+  return {
+    personal_information: profile || Object.fromEntries(PROFILE_COLS.map(c => [c, null])),
+    documents: docs,
+    work_experience,
+    education,
+    skills,
+    languages,
+    references,
+    about_me: about_me || null,
+    legal: legal || null,
+    eeo: eeo || null,
+  };
+}
+
+function tryParseJson(val, fallback) {
+  if (!val) return fallback;
+  try { return JSON.parse(val); } catch { return fallback; }
+}
+
+function ensureProfileRow(userId) {
+  const existing = db.prepare('SELECT 1 FROM user_profiles WHERE user_id = ?').get(userId);
+  if (!existing) db.prepare('INSERT INTO user_profiles (user_id) VALUES (?)').run(userId);
+}
+
+function computeProfileCompleteness(userId) {
+  const profile = db.prepare(`SELECT ${PROFILE_COLS.join(', ')} FROM user_profiles WHERE user_id = ?`).get(userId);
+  if (!profile) return 0;
+  const requiredFields = ['first_name', 'last_name', 'phone_number', 'street_address', 'city', 'state', 'zip_code'];
+  let filled = 0;
+  let total = requiredFields.length + 4; // +4 for having at least one: work_exp, education, skill, about_me
+  for (const f of requiredFields) {
+    if (profile[f]) filled++;
+  }
+  const hasWork = db.prepare('SELECT 1 FROM user_work_experience WHERE user_id = ? LIMIT 1').get(userId);
+  const hasEdu = db.prepare('SELECT 1 FROM user_education WHERE user_id = ? LIMIT 1').get(userId);
+  const hasSkill = db.prepare('SELECT 1 FROM user_skills WHERE user_id = ? LIMIT 1').get(userId);
+  const hasAbout = db.prepare('SELECT 1 FROM user_about_me WHERE user_id = ? LIMIT 1').get(userId);
+  if (hasWork) filled++;
+  if (hasEdu) filled++;
+  if (hasSkill) filled++;
+  if (hasAbout) filled++;
+  return Math.round((filled / total) * 100);
+}
+
+function upsertSubTables(userId, clean) {
+  // documents
+  if (clean.documents) {
+    const d = clean.documents;
+    db.prepare('DELETE FROM user_documents WHERE user_id = ?').run(userId);
+    db.prepare(
+      `INSERT INTO user_documents (user_id, resume, writing_samples, portfolio_work_samples, transcripts, certifications, other_documents)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(userId,
+      typeof d.resume === 'string' ? d.resume.trim() || null : null,
+      Array.isArray(d.writing_samples) ? JSON.stringify(d.writing_samples) : null,
+      Array.isArray(d.portfolio_work_samples) ? JSON.stringify(d.portfolio_work_samples) : null,
+      Array.isArray(d.transcripts) ? JSON.stringify(d.transcripts) : null,
+      Array.isArray(d.certifications) ? JSON.stringify(d.certifications) : null,
+      Array.isArray(d.other_documents) ? JSON.stringify(d.other_documents) : null,
+    );
+  }
+
+  // work_experience — replace all
+  if (clean.work_experience) {
+    db.prepare('DELETE FROM user_work_experience WHERE user_id = ?').run(userId);
+    const stmt = db.prepare(
+      `INSERT INTO user_work_experience (user_id, job_title, company, city, state, employment_type, start_date, end_date, current_job, responsibilities, key_achievements)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    for (const w of clean.work_experience) {
+      if (!w || typeof w !== 'object') continue;
+      stmt.run(userId, w.job_title||null, w.company||null, w.city||null, w.state||null,
+        w.employment_type||null, w.start_date||null, w.end_date||null,
+        w.current_job ? 1 : 0, w.responsibilities||null, w.key_achievements||null);
+    }
+  }
+
+  // education — replace all
+  if (clean.education) {
+    db.prepare('DELETE FROM user_education WHERE user_id = ?').run(userId);
+    const stmt = db.prepare(
+      `INSERT INTO user_education (user_id, school, city, state, degree, major, minor, start_date, graduation_date, graduated, gpa, honors, relevant_coursework)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    for (const e of clean.education) {
+      if (!e || typeof e !== 'object') continue;
+      stmt.run(userId, e.school||null, e.city||null, e.state||null, e.degree||null,
+        e.major||null, e.minor||null, e.start_date||null, e.graduation_date||null,
+        e.graduated ? 1 : 0, e.gpa||null, e.honors||null,
+        Array.isArray(e.relevant_coursework) ? JSON.stringify(e.relevant_coursework) : null);
+    }
+  }
+
+  // skills — replace all
+  if (clean.skills) {
+    db.prepare('DELETE FROM user_skills WHERE user_id = ?').run(userId);
+    const stmt = db.prepare('INSERT INTO user_skills (user_id, skill, proficiency, years) VALUES (?, ?, ?, ?)');
+    for (const s of clean.skills) {
+      if (!s || typeof s !== 'object' || !s.skill) continue;
+      stmt.run(userId, s.skill, s.proficiency||null, s.years != null ? Number(s.years) : null);
+    }
+  }
+
+  // languages — replace all
+  if (clean.languages) {
+    db.prepare('DELETE FROM user_languages WHERE user_id = ?').run(userId);
+    const stmt = db.prepare('INSERT INTO user_languages (user_id, language, proficiency) VALUES (?, ?, ?)');
+    for (const l of clean.languages) {
+      if (!l || typeof l !== 'object' || !l.language) continue;
+      stmt.run(userId, l.language, l.proficiency||null);
+    }
+  }
+
+  // references — replace all
+  if (clean.references) {
+    db.prepare('DELETE FROM user_references WHERE user_id = ?').run(userId);
+    const stmt = db.prepare('INSERT INTO user_references (user_id, name, relationship, company, title, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    for (const r of clean.references) {
+      if (!r || typeof r !== 'object') continue;
+      stmt.run(userId, r.name||null, r.relationship||null, r.company||null, r.title||null, r.phone||null, r.email||null);
+    }
+  }
+
+  // about_me — upsert
+  if (clean.about_me) {
+    const a = clean.about_me;
+    db.prepare('DELETE FROM user_about_me WHERE user_id = ?').run(userId);
+    db.prepare(
+      `INSERT INTO user_about_me (user_id, challenge_you_overcame, greatest_strength, greatest_weakness, five_year_goals, leadership_experience, anything_else)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(userId, a.challenge_you_overcame||null, a.greatest_strength||null, a.greatest_weakness||null,
+      a.five_year_goals||null, a.leadership_experience||null, a.anything_else||null);
+  }
+
+  // legal — upsert
+  if (clean.legal) {
+    const l = clean.legal;
+    db.prepare('DELETE FROM user_legal WHERE user_id = ?').run(userId);
+    db.prepare(
+      `INSERT INTO user_legal (user_id, us_work_authorization, requires_sponsorship, visa_type, over_18, security_clearance, needs_accommodation)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(userId, l.us_work_authorization ? 1 : 0, l.requires_sponsorship ? 1 : 0,
+      l.visa_type||null, l.over_18 ? 1 : 0, l.security_clearance||null, l.needs_accommodation ? 1 : 0);
+  }
+
+  // eeo — upsert
+  if (clean.eeo) {
+    const e = clean.eeo;
+    db.prepare('DELETE FROM user_eeo WHERE user_id = ?').run(userId);
+    db.prepare(
+      `INSERT INTO user_eeo (user_id, gender, race_ethnicity, disability_status, veteran_status) VALUES (?, ?, ?, ?, ?)`
+    ).run(userId, e.gender||null, e.race_ethnicity||null, e.disability_status||null, e.veteran_status||null);
+  }
 }
 
 router.get('/profile', requireAuth, requireApplicant, (req, res) => {
-  const userId = req.user.id;
   try {
-    const profile = loadProfileRow(userId);
-    if (!profile) {
-      const empty = Object.fromEntries(PROFILE_FIELDS.map((f) => [f, null]));
-      return res.json({ profile: { ...empty, updated_at: null } });
-    }
-    return res.json({ profile });
+    return res.json({ profile: loadFullProfile(req.user.id) });
   } catch (e) {
     console.error('[applicant/profile GET]', e);
     return res.status(500).json({ error: 'server_error' });
@@ -155,7 +256,6 @@ router.get('/profile', requireAuth, requireApplicant, (req, res) => {
 });
 
 router.post('/profile/review', requireAuth, requireApplicant, async (req, res) => {
-  const userId = req.user.id;
   let clean;
   try {
     clean = sanitizeProfileUpdate(req.body?.profile);
@@ -163,7 +263,7 @@ router.post('/profile/review', requireAuth, requireApplicant, async (req, res) =
     return res.status(400).json({ error: e.code || 'invalid_profile', detail: e.message });
   }
   try {
-    const current = loadProfileRow(userId) || {};
+    const current = loadFullProfile(req.user.id);
     const result = await reviewProfileChanges(current, clean);
     return res.json(result);
   } catch (e) {
@@ -181,23 +281,22 @@ router.patch('/profile', requireAuth, requireApplicant, (req, res) => {
     return res.status(400).json({ error: e.code || 'invalid_profile', detail: e.message });
   }
 
-  const keys = Object.keys(clean);
-  if (keys.length === 0) {
-    const profile = loadProfileRow(userId);
-    return res.json({ profile });
-  }
-
   try {
     ensureProfileRow(userId);
-    const setSql = keys.map((k) => `${k} = @${k}`).join(', ');
-    db.prepare(
-      `UPDATE user_profiles
-          SET ${setSql}, updated_at = datetime('now')
-        WHERE user_id = @user_id`
-    ).run({ ...clean, user_id: userId });
 
-    const profile = loadProfileRow(userId);
-    return res.json({ profile });
+    // Update flat profile fields
+    const flatKeys = Object.keys(clean).filter(k => PROFILE_COLS.includes(k));
+    if (flatKeys.length > 0) {
+      const setSql = flatKeys.map(k => `${k} = @${k}`).join(', ');
+      db.prepare(
+        `UPDATE user_profiles SET ${setSql}, updated_at = datetime('now') WHERE user_id = @user_id`
+      ).run({ ...Object.fromEntries(flatKeys.map(k => [k, clean[k]])), user_id: userId });
+    }
+
+    // Update sub-tables
+    upsertSubTables(userId, clean);
+
+    return res.json({ profile: loadFullProfile(userId) });
   } catch (e) {
     console.error('[applicant/profile PATCH]', e);
     return res.status(500).json({ error: 'server_error' });
@@ -208,11 +307,7 @@ router.get('/home', requireAuth, requireApplicant, (req, res) => {
   const userId = req.user.id;
 
   try {
-    const profile = db
-      .prepare(`SELECT ${PROFILE_FIELDS.join(', ')} FROM user_profiles WHERE user_id = ?`)
-      .get(userId);
-
-    const profile_completeness = computeProfileCompleteness(profile);
+    const profile_completeness = computeProfileCompleteness(userId);
 
     const { active_conversations } = db
       .prepare(
@@ -326,67 +421,34 @@ router.get('/home', requireAuth, requireApplicant, (req, res) => {
 
 router.get('/jobs', requireAuth, requireApplicant, (req, res) => {
   try {
-    const {
-      q,
-      employment_type,
-      remote,
-      location,
-      limit: rawLimit,
-      offset: rawOffset,
-    } = req.query;
-
+    const { q, employment_type, remote, location, limit: rawLimit, offset: rawOffset } = req.query;
     const limit = Math.max(1, Math.min(100, parseInt(rawLimit, 10) || 50));
     const offset = Math.max(0, parseInt(rawOffset, 10) || 0);
-
     const where = ['jp.is_active = 1'];
     const params = [];
-
     if (q && typeof q === 'string' && q.trim() !== '') {
       const like = `%${q.trim()}%`;
       where.push('(jp.title LIKE ? OR jp.company LIKE ? OR jp.description LIKE ?)');
       params.push(like, like, like);
     }
-
     if (employment_type && typeof employment_type === 'string') {
       const allowed = ['FullTime', 'PartTime', 'Contract', 'Internship', 'Temporary'];
-      if (allowed.includes(employment_type)) {
-        where.push('jp.employment_type = ?');
-        params.push(employment_type);
-      }
+      if (allowed.includes(employment_type)) { where.push('jp.employment_type = ?'); params.push(employment_type); }
     }
-
-    if (remote === '1' || remote === 'true') {
-      where.push('jp.remote = 1');
-    } else if (remote === '0' || remote === 'false') {
-      where.push('jp.remote = 0');
-    }
-
+    if (remote === '1' || remote === 'true') where.push('jp.remote = 1');
+    else if (remote === '0' || remote === 'false') where.push('jp.remote = 0');
     if (location && typeof location === 'string' && location.trim() !== '') {
-      where.push('jp.location LIKE ?');
-      params.push(`%${location.trim()}%`);
+      where.push('jp.location LIKE ?'); params.push(`%${location.trim()}%`);
     }
-
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-
-    const { total } = db
-      .prepare(`SELECT COUNT(*) AS total FROM job_postings jp ${whereSql}`)
-      .get(...params);
-
-    const jobs = db
-      .prepare(
-        `SELECT
-           jp.id, jp.title, jp.company, jp.description, jp.location, jp.remote,
-           jp.employment_type, jp.salary_min, jp.salary_max, jp.salary_currency,
-           jp.created_at,
-           u.username AS poster_username
-         FROM job_postings jp
-         JOIN users u ON u.id = jp.poster_id
-         ${whereSql}
-         ORDER BY jp.created_at DESC
-         LIMIT ? OFFSET ?`
-      )
-      .all(...params, limit, offset);
-
+    const { total } = db.prepare(`SELECT COUNT(*) AS total FROM job_postings jp ${whereSql}`).get(...params);
+    const jobs = db.prepare(
+      `SELECT jp.id, jp.title, jp.company, jp.description, jp.location, jp.remote,
+              jp.employment_type, jp.salary_min, jp.salary_max, jp.salary_currency, jp.created_at,
+              u.username AS poster_username
+         FROM job_postings jp JOIN users u ON u.id = jp.poster_id ${whereSql}
+         ORDER BY jp.created_at DESC LIMIT ? OFFSET ?`
+    ).all(...params, limit, offset);
     return res.json({ total, limit, offset, jobs });
   } catch (e) {
     console.error('[applicant/jobs]', e);
@@ -399,121 +461,39 @@ const APPLICATION_STATUSES = ['Pending', 'Declined', 'SentToRecruiter'];
 router.get('/applications', requireAuth, requireApplicant, (req, res) => {
   try {
     const userId = req.user.id;
-    const {
-      q,
-      status,
-      limit: rawLimit,
-      offset: rawOffset,
-    } = req.query;
-
+    const { q, status, limit: rawLimit, offset: rawOffset } = req.query;
     const limit = Math.max(1, Math.min(100, parseInt(rawLimit, 10) || 50));
     const offset = Math.max(0, parseInt(rawOffset, 10) || 0);
-
     const where = ['a.applicant_id = ?'];
     const params = [userId];
-
     if (status && typeof status === 'string') {
-      const list = status
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => APPLICATION_STATUSES.includes(s));
-      if (list.length > 0) {
-        where.push(`a.status IN (${list.map(() => '?').join(',')})`);
-        params.push(...list);
-      }
+      const list = status.split(',').map(s => s.trim()).filter(s => APPLICATION_STATUSES.includes(s));
+      if (list.length > 0) { where.push(`a.status IN (${list.map(() => '?').join(',')})`); params.push(...list); }
     }
-
     if (q && typeof q === 'string' && q.trim() !== '') {
       const like = `%${q.trim()}%`;
-      where.push(
-        '(jp.title LIKE ? OR jp.company LIKE ? OR jp.location LIKE ? OR u.username LIKE ?)'
-      );
+      where.push('(jp.title LIKE ? OR jp.company LIKE ? OR jp.location LIKE ? OR u.username LIKE ?)');
       params.push(like, like, like, like);
     }
-
     const whereSql = `WHERE ${where.join(' AND ')}`;
-
-    const { total } = db
-      .prepare(
-        `SELECT COUNT(*) AS total
-           FROM applications a
-           JOIN job_postings jp ON jp.id = a.job_posting_id
-           JOIN users u         ON u.id = jp.poster_id
-           ${whereSql}`
-      )
-      .get(...params);
-
-    const counts = db
-      .prepare(
-        `SELECT a.status AS status, COUNT(*) AS n
-           FROM applications a
-          WHERE a.applicant_id = ?
-          GROUP BY a.status`
-      )
-      .all(userId);
-
-    const status_counts = {
-      Pending: 0,
-      Declined: 0,
-      SentToRecruiter: 0,
-    };
+    const { total } = db.prepare(`SELECT COUNT(*) AS total FROM applications a JOIN job_postings jp ON jp.id = a.job_posting_id JOIN users u ON u.id = jp.poster_id ${whereSql}`).get(...params);
+    const counts = db.prepare('SELECT a.status AS status, COUNT(*) AS n FROM applications a WHERE a.applicant_id = ? GROUP BY a.status').all(userId);
+    const status_counts = { Pending: 0, Declined: 0, SentToRecruiter: 0 };
     for (const row of counts) status_counts[row.status] = row.n;
-
-    const applications = db
-      .prepare(
-        `SELECT
-           a.id              AS id,
-           a.status          AS status,
-           a.notes           AS notes,
-           a.created_at      AS applied_at,
-           a.updated_at      AS updated_at,
-           jp.id             AS job_id,
-           jp.title          AS job_title,
-           jp.company        AS company,
-           jp.location       AS location,
-           jp.remote         AS remote,
-           jp.employment_type AS employment_type,
-           jp.salary_min     AS salary_min,
-           jp.salary_max     AS salary_max,
-           jp.salary_currency AS salary_currency,
-           jp.is_active      AS job_is_active,
-           u.username        AS poster_username
-         FROM applications a
-         JOIN job_postings jp ON jp.id = a.job_posting_id
-         JOIN users u         ON u.id  = jp.poster_id
-         ${whereSql}
-         ORDER BY a.updated_at DESC, a.id DESC
-         LIMIT ? OFFSET ?`
-      )
-      .all(...params, limit, offset)
-      .map((r) => ({
-        id: r.id,
-        status: r.status,
-        notes: r.notes,
-        applied_at: r.applied_at,
-        updated_at: r.updated_at,
-        job: {
-          id: r.job_id,
-          title: r.job_title,
-          company: r.company,
-          location: r.location,
-          remote: r.remote,
-          employment_type: r.employment_type,
-          salary_min: r.salary_min,
-          salary_max: r.salary_max,
-          salary_currency: r.salary_currency,
-          is_active: r.job_is_active,
-          poster_username: r.poster_username,
-        },
-      }));
-
-    return res.json({
-      total,
-      limit,
-      offset,
-      status_counts,
-      applications,
-    });
+    const applications = db.prepare(
+      `SELECT a.id, a.status, a.notes, a.created_at AS applied_at, a.updated_at,
+              jp.id AS job_id, jp.title AS job_title, jp.company, jp.location, jp.remote,
+              jp.employment_type, jp.salary_min, jp.salary_max, jp.salary_currency, jp.is_active AS job_is_active,
+              u.username AS poster_username
+         FROM applications a JOIN job_postings jp ON jp.id = a.job_posting_id JOIN users u ON u.id = jp.poster_id
+         ${whereSql} ORDER BY a.updated_at DESC, a.id DESC LIMIT ? OFFSET ?`
+    ).all(...params, limit, offset).map(r => ({
+      id: r.id, status: r.status, notes: r.notes, applied_at: r.applied_at, updated_at: r.updated_at,
+      job: { id: r.job_id, title: r.job_title, company: r.company, location: r.location, remote: r.remote,
+        employment_type: r.employment_type, salary_min: r.salary_min, salary_max: r.salary_max,
+        salary_currency: r.salary_currency, is_active: r.job_is_active, poster_username: r.poster_username },
+    }));
+    return res.json({ total, limit, offset, status_counts, applications });
   } catch (e) {
     console.error('[applicant/applications]', e);
     return res.status(500).json({ error: 'server_error' });
@@ -524,100 +504,39 @@ router.get('/conversations', requireAuth, requireApplicant, (req, res) => {
   try {
     const userId = req.user.id;
     const { q, active: activeRaw } = req.query;
-
     const where = ['(c.user_1_id = ? OR c.user_2_id = ?)'];
     const params = [userId, userId];
-
-    if (activeRaw === '1' || activeRaw === 'true') {
-      where.push('c.active = 1');
-    } else if (activeRaw === '0' || activeRaw === 'false') {
-      where.push('c.active = 0');
-    }
-
+    if (activeRaw === '1' || activeRaw === 'true') where.push('c.active = 1');
+    else if (activeRaw === '0' || activeRaw === 'false') where.push('c.active = 0');
     const whereSql = `WHERE ${where.join(' AND ')}`;
-
-    const rows = db
-      .prepare(
-        `SELECT
-           c.id                                             AS id,
-           c.job_posting_id                                 AS job_posting_id,
-           c.active                                         AS active,
-           c.created_at                                     AS created_at,
-           CASE WHEN c.user_1_id = ? THEN c.user_2_id
-                                     ELSE c.user_1_id END   AS other_user_id,
-           jp.title                                         AS job_title,
-           jp.company                                       AS job_company,
-           (SELECT m.conversation_content
-              FROM messages m
-             WHERE m.conversation_id = c.id
-             ORDER BY m.conversation_index DESC
-             LIMIT 1)                                       AS last_message,
-           (SELECT m.created_at
-              FROM messages m
-             WHERE m.conversation_id = c.id
-             ORDER BY m.conversation_index DESC
-             LIMIT 1)                                       AS last_message_at,
-           (SELECT m.user_id
-              FROM messages m
-             WHERE m.conversation_id = c.id
-             ORDER BY m.conversation_index DESC
-             LIMIT 1)                                       AS last_message_user_id
-         FROM conversations c
-         LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
-         ${whereSql}
-         ORDER BY COALESCE(
-           (SELECT m.created_at FROM messages m
-             WHERE m.conversation_id = c.id
-             ORDER BY m.conversation_index DESC LIMIT 1),
-           c.created_at
-         ) DESC`
-      )
-      .all(userId, ...params);
-
-    const otherIds = [...new Set(rows.map((r) => r.other_user_id))];
-    const otherUsers = otherIds.length
-      ? db
-          .prepare(
-            `SELECT id, username, role
-               FROM users
-              WHERE id IN (${otherIds.map(() => '?').join(',')})`
-          )
-          .all(...otherIds)
-      : [];
-    const otherById = new Map(otherUsers.map((u) => [u.id, u]));
-
-    let conversations = rows.map((r) => ({
-      id: r.id,
-      job_posting_id: r.job_posting_id,
-      job_title: r.job_title,
-      job_company: r.job_company,
-      active: r.active,
-      created_at: r.created_at,
-      last_message: r.last_message,
-      last_message_at: r.last_message_at,
-      last_message_from_me:
-        r.last_message_user_id != null
-          ? r.last_message_user_id === userId
-          : null,
-      other_party: otherById.get(r.other_user_id) || {
-        id: r.other_user_id,
-        username: 'unknown',
-        role: 'Unknown',
-      },
+    const rows = db.prepare(
+      `SELECT c.id, c.job_posting_id, c.active, c.created_at,
+              CASE WHEN c.user_1_id = ? THEN c.user_2_id ELSE c.user_1_id END AS other_user_id,
+              jp.title AS job_title, jp.company AS job_company,
+              (SELECT m.conversation_content FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1) AS last_message,
+              (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1) AS last_message_at,
+              (SELECT m.user_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1) AS last_message_user_id
+         FROM conversations c LEFT JOIN job_postings jp ON jp.id = c.job_posting_id ${whereSql}
+         ORDER BY COALESCE((SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1), c.created_at) DESC`
+    ).all(userId, ...params);
+    const otherIds = [...new Set(rows.map(r => r.other_user_id))];
+    const otherUsers = otherIds.length ? db.prepare(`SELECT id, username, role FROM users WHERE id IN (${otherIds.map(() => '?').join(',')})`).all(...otherIds) : [];
+    const otherById = new Map(otherUsers.map(u => [u.id, u]));
+    let conversations = rows.map(r => ({
+      id: r.id, job_posting_id: r.job_posting_id, job_title: r.job_title, job_company: r.job_company,
+      active: r.active, created_at: r.created_at, last_message: r.last_message, last_message_at: r.last_message_at,
+      last_message_from_me: r.last_message_user_id != null ? r.last_message_user_id === userId : null,
+      other_party: otherById.get(r.other_user_id) || { id: r.other_user_id, username: 'unknown', role: 'Unknown' },
     }));
-
     if (q && typeof q === 'string' && q.trim() !== '') {
       const needle = q.trim().toLowerCase();
-      conversations = conversations.filter((c) => {
-        return (
-          c.other_party.username.toLowerCase().includes(needle) ||
-          (c.job_title && c.job_title.toLowerCase().includes(needle)) ||
-          (c.job_company && c.job_company.toLowerCase().includes(needle)) ||
-          (c.last_message && c.last_message.toLowerCase().includes(needle))
-        );
-      });
+      conversations = conversations.filter(c =>
+        c.other_party.username.toLowerCase().includes(needle) ||
+        (c.job_title && c.job_title.toLowerCase().includes(needle)) ||
+        (c.job_company && c.job_company.toLowerCase().includes(needle)) ||
+        (c.last_message && c.last_message.toLowerCase().includes(needle))
+      );
     }
-
     return res.json({ conversations });
   } catch (e) {
     console.error('[applicant/conversations]', e);
@@ -626,157 +545,60 @@ router.get('/conversations', requireAuth, requireApplicant, (req, res) => {
 });
 
 function loadConversationForUser(conversationId, userId) {
-  return db
-    .prepare(
-      `SELECT
-         c.id              AS id,
-         c.user_1_id       AS user_1_id,
-         c.user_2_id       AS user_2_id,
-         c.job_posting_id  AS job_posting_id,
-         c.active          AS active,
-         c.created_at      AS created_at,
-         jp.title          AS job_title,
-         jp.company        AS job_company
-       FROM conversations c
-       LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
-       WHERE c.id = ? AND (c.user_1_id = ? OR c.user_2_id = ?)`
-    )
-    .get(conversationId, userId, userId);
+  return db.prepare(
+    `SELECT c.id, c.user_1_id, c.user_2_id, c.job_posting_id, c.active, c.created_at,
+            jp.title AS job_title, jp.company AS job_company
+       FROM conversations c LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+      WHERE c.id = ? AND (c.user_1_id = ? OR c.user_2_id = ?)`
+  ).get(conversationId, userId, userId);
 }
 
-router.get(
-  '/conversations/:id/messages',
-  requireAuth,
-  requireApplicant,
-  (req, res) => {
-    const userId = req.user.id;
-    const conversationId = parseInt(req.params.id, 10);
-    if (!Number.isInteger(conversationId) || conversationId <= 0) {
-      return res.status(400).json({ error: 'invalid_conversation_id' });
-    }
-
-    try {
-      const convo = loadConversationForUser(conversationId, userId);
-      if (!convo) return res.status(404).json({ error: 'not_found' });
-
-      const otherUserId =
-        convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
-
-      const otherParty = db
-        .prepare('SELECT id, username, role FROM users WHERE id = ?')
-        .get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
-
-      const messages = db
-        .prepare(
-          `SELECT
-             conversation_index   AS index,
-             user_id              AS user_id,
-             conversation_content AS content,
-             created_at           AS created_at
-           FROM messages
-          WHERE conversation_id = ?
-          ORDER BY conversation_index ASC`
-        )
-        .all(conversationId)
-        .map((m) => ({
-          index: m.index,
-          user_id: m.user_id,
-          content: m.content,
-          created_at: m.created_at,
-          from_me: m.user_id === userId,
-        }));
-
-      return res.json({
-        conversation: {
-          id: convo.id,
-          job_posting_id: convo.job_posting_id,
-          job_title: convo.job_title,
-          job_company: convo.job_company,
-          active: convo.active,
-          created_at: convo.created_at,
-          other_party: otherParty,
-        },
-        messages,
-      });
-    } catch (e) {
-      console.error('[applicant/conversations/messages GET]', e);
-      return res.status(500).json({ error: 'server_error' });
-    }
+router.get('/conversations/:id/messages', requireAuth, requireApplicant, (req, res) => {
+  const userId = req.user.id;
+  const conversationId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(conversationId) || conversationId <= 0) return res.status(400).json({ error: 'invalid_conversation_id' });
+  try {
+    const convo = loadConversationForUser(conversationId, userId);
+    if (!convo) return res.status(404).json({ error: 'not_found' });
+    const otherUserId = convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
+    const otherParty = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
+    const messages = db.prepare(
+      `SELECT conversation_index AS 'index', user_id, conversation_content AS content, created_at
+         FROM messages WHERE conversation_id = ? ORDER BY conversation_index ASC`
+    ).all(conversationId).map(m => ({ ...m, from_me: m.user_id === userId }));
+    return res.json({
+      conversation: { id: convo.id, job_posting_id: convo.job_posting_id, job_title: convo.job_title, job_company: convo.job_company, active: convo.active, created_at: convo.created_at, other_party: otherParty },
+      messages,
+    });
+  } catch (e) {
+    console.error('[applicant/conversations/messages GET]', e);
+    return res.status(500).json({ error: 'server_error' });
   }
-);
+});
 
-router.post(
-  '/conversations/:id/messages',
-  requireAuth,
-  requireApplicant,
-  (req, res) => {
-    const userId = req.user.id;
-    const conversationId = parseInt(req.params.id, 10);
-    if (!Number.isInteger(conversationId) || conversationId <= 0) {
-      return res.status(400).json({ error: 'invalid_conversation_id' });
-    }
-
-    const rawContent = req.body?.content;
-    if (typeof rawContent !== 'string') {
-      return res.status(400).json({ error: 'invalid_content' });
-    }
-    const content = rawContent.trim();
-    if (content === '') {
-      return res.status(400).json({ error: 'empty_content' });
-    }
-    if (content.length > 4000) {
-      return res.status(400).json({ error: 'content_too_long' });
-    }
-
-    try {
-      const convo = loadConversationForUser(conversationId, userId);
-      if (!convo) return res.status(404).json({ error: 'not_found' });
-      if (convo.active === 0) {
-        return res.status(409).json({ error: 'conversation_closed' });
-      }
-
-      const inserted = db.transaction(() => {
-        const { next_index } = db
-          .prepare(
-            `SELECT COALESCE(MAX(conversation_index) + 1, 0) AS next_index
-               FROM messages
-              WHERE conversation_id = ?`
-          )
-          .get(conversationId);
-
-        db.prepare(
-          `INSERT INTO messages
-             (conversation_id, conversation_index, user_id, conversation_content)
-           VALUES (?, ?, ?, ?)`
-        ).run(conversationId, next_index, userId, content);
-
-        return db
-          .prepare(
-            `SELECT
-               conversation_index   AS index,
-               user_id              AS user_id,
-               conversation_content AS content,
-               created_at           AS created_at
-             FROM messages
-            WHERE conversation_id = ? AND conversation_index = ?`
-          )
-          .get(conversationId, next_index);
-      })();
-
-      return res.status(201).json({
-        message: {
-          index: inserted.index,
-          user_id: inserted.user_id,
-          content: inserted.content,
-          created_at: inserted.created_at,
-          from_me: true,
-        },
-      });
-    } catch (e) {
-      console.error('[applicant/conversations/messages POST]', e);
-      return res.status(500).json({ error: 'server_error' });
-    }
+router.post('/conversations/:id/messages', requireAuth, requireApplicant, (req, res) => {
+  const userId = req.user.id;
+  const conversationId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(conversationId) || conversationId <= 0) return res.status(400).json({ error: 'invalid_conversation_id' });
+  const rawContent = req.body?.content;
+  if (typeof rawContent !== 'string') return res.status(400).json({ error: 'invalid_content' });
+  const content = rawContent.trim();
+  if (content === '') return res.status(400).json({ error: 'empty_content' });
+  if (content.length > 4000) return res.status(400).json({ error: 'content_too_long' });
+  try {
+    const convo = loadConversationForUser(conversationId, userId);
+    if (!convo) return res.status(404).json({ error: 'not_found' });
+    if (convo.active === 0) return res.status(409).json({ error: 'conversation_closed' });
+    const inserted = db.transaction(() => {
+      const { next_index } = db.prepare('SELECT COALESCE(MAX(conversation_index) + 1, 0) AS next_index FROM messages WHERE conversation_id = ?').get(conversationId);
+      db.prepare('INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content) VALUES (?, ?, ?, ?)').run(conversationId, next_index, userId, content);
+      return db.prepare('SELECT conversation_index AS \'index\', user_id, conversation_content AS content, created_at FROM messages WHERE conversation_id = ? AND conversation_index = ?').get(conversationId, next_index);
+    })();
+    return res.status(201).json({ message: { ...inserted, from_me: true } });
+  } catch (e) {
+    console.error('[applicant/conversations/messages POST]', e);
+    return res.status(500).json({ error: 'server_error' });
   }
-);
+});
 
 module.exports = router;

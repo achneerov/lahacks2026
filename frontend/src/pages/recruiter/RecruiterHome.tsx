@@ -177,9 +177,6 @@ export default function RecruiterHome() {
                       · {formatRelative(a.applied_at)}
                     </span>
                   </div>
-                  {a.applicant.headline && (
-                    <p style={styles.itemBody}>{a.applicant.headline}</p>
-                  )}
                 </li>
               ))}
             </ul>

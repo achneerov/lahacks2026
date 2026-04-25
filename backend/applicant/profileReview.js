@@ -1,24 +1,25 @@
 const SENSITIVE_FIELDS = new Set([
-  'full_name',
-  'years_experience',
+  'first_name',
+  'last_name',
 ]);
 
 const FIELD_LABELS = {
-  full_name: 'Full name',
-  phone: 'Phone',
-  address_line1: 'Address line 1',
-  address_line2: 'Address line 2',
+  first_name: 'First name',
+  middle_initial: 'Middle initial',
+  last_name: 'Last name',
+  preferred_name: 'Preferred name',
+  pronouns: 'Pronouns',
+  date_of_birth: 'Date of birth',
+  phone_number: 'Phone number',
+  alternative_phone: 'Alternative phone',
+  street_address: 'Street address',
+  apt_suite_unit: 'Apt / Suite / Unit',
   city: 'City',
   state: 'State',
-  postal_code: 'Postal code',
-  country: 'Country',
-  headline: 'Headline',
-  bio: 'Bio',
-  resume_url: 'Resume URL',
+  zip_code: 'ZIP code',
   linkedin_url: 'LinkedIn URL',
-  github_url: 'GitHub URL',
-  portfolio_url: 'Portfolio URL',
-  years_experience: 'Years of experience',
+  website_portfolio: 'Website / Portfolio',
+  github_or_other_portfolio: 'GitHub / Other portfolio',
 };
 
 const TICKET_MESSAGE =
@@ -48,17 +49,18 @@ function tokenOverlap(a, b) {
 
 function heuristicReview(currentProfile, proposed) {
   const warnings = {};
+  const current = currentProfile?.personal_information || currentProfile || {};
 
   for (const [field, newValueRaw] of Object.entries(proposed)) {
     if (!SENSITIVE_FIELDS.has(field)) continue;
 
-    const oldValue = currentProfile?.[field] ?? null;
+    const oldValue = current[field] ?? null;
     const newValue =
       newValueRaw === '' || newValueRaw === undefined ? null : newValueRaw;
 
     if (oldValue === newValue) continue;
 
-    if (field === 'full_name') {
+    if (field === 'first_name' || field === 'last_name') {
       if (oldValue && newValue) {
         const overlap = tokenOverlap(oldValue, newValue);
         if (overlap < 0.5) {
@@ -66,16 +68,6 @@ function heuristicReview(currentProfile, proposed) {
         }
       }
       continue;
-    }
-
-    if (field === 'years_experience') {
-      const oldN = oldValue == null ? null : Number(oldValue);
-      const newN = newValue == null ? null : Number(newValue);
-      if (oldN != null && newN != null) {
-        if (newN < oldN) {
-          warnings[field] = TICKET_MESSAGE;
-        }
-      }
     }
   }
 
@@ -86,9 +78,11 @@ async function llmReview(currentProfile, proposed) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
+  const current = currentProfile?.personal_information || currentProfile || {};
   const changes = [];
   for (const [field, newValueRaw] of Object.entries(proposed)) {
-    const oldValue = currentProfile?.[field] ?? null;
+    if (typeof newValueRaw === 'object') continue; // skip sub-sections for LLM review
+    const oldValue = current[field] ?? null;
     const newValue =
       newValueRaw === '' || newValueRaw === undefined ? null : newValueRaw;
     if (oldValue === newValue) continue;
@@ -103,9 +97,9 @@ async function llmReview(currentProfile, proposed) {
 
   const sys = `You are reviewing a job applicant profile edit. For each field change, decide whether the change looks suspicious enough that the applicant probably should NOT be editing it themselves and should instead open a support ticket.
 
-A change is suspicious if it looks like the applicant is rewriting an immutable identity / credential fact (e.g. legal name swapped to a different person, graduation year materially changed, years of experience reduced, degree downgraded, etc.).
+A change is suspicious if it looks like the applicant is rewriting an immutable identity / credential fact (e.g. legal name swapped to a different person).
 
-A change is NOT suspicious if it is a typo fix, formatting tweak, capitalization fix, expansion of an abbreviation, completing a previously empty value, or a routine update (new phone, new address, new bio).
+A change is NOT suspicious if it is a typo fix, formatting tweak, capitalization fix, expansion of an abbreviation, completing a previously empty value, or a routine update (new phone, new address).
 
 Return STRICT JSON of the form:
 {"warnings": {"<field>": "We're not sure you should be editing this — please open a ticket to edit this field."}}

@@ -66,40 +66,148 @@ export interface SignupBasicsResponse {
 }
 
 export interface ApplicantProfileInput {
-  full_name?: string;
-  phone?: string;
-  address_line1?: string;
-  address_line2?: string;
+  // personal info
+  first_name?: string;
+  middle_initial?: string;
+  last_name?: string;
+  preferred_name?: string;
+  pronouns?: string;
+  date_of_birth?: string;
+  phone_number?: string;
+  alternative_phone?: string;
+  // address
+  street_address?: string;
+  apt_suite_unit?: string;
   city?: string;
   state?: string;
-  postal_code?: string;
-  country?: string;
-  headline?: string;
-  bio?: string;
-  resume_url?: string;
+  zip_code?: string;
+  // links
   linkedin_url?: string;
-  github_url?: string;
-  portfolio_url?: string;
-  years_experience?: number | null;
+  website_portfolio?: string;
+  github_or_other_portfolio?: string;
+  // sub-sections
+  documents?: DocumentsInput;
+  work_experience?: WorkExperienceInput[];
+  education?: EducationInput[];
+  skills?: SkillInput[];
+  languages?: LanguageInput[];
+  references?: ReferenceInput[];
+  about_me?: AboutMeInput;
+  legal?: LegalInput;
+  eeo?: EeoInput;
+}
+
+export interface DocumentsInput {
+  resume?: string;
+  writing_samples?: string[];
+  portfolio_work_samples?: string[];
+  transcripts?: string[];
+  certifications?: string[];
+  other_documents?: string[];
+}
+
+export interface WorkExperienceInput {
+  job_title?: string;
+  company?: string;
+  city?: string;
+  state?: string;
+  employment_type?: string;
+  start_date?: string;
+  end_date?: string;
+  current_job?: boolean;
+  responsibilities?: string;
+  key_achievements?: string;
+}
+
+export interface EducationInput {
+  school?: string;
+  city?: string;
+  state?: string;
+  degree?: string;
+  major?: string;
+  minor?: string;
+  start_date?: string;
+  graduation_date?: string;
+  graduated?: boolean;
+  gpa?: string;
+  honors?: string;
+  relevant_coursework?: string[];
+}
+
+export interface SkillInput {
+  skill: string;
+  proficiency?: string;
+  years?: number | null;
+}
+
+export interface LanguageInput {
+  language: string;
+  proficiency?: string;
+}
+
+export interface ReferenceInput {
+  name?: string;
+  relationship?: string;
+  company?: string;
+  title?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface AboutMeInput {
+  challenge_you_overcame?: string;
+  greatest_strength?: string;
+  greatest_weakness?: string;
+  five_year_goals?: string;
+  leadership_experience?: string;
+  anything_else?: string;
+}
+
+export interface LegalInput {
+  us_work_authorization?: boolean;
+  requires_sponsorship?: boolean;
+  visa_type?: string;
+  over_18?: boolean;
+  security_clearance?: string;
+  needs_accommodation?: boolean;
+}
+
+export interface EeoInput {
+  gender?: string;
+  race_ethnicity?: string;
+  disability_status?: string;
+  veteran_status?: string;
 }
 
 export interface ApplicantProfile {
-  full_name: string | null;
-  phone: string | null;
-  address_line1: string | null;
-  address_line2: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
-  country: string | null;
-  headline: string | null;
-  bio: string | null;
-  resume_url: string | null;
-  linkedin_url: string | null;
-  github_url: string | null;
-  portfolio_url: string | null;
-  years_experience: number | null;
-  updated_at: string | null;
+  personal_information: {
+    first_name: string | null;
+    middle_initial: string | null;
+    last_name: string | null;
+    preferred_name: string | null;
+    pronouns: string | null;
+    date_of_birth: string | null;
+    phone_number: string | null;
+    alternative_phone: string | null;
+    street_address: string | null;
+    apt_suite_unit: string | null;
+    city: string | null;
+    state: string | null;
+    zip_code: string | null;
+    linkedin_url: string | null;
+    website_portfolio: string | null;
+    github_or_other_portfolio: string | null;
+    updated_at?: string | null;
+  };
+  documents: DocumentsInput | null;
+  work_experience: (WorkExperienceInput & { id?: number })[];
+  education: (EducationInput & { id?: number })[];
+  skills: (SkillInput & { id?: number })[];
+  languages: (LanguageInput & { id?: number })[];
+  references: (ReferenceInput & { id?: number })[];
+  about_me: AboutMeInput | null;
+  legal: LegalInput | null;
+  eeo: EeoInput | null;
 }
 
 export interface ApplicantProfileResponse {
@@ -107,7 +215,7 @@ export interface ApplicantProfileResponse {
 }
 
 export interface ApplicantProfileReviewResponse {
-  warnings: Partial<Record<keyof ApplicantProfileInput, string>>;
+  warnings: Record<string, string>;
   source: 'llm' | 'heuristic';
 }
 
@@ -196,7 +304,6 @@ export interface RecruiterRecentApplication {
     id: number;
     username: string;
     full_name: string | null;
-    headline: string | null;
   };
 }
 

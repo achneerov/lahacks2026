@@ -15,19 +15,22 @@ const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
 const URL_RE = /^https?:\/\/[^\s]+$/i;
 
 const PROFILE_TEXT_FIELDS = [
-  'full_name',
-  'phone',
-  'address_line1',
-  'address_line2',
+  'first_name',
+  'middle_initial',
+  'last_name',
+  'preferred_name',
+  'pronouns',
+  'date_of_birth',
+  'phone_number',
+  'alternative_phone',
+  'street_address',
+  'apt_suite_unit',
   'city',
   'state',
-  'postal_code',
-  'country',
-  'headline',
-  'bio',
+  'zip_code',
 ];
 
-const PROFILE_URL_FIELDS = ['resume_url', 'linkedin_url', 'github_url', 'portfolio_url'];
+const PROFILE_URL_FIELDS = ['linkedin_url', 'website_portfolio', 'github_or_other_portfolio'];
 
 function sanitizeProfile(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -78,6 +81,17 @@ function sanitizeProfile(raw) {
   } else {
     out.years_experience = null;
   }
+
+  // Pass through nested arrays/objects for sub-tables
+  if (Array.isArray(raw.work_experience)) out.work_experience = raw.work_experience;
+  if (Array.isArray(raw.education)) out.education = raw.education;
+  if (Array.isArray(raw.skills)) out.skills = raw.skills;
+  if (Array.isArray(raw.languages)) out.languages = raw.languages;
+  if (Array.isArray(raw.references)) out.references = raw.references;
+  if (raw.documents && typeof raw.documents === 'object') out.documents = raw.documents;
+  if (raw.about_me && typeof raw.about_me === 'object') out.about_me = raw.about_me;
+  if (raw.legal && typeof raw.legal === 'object') out.legal = raw.legal;
+  if (raw.eeo && typeof raw.eeo === 'object') out.eeo = raw.eeo;
 
   return out;
 }
@@ -219,36 +233,125 @@ router.post('/register', async (req, res) => {
       const userId = info.lastInsertRowid;
 
       if (role === 'Applicant' && cleanProfile) {
+        // user_profiles (personal info + address)
+        const profileCols = PROFILE_TEXT_FIELDS.concat(PROFILE_URL_FIELDS);
         db.prepare(
-          `INSERT INTO user_profiles (
-             user_id, full_name, phone,
-             address_line1, address_line2, city, state, postal_code, country,
-             headline, bio, resume_url, linkedin_url, github_url, portfolio_url,
-             years_experience
-           ) VALUES (
-             @user_id, @full_name, @phone,
-             @address_line1, @address_line2, @city, @state, @postal_code, @country,
-             @headline, @bio, @resume_url, @linkedin_url, @github_url, @portfolio_url,
-             @years_experience
-           )`
+          `INSERT INTO user_profiles (user_id, ${profileCols.join(', ')})
+           VALUES (@user_id, ${profileCols.map(c => '@' + c).join(', ')})`
         ).run({
           user_id: userId,
-          full_name: cleanProfile.full_name ?? null,
-          phone: cleanProfile.phone ?? null,
-          address_line1: cleanProfile.address_line1 ?? null,
-          address_line2: cleanProfile.address_line2 ?? null,
-          city: cleanProfile.city ?? null,
-          state: cleanProfile.state ?? null,
-          postal_code: cleanProfile.postal_code ?? null,
-          country: cleanProfile.country ?? null,
-          headline: cleanProfile.headline ?? null,
-          bio: cleanProfile.bio ?? null,
-          resume_url: cleanProfile.resume_url ?? null,
-          linkedin_url: cleanProfile.linkedin_url ?? null,
-          github_url: cleanProfile.github_url ?? null,
-          portfolio_url: cleanProfile.portfolio_url ?? null,
-          years_experience: cleanProfile.years_experience ?? null,
+          ...Object.fromEntries(profileCols.map(c => [c, cleanProfile[c] ?? null])),
         });
+
+        // documents
+        if (cleanProfile.documents) {
+          const d = cleanProfile.documents;
+          db.prepare(
+            `INSERT INTO user_documents (user_id, resume, writing_samples, portfolio_work_samples, transcripts, certifications, other_documents)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).run(
+            userId,
+            typeof d.resume === 'string' ? d.resume.trim() || null : null,
+            Array.isArray(d.writing_samples) ? JSON.stringify(d.writing_samples) : null,
+            Array.isArray(d.portfolio_work_samples) ? JSON.stringify(d.portfolio_work_samples) : null,
+            Array.isArray(d.transcripts) ? JSON.stringify(d.transcripts) : null,
+            Array.isArray(d.certifications) ? JSON.stringify(d.certifications) : null,
+            Array.isArray(d.other_documents) ? JSON.stringify(d.other_documents) : null,
+          );
+        }
+
+        // work_experience
+        if (Array.isArray(cleanProfile.work_experience)) {
+          const stmt = db.prepare(
+            `INSERT INTO user_work_experience
+               (user_id, job_title, company, city, state, employment_type, start_date, end_date, current_job, responsibilities, key_achievements)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          );
+          for (const w of cleanProfile.work_experience) {
+            if (!w || typeof w !== 'object') continue;
+            stmt.run(userId, w.job_title||null, w.company||null, w.city||null, w.state||null,
+              w.employment_type||null, w.start_date||null, w.end_date||null,
+              w.current_job ? 1 : 0, w.responsibilities||null, w.key_achievements||null);
+          }
+        }
+
+        // education
+        if (Array.isArray(cleanProfile.education)) {
+          const stmt = db.prepare(
+            `INSERT INTO user_education
+               (user_id, school, city, state, degree, major, minor, start_date, graduation_date, graduated, gpa, honors, relevant_coursework)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          );
+          for (const e of cleanProfile.education) {
+            if (!e || typeof e !== 'object') continue;
+            stmt.run(userId, e.school||null, e.city||null, e.state||null, e.degree||null,
+              e.major||null, e.minor||null, e.start_date||null, e.graduation_date||null,
+              e.graduated ? 1 : 0, e.gpa||null, e.honors||null,
+              Array.isArray(e.relevant_coursework) ? JSON.stringify(e.relevant_coursework) : null);
+          }
+        }
+
+        // skills
+        if (Array.isArray(cleanProfile.skills)) {
+          const stmt = db.prepare(
+            `INSERT INTO user_skills (user_id, skill, proficiency, years) VALUES (?, ?, ?, ?)`
+          );
+          for (const s of cleanProfile.skills) {
+            if (!s || typeof s !== 'object' || !s.skill) continue;
+            stmt.run(userId, s.skill, s.proficiency||null, s.years != null ? Number(s.years) : null);
+          }
+        }
+
+        // languages
+        if (Array.isArray(cleanProfile.languages)) {
+          const stmt = db.prepare(
+            `INSERT INTO user_languages (user_id, language, proficiency) VALUES (?, ?, ?)`
+          );
+          for (const l of cleanProfile.languages) {
+            if (!l || typeof l !== 'object' || !l.language) continue;
+            stmt.run(userId, l.language, l.proficiency||null);
+          }
+        }
+
+        // references
+        if (Array.isArray(cleanProfile.references)) {
+          const stmt = db.prepare(
+            `INSERT INTO user_references (user_id, name, relationship, company, title, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?)`
+          );
+          for (const r of cleanProfile.references) {
+            if (!r || typeof r !== 'object') continue;
+            stmt.run(userId, r.name||null, r.relationship||null, r.company||null, r.title||null, r.phone||null, r.email||null);
+          }
+        }
+
+        // about_me
+        if (cleanProfile.about_me) {
+          const a = cleanProfile.about_me;
+          db.prepare(
+            `INSERT INTO user_about_me (user_id, challenge_you_overcame, greatest_strength, greatest_weakness, five_year_goals, leadership_experience, anything_else)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).run(userId, a.challenge_you_overcame||null, a.greatest_strength||null, a.greatest_weakness||null,
+            a.five_year_goals||null, a.leadership_experience||null, a.anything_else||null);
+        }
+
+        // legal
+        if (cleanProfile.legal) {
+          const l = cleanProfile.legal;
+          db.prepare(
+            `INSERT INTO user_legal (user_id, us_work_authorization, requires_sponsorship, visa_type, over_18, security_clearance, needs_accommodation)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).run(userId, l.us_work_authorization ? 1 : 0, l.requires_sponsorship ? 1 : 0,
+            l.visa_type||null, l.over_18 ? 1 : 0, l.security_clearance||null, l.needs_accommodation ? 1 : 0);
+        }
+
+        // eeo
+        if (cleanProfile.eeo) {
+          const e = cleanProfile.eeo;
+          db.prepare(
+            `INSERT INTO user_eeo (user_id, gender, race_ethnicity, disability_status, veteran_status)
+             VALUES (?, ?, ?, ?, ?)`
+          ).run(userId, e.gender||null, e.race_ethnicity||null, e.disability_status||null, e.veteran_status||null);
+        }
       }
 
       return userId;

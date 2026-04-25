@@ -259,8 +259,7 @@ router.get('/home', requireAuth, requireRecruiter, (req, res) => {
            jp.company        AS job_company,
            u.id              AS applicant_id,
            u.username        AS applicant_username,
-           up.full_name      AS applicant_full_name,
-           up.headline       AS applicant_headline
+           (up.first_name || ' ' || up.last_name) AS applicant_full_name
          FROM applications a
          JOIN job_postings jp  ON jp.id = a.job_posting_id
          JOIN users u          ON u.id  = a.applicant_id
@@ -284,7 +283,6 @@ router.get('/home', requireAuth, requireRecruiter, (req, res) => {
           id: r.applicant_id,
           username: r.applicant_username,
           full_name: r.applicant_full_name,
-          headline: r.applicant_headline,
         },
       }));
 
