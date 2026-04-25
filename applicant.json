@@ -1,0 +1,110 @@
+{
+  "personal_information": {
+    "first_name": "",
+    "middle_initial": "",
+    "last_name": "",
+    "preferred_name": "",
+    "pronouns": "",
+    "date_of_birth": "",
+    "email": "",
+    "phone_number": "",
+    "alternative_phone": "",
+    "linkedin_url": "",
+    "website_portfolio": "",
+    "github_or_other_portfolio": ""
+  },
+  "address": {
+    "street_address": "",
+    "apt_suite_unit": "",
+    "city": "",
+    "state": "",
+    "zip_code": ""
+  },
+  "documents": {
+    "resume": "",
+    "writing_samples": [],
+    "portfolio_work_samples": [],
+    "transcripts": [],
+    "certifications": [],
+    "other_documents": []
+  },
+  "work_experience": [
+    {
+      "job_title": "",
+      "company": "",
+      "city": "",
+      "state": "",
+      "employment_type": "",
+      "start_date": "",
+      "end_date": "",
+      "current_job": false,
+      "responsibilities": "",
+      "key_achievements": ""
+    }
+  ],
+  "education": [
+    {
+      "school": "",
+      "city": "",
+      "state": "",
+      "degree": "",
+      "major": "",
+      "minor": "",
+      "start_date": "",
+      "graduation_date": "",
+      "graduated": false,
+      "gpa": "",
+      "honors": "",
+      "relevant_coursework": []
+    }
+  ],
+  "skills": {
+    "technical_skills": [
+      {
+        "skill": "",
+        "proficiency": "",
+        "years": null
+      }
+    ],
+    "languages": [
+      {
+        "language": "",
+        "proficiency": ""
+      }
+    ],
+    "certifications": [],
+    "professional_memberships": []
+  },
+  "references": [
+    {
+      "name": "",
+      "relationship": "",
+      "company": "",
+      "title": "",
+      "phone": "",
+      "email": ""
+    }
+  ],
+  "about_me": {
+    "challenge_you_overcame": "",
+    "greatest_strength": "",
+    "greatest_weakness": "",
+    "five_year_goals": "",
+    "leadership_experience": "",
+    "anything_else": ""
+  },
+  "legal": {
+    "us_work_authorization": false,
+    "requires_sponsorship": false,
+    "visa_type": "",
+    "over_18": false,
+    "security_clearance": "",
+    "needs_accommodation": false
+  },
+  "eeo": {
+    "gender": "",
+    "race_ethnicity": "",
+    "disability_status": "",
+    "veteran_status": ""
+  }
+}
