@@ -256,6 +256,10 @@ const layout: Record<string, CSSProperties> = {
     maxWidth: '600px',
     padding: '40px 32px 56px',
     boxSizing: 'border-box',
+    minHeight: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
   },
 };
 
@@ -290,7 +294,7 @@ const s: Record<string, CSSProperties> = {
     margin: 0,
     lineHeight: 1.55,
   },
-  form: { display: 'flex', flexDirection: 'column', gap: 20 },
+  form: { display: 'flex', flexDirection: 'column', gap: 20, flex: 1, minHeight: 0 },
   sectionCard: {
     background: '#FFFFFF',
     border: '1px solid #E2E8F0',
@@ -486,7 +490,11 @@ const s: Record<string, CSSProperties> = {
   },
   panelViewport: {
     position: 'relative',
-    overflow: 'hidden',
+    overflowX: 'hidden',
+    overflowY: 'auto',
+    flex: 1,
+    minHeight: 0,
+    paddingBottom: 12,
   },
   panelInner: {
     willChange: 'transform, opacity',
@@ -525,7 +533,12 @@ const s: Record<string, CSSProperties> = {
     display: 'flex',
     gap: 12,
     alignItems: 'stretch',
-    marginTop: 8,
+    marginTop: 'auto',
+    position: 'sticky',
+    bottom: 0,
+    zIndex: 5,
+    paddingTop: 14,
+    background: 'linear-gradient(180deg, rgba(248,250,252,0) 0%, rgba(248,250,252,0.96) 26%, #F8FAFC 62%)',
   },
   secondary: {
     appearance: 'none',
@@ -548,8 +561,11 @@ const s: Record<string, CSSProperties> = {
     fontWeight: 500,
     color: '#3B82F6',
     textDecoration: 'none',
-    alignSelf: 'center',
-    padding: '12px 4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 120,
+    padding: '12px 10px',
   },
 
   integrityCard: {
@@ -719,7 +735,9 @@ export default function SignupProfile() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+      const key = e.key.toLowerCase();
+      const isQuickFillShortcut = (e.ctrlKey || e.metaKey) && e.shiftKey && key === 'a';
+      if (isQuickFillShortcut) {
         e.preventDefault();
         setForm({
           first_name: 'Alex', middle_initial: 'J', last_name: 'Chneerov',
