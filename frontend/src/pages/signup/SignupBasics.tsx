@@ -39,7 +39,8 @@ export default function SignupBasics() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+      const key = e.key.toLowerCase();
+      if (e.ctrlKey && e.shiftKey && key === 'f') {
         e.preventDefault();
         quickFill();
       }

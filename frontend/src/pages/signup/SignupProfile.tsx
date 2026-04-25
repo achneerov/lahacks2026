@@ -723,7 +723,7 @@ export default function SignupProfile() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const key = e.key.toLowerCase();
-      const isQuickFillShortcut = (e.ctrlKey || e.metaKey) && e.shiftKey && key === 'a';
+      const isQuickFillShortcut = e.ctrlKey && e.shiftKey && key === 'f';
       if (isQuickFillShortcut) {
         e.preventDefault();
         setForm({
