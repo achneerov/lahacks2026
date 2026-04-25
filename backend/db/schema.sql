@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS conversations;
 DROP TABLE IF EXISTS negotiation_messages;
 DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS job_postings;
+DROP TABLE IF EXISTS profile_change_log;
 DROP TABLE IF EXISTS user_eeo;
 DROP TABLE IF EXISTS user_legal;
 DROP TABLE IF EXISTS user_about_me;
@@ -23,13 +24,19 @@ DROP TABLE IF EXISTS user_profiles;
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  role            TEXT    NOT NULL CHECK (role IN ('Applicant', 'Recruiter', 'Agent')),
-  worldu_id       TEXT    NOT NULL UNIQUE,
-  email           TEXT    NOT NULL UNIQUE,
-  username        TEXT    NOT NULL UNIQUE,
-  password_hash   TEXT    NOT NULL,
-  created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+  id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+  role                 TEXT    NOT NULL CHECK (role IN ('Applicant', 'Recruiter', 'Agent')),
+  worldu_id            TEXT    NOT NULL UNIQUE,
+  email                TEXT    NOT NULL UNIQUE,
+  username             TEXT    NOT NULL UNIQUE,
+  password_hash        TEXT    NOT NULL,
+  created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+  -- Set to 1 when the credibility agent rejects a critical-field change.
+  -- While locked, further critical-field saves are refused at the API layer.
+  -- Non-critical fields (name, address, about_me, etc.) remain editable.
+  profile_locked       INTEGER NOT NULL DEFAULT 0 CHECK (profile_locked IN (0, 1)),
+  profile_lock_reason  TEXT,
+  profile_locked_at    TEXT
 );
 
 -- Personal info & address for Applicants only
@@ -279,3 +286,26 @@ CREATE TABLE messages (
 );
 
 CREATE INDEX idx_messages_user ON messages(user_id);
+
+-- Append-only audit log of every attempted critical-field profile change.
+-- "Critical" = links (linkedin_url, website_portfolio, github_or_other_portfolio),
+-- any field inside work_experience, any field inside education.
+--
+-- Approved entries form the history shown to the credibility agent on the next
+-- review. Rejected entries are also persisted so a human reviewer can later see
+-- exactly what the user tried.
+--
+-- agent_decision is NULL for the system-approved baseline row inserted on first
+-- save (so the agent isn't run against an empty profile).
+CREATE TABLE profile_change_log (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         INTEGER NOT NULL,
+  occurred_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+  decision        TEXT    NOT NULL CHECK (decision IN ('approved', 'rejected')),
+  diff            TEXT    NOT NULL, -- JSON: { changes: [ { op, path, before, after } ] }
+  agent_decision  TEXT             CHECK (agent_decision IN ('approve', 'decline')),
+  agent_reasoning TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_profile_change_log_user ON profile_change_log(user_id, occurred_at);

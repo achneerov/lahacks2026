@@ -9,8 +9,9 @@ import {
 import {
   api,
   ApiError,
-  type ApplicantProfile as ProfileType,
   type ApplicantProfileInput,
+  type ApplicantProfileResponse,
+  type ProfileLockState,
   type WorkExperienceInput,
   type EducationInput,
 } from '../../lib/api';
@@ -34,6 +35,11 @@ export default function ApplicantProfile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [lock, setLock] = useState<ProfileLockState>({
+    locked: false,
+    reason: null,
+    locked_at: null,
+  });
 
   // Flat editable fields from personal_information
   const [firstName, setFirstName] = useState('');
@@ -79,7 +85,9 @@ export default function ApplicantProfile() {
     );
   }
 
-  function hydrate(p: ProfileType) {
+  function hydrate(res: ApplicantProfileResponse) {
+    const p = res.profile;
+    setLock(res.lock || { locked: false, reason: null, locked_at: null });
     const pi = p.personal_information;
     const ln = pi.linkedin_url ?? '';
     const wp = pi.website_portfolio ?? '';
@@ -135,7 +143,7 @@ export default function ApplicantProfile() {
     setError(null);
     api.applicantGetProfile(token).then(d => {
       if (cancelled) return;
-      hydrate(d.profile);
+      hydrate(d);
     }).catch(err => {
       if (cancelled) return;
       setError(err instanceof ApiError ? err.detail || err.code : 'Could not load profile.');
@@ -243,10 +251,31 @@ export default function ApplicantProfile() {
     };
     try {
       const res = await api.applicantUpdateProfile(token, payload);
-      hydrate(res.profile);
+      hydrate(res);
       setSuccess('Profile updated.');
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail || err.code : 'Could not save.');
+      if (err instanceof ApiError) {
+        if (err.code === 'profile_change_rejected' || err.code === 'profile_locked') {
+          // Backend just changed our lock state. Refetch so the page picks
+          // it up and renders the locked-out UI without a manual reload.
+          setError(err.detail || err.code);
+          try {
+            const fresh = await api.applicantGetProfile(token);
+            hydrate(fresh);
+          } catch {
+            // ignore — error banner is enough.
+          }
+        } else if (err.code === 'review_unavailable') {
+          setError(
+            err.detail ||
+              'Profile credibility review is temporarily unavailable. Please try saving again in a moment.',
+          );
+        } else {
+          setError(err.detail || err.code);
+        }
+      } else {
+        setError('Could not save.');
+      }
     } finally {
       setSaving(false);
     }
@@ -262,11 +291,38 @@ export default function ApplicantProfile() {
         <p style={styles.subtitle}>Update your personal details and links.</p>
       </header>
 
-      <div role="note" style={styles.warningBanner}>
-        Heads up: updates to links, work experience, and education are high-impact profile changes and may be reviewed by automated credibility checks.
-      </div>
+      {lock.locked ? (
+        <div role="alert" style={styles.lockBanner}>
+          <div style={styles.lockBannerText}>
+            <strong style={styles.lockBannerTitle}>Profile locked pending review.</strong>
+            <span>
+              {lock.reason
+                ? `Our credibility check flagged a recent change: ${lock.reason}`
+                : 'A recent change to your links, work experience, or education was flagged by our credibility check.'}
+              {' '}
+              Further changes to those fields are blocked until a human reviews your account. You can still update your name, address, and other personal details.
+            </span>
+          </div>
+          <button
+            type="button"
+            style={styles.openTicketBtn}
+            onClick={() => {
+              // TODO: wire to real ticket flow.
+              console.log('[applicant/profile] open ticket clicked (no-op)');
+            }}
+          >
+            Open a ticket
+          </button>
+        </div>
+      ) : (
+        <div role="note" style={styles.warningBanner}>
+          Heads up: updates to links, work experience, and education are high-impact profile changes and may be reviewed by automated credibility checks.
+        </div>
+      )}
 
-      {error && <div role="alert" style={styles.errorBanner}>{error}</div>}
+      {error && !(lock.locked && error === lock.reason) && (
+        <div role="alert" style={styles.errorBanner}>{error}</div>
+      )}
       {success && <div role="status" style={styles.successBanner}>{success}</div>}
 
       <form style={styles.form} onSubmit={e => { e.preventDefault(); void save(); }}>
@@ -298,22 +354,46 @@ export default function ApplicantProfile() {
         </Section>
 
         <Section title="Links">
-          <Field label="LinkedIn" value={linkedinUrl} onChange={setLinkedinUrl} type="url" />
-          <Field label="Website / Portfolio" value={websitePortfolio} onChange={setWebsitePortfolio} type="url" />
-          <Field label="GitHub / Other" value={githubOrOther} onChange={setGithubOrOther} type="url" />
+          <Field
+            label="LinkedIn"
+            value={linkedinUrl}
+            onChange={setLinkedinUrl}
+            type="url"
+            disabled={lock.locked}
+          />
+          <Field
+            label="Website / Portfolio"
+            value={websitePortfolio}
+            onChange={setWebsitePortfolio}
+            type="url"
+            disabled={lock.locked}
+          />
+          <Field
+            label="GitHub / Other"
+            value={githubOrOther}
+            onChange={setGithubOrOther}
+            type="url"
+            disabled={lock.locked}
+          />
         </Section>
 
         <Section
           title="Work Experience"
           action={
-            <button type="button" onClick={addWork} style={styles.addBtn}>
-              + Add experience
-            </button>
+            !lock.locked && (
+              <button type="button" onClick={addWork} style={styles.addBtn}>
+                + Add experience
+              </button>
+            )
           }
         >
           {workExp.length === 0 ? (
             <p style={styles.emptyHint}>
-              No work experience yet. Click <strong>+ Add experience</strong> to add your first role.
+              {lock.locked
+                ? 'No work experience on file. Adding new entries is blocked while your profile is under review.'
+                : (
+                  <>No work experience yet. Click <strong>+ Add experience</strong> to add your first role.</>
+                )}
             </p>
           ) : (
             workExp.map((w, i) => (
@@ -321,6 +401,7 @@ export default function ApplicantProfile() {
                 key={w._key}
                 index={i}
                 value={w}
+                disabled={lock.locked}
                 onChange={patch => updateWork(i, patch)}
                 onRemove={() => removeWork(i)}
                 onToggle={() => toggleWork(i)}
@@ -332,14 +413,20 @@ export default function ApplicantProfile() {
         <Section
           title="Education"
           action={
-            <button type="button" onClick={addEdu} style={styles.addBtn}>
-              + Add education
-            </button>
+            !lock.locked && (
+              <button type="button" onClick={addEdu} style={styles.addBtn}>
+                + Add education
+              </button>
+            )
           }
         >
           {education.length === 0 ? (
             <p style={styles.emptyHint}>
-              No education yet. Click <strong>+ Add education</strong> to add a school.
+              {lock.locked
+                ? 'No education on file. Adding new entries is blocked while your profile is under review.'
+                : (
+                  <>No education yet. Click <strong>+ Add education</strong> to add a school.</>
+                )}
             </p>
           ) : (
             education.map((e, i) => (
@@ -347,6 +434,7 @@ export default function ApplicantProfile() {
                 key={e._key}
                 index={i}
                 value={e}
+                disabled={lock.locked}
                 onChange={patch => updateEdu(i, patch)}
                 onRemove={() => removeEdu(i)}
                 onToggle={() => toggleEdu(i)}
@@ -374,12 +462,14 @@ export default function ApplicantProfile() {
 function WorkExperienceCard({
   index,
   value,
+  disabled = false,
   onChange,
   onRemove,
   onToggle,
 }: {
   index: number;
   value: WorkExpItem;
+  disabled?: boolean;
   onChange: (patch: Partial<WorkExperienceInput>) => void;
   onRemove: () => void;
   onToggle: () => void;
@@ -429,7 +519,12 @@ function WorkExperienceCard({
       {!expanded ? null : (
         <div style={styles.cardBody}>
           <div style={styles.cardActionsRow}>
-            <button type="button" onClick={onRemove} style={styles.removeBtn}>
+            <button
+              type="button"
+              onClick={onRemove}
+              style={styles.removeBtn}
+              disabled={disabled}
+            >
               Remove
             </button>
           </div>
@@ -438,11 +533,13 @@ function WorkExperienceCard({
               label="Job title"
               value={value.job_title ?? ''}
               onChange={v => onChange({ job_title: v })}
+              disabled={disabled}
             />
             <Field
               label="Company"
               value={value.company ?? ''}
               onChange={v => onChange({ company: v })}
+              disabled={disabled}
             />
           </div>
           <div style={styles.row}>
@@ -450,17 +547,20 @@ function WorkExperienceCard({
               label="City"
               value={value.city ?? ''}
               onChange={v => onChange({ city: v })}
+              disabled={disabled}
             />
             <Field
               label="State"
               value={value.state ?? ''}
               onChange={v => onChange({ state: v })}
+              disabled={disabled}
             />
             <Select
               label="Employment type"
               value={value.employment_type ?? ''}
               onChange={v => onChange({ employment_type: v })}
               options={EMPLOYMENT_TYPES}
+              disabled={disabled}
             />
           </div>
           <div style={styles.row}>
@@ -469,19 +569,21 @@ function WorkExperienceCard({
               type="date"
               value={value.start_date ?? ''}
               onChange={v => onChange({ start_date: v })}
+              disabled={disabled}
             />
             <Field
               label="End date"
               type="date"
               value={value.current_job ? '' : value.end_date ?? ''}
               onChange={v => onChange({ end_date: v })}
-              disabled={!!value.current_job}
+              disabled={disabled || !!value.current_job}
             />
           </div>
           <Checkbox
             label="I currently work here"
             checked={!!value.current_job}
             onChange={v => onChange({ current_job: v, end_date: v ? undefined : value.end_date })}
+            disabled={disabled}
           />
           <Textarea
             label="Responsibilities"
@@ -489,6 +591,7 @@ function WorkExperienceCard({
             onChange={v => onChange({ responsibilities: v })}
             rows={3}
             placeholder="What you owned day-to-day."
+            disabled={disabled}
           />
           <Textarea
             label="Key achievements"
@@ -496,6 +599,7 @@ function WorkExperienceCard({
             onChange={v => onChange({ key_achievements: v })}
             rows={3}
             placeholder="Concrete wins: scope, scale, outcomes."
+            disabled={disabled}
           />
         </div>
       )}
@@ -506,12 +610,14 @@ function WorkExperienceCard({
 function EducationCard({
   index,
   value,
+  disabled = false,
   onChange,
   onRemove,
   onToggle,
 }: {
   index: number;
   value: EduItem;
+  disabled?: boolean;
   onChange: (patch: Partial<EducationInput>) => void;
   onRemove: () => void;
   onToggle: () => void;
@@ -560,7 +666,12 @@ function EducationCard({
       {!expanded ? null : (
         <div style={styles.cardBody}>
           <div style={styles.cardActionsRow}>
-            <button type="button" onClick={onRemove} style={styles.removeBtn}>
+            <button
+              type="button"
+              onClick={onRemove}
+              style={styles.removeBtn}
+              disabled={disabled}
+            >
               Remove
             </button>
           </div>
@@ -568,17 +679,20 @@ function EducationCard({
             label="School"
             value={value.school ?? ''}
             onChange={v => onChange({ school: v })}
+            disabled={disabled}
           />
           <div style={styles.row}>
             <Field
               label="City"
               value={value.city ?? ''}
               onChange={v => onChange({ city: v })}
+              disabled={disabled}
             />
             <Field
               label="State"
               value={value.state ?? ''}
               onChange={v => onChange({ state: v })}
+              disabled={disabled}
             />
           </div>
           <div style={styles.row}>
@@ -587,16 +701,19 @@ function EducationCard({
               value={value.degree ?? ''}
               onChange={v => onChange({ degree: v })}
               placeholder="e.g. B.S."
+              disabled={disabled}
             />
             <Field
               label="Major"
               value={value.major ?? ''}
               onChange={v => onChange({ major: v })}
+              disabled={disabled}
             />
             <Field
               label="Minor"
               value={value.minor ?? ''}
               onChange={v => onChange({ minor: v })}
+              disabled={disabled}
             />
           </div>
           <div style={styles.row}>
@@ -605,18 +722,21 @@ function EducationCard({
               type="date"
               value={value.start_date ?? ''}
               onChange={v => onChange({ start_date: v })}
+              disabled={disabled}
             />
             <Field
               label={value.graduated ? 'Graduation date' : 'Expected graduation'}
               type="date"
               value={value.graduation_date ?? ''}
               onChange={v => onChange({ graduation_date: v })}
+              disabled={disabled}
             />
           </div>
           <Checkbox
             label="Graduated"
             checked={!!value.graduated}
             onChange={v => onChange({ graduated: v })}
+            disabled={disabled}
           />
           <div style={styles.row}>
             <Field
@@ -624,12 +744,14 @@ function EducationCard({
               value={value.gpa ?? ''}
               onChange={v => onChange({ gpa: v })}
               placeholder="e.g. 3.8"
+              disabled={disabled}
             />
             <Field
               label="Honors"
               value={value.honors ?? ''}
               onChange={v => onChange({ honors: v })}
               placeholder="e.g. cum laude"
+              disabled={disabled}
             />
           </div>
           <Field
@@ -644,6 +766,7 @@ function EducationCard({
               })
             }
             placeholder="Algorithms, Operating Systems, Databases"
+            disabled={disabled}
           />
         </div>
       )}
@@ -727,6 +850,7 @@ function Textarea({
   rows = 3,
   placeholder,
   onFocus,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -734,6 +858,7 @@ function Textarea({
   rows?: number;
   placeholder?: string;
   onFocus?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <label style={styles.field}>
@@ -744,6 +869,7 @@ function Textarea({
         onFocus={onFocus}
         rows={rows}
         placeholder={placeholder}
+        disabled={disabled}
         style={{ ...styles.input, ...styles.textarea }}
       />
     </label>
@@ -756,12 +882,14 @@ function Select({
   onChange,
   options,
   onFocus,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   onFocus?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <label style={styles.field}>
@@ -770,6 +898,7 @@ function Select({
         value={value}
         onChange={e => onChange(e.target.value)}
         onFocus={onFocus}
+        disabled={disabled}
         style={styles.input}
       >
         {options.map(o => (
@@ -787,11 +916,13 @@ function Checkbox({
   checked,
   onChange,
   onFocus,
+  disabled,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
   onFocus?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <label style={styles.checkboxRow}>
@@ -800,6 +931,7 @@ function Checkbox({
         checked={checked}
         onChange={e => onChange(e.target.checked)}
         onFocus={onFocus}
+        disabled={disabled}
         style={styles.checkbox}
       />
       <span style={styles.checkboxLabel}>{label}</span>
@@ -816,6 +948,10 @@ const styles: Record<string, CSSProperties> = {
   errorBanner: { padding: '10px 14px', fontSize: 14, color: '#b00020', background: 'rgba(176, 0, 32, 0.08)', border: '1px solid rgba(176, 0, 32, 0.25)', borderRadius: 10 },
   warningBanner: { padding: '10px 14px', fontSize: 14, color: '#7a5600', background: 'rgba(255, 184, 0, 0.14)', border: '1px solid rgba(255, 184, 0, 0.5)', borderRadius: 10 },
   saveWarningBanner: { padding: '10px 14px', fontSize: 13, color: '#7a5600', background: 'rgba(255, 184, 0, 0.12)', border: '1px solid rgba(255, 184, 0, 0.45)', borderRadius: 10 },
+  lockBanner: { display: 'flex', alignItems: 'flex-start', gap: 16, padding: '14px 16px', fontSize: 14, color: '#7a0010', background: 'rgba(176, 0, 32, 0.08)', border: '1px solid rgba(176, 0, 32, 0.4)', borderRadius: 12, flexWrap: 'wrap' },
+  lockBannerText: { display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 320px', minWidth: 0, lineHeight: 1.5 },
+  lockBannerTitle: { color: '#7a0010', fontSize: 15 },
+  openTicketBtn: { padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#fff', background: '#b00020', border: '1px solid #b00020', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
   successBanner: { padding: '10px 14px', fontSize: 14, color: '#0a6b2b', background: 'rgba(10, 107, 43, 0.08)', border: '1px solid rgba(10, 107, 43, 0.25)', borderRadius: 10 },
   form: { display: 'flex', flexDirection: 'column', gap: 20 },
   section: { display: 'flex', flexDirection: 'column', gap: 12, padding: 20, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--bg)', boxShadow: 'var(--shadow)' },

@@ -2,6 +2,15 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../auth/jwt');
 const { reviewProfileChanges } = require('./profileReview');
+const {
+  computeCriticalDiff,
+  loadHistory,
+  recordAttempt,
+  loadLockState,
+  lockUser,
+  hasAnyHistory,
+} = require('./criticalChange');
+const { reviewCriticalChange } = require('../agents/profile-credibility');
 
 const router = express.Router();
 
@@ -248,7 +257,10 @@ function upsertSubTables(userId, clean) {
 
 router.get('/profile', requireAuth, requireApplicant, (req, res) => {
   try {
-    return res.json({ profile: loadFullProfile(req.user.id) });
+    return res.json({
+      profile: loadFullProfile(req.user.id),
+      lock: loadLockState(req.user.id),
+    });
   } catch (e) {
     console.error('[applicant/profile GET]', e);
     return res.status(500).json({ error: 'server_error' });
@@ -272,7 +284,22 @@ router.post('/profile/review', requireAuth, requireApplicant, async (req, res) =
   }
 });
 
-router.patch('/profile', requireAuth, requireApplicant, (req, res) => {
+function applyProfileWrite(userId, clean) {
+  ensureProfileRow(userId);
+  const flatKeys = Object.keys(clean).filter((k) => PROFILE_COLS.includes(k));
+  if (flatKeys.length > 0) {
+    const setSql = flatKeys.map((k) => `${k} = @${k}`).join(', ');
+    db.prepare(
+      `UPDATE user_profiles SET ${setSql}, updated_at = datetime('now') WHERE user_id = @user_id`
+    ).run({
+      ...Object.fromEntries(flatKeys.map((k) => [k, clean[k]])),
+      user_id: userId,
+    });
+  }
+  upsertSubTables(userId, clean);
+}
+
+router.patch('/profile', requireAuth, requireApplicant, async (req, res) => {
   const userId = req.user.id;
   let clean;
   try {
@@ -282,21 +309,98 @@ router.patch('/profile', requireAuth, requireApplicant, (req, res) => {
   }
 
   try {
-    ensureProfileRow(userId);
+    const currentProfile = loadFullProfile(userId);
+    const lockState = loadLockState(userId);
+    const { changes } = computeCriticalDiff(currentProfile, clean);
+    const hasCriticalChanges = changes.length > 0;
 
-    // Update flat profile fields
-    const flatKeys = Object.keys(clean).filter(k => PROFILE_COLS.includes(k));
-    if (flatKeys.length > 0) {
-      const setSql = flatKeys.map(k => `${k} = @${k}`).join(', ');
-      db.prepare(
-        `UPDATE user_profiles SET ${setSql}, updated_at = datetime('now') WHERE user_id = @user_id`
-      ).run({ ...Object.fromEntries(flatKeys.map(k => [k, clean[k]])), user_id: userId });
+    // Lock blocks ONLY further critical edits. Non-critical saves still go
+    // through so the user can still update non-credibility fields (name,
+    // address, about_me, etc.) while waiting on a human review.
+    if (lockState.locked && hasCriticalChanges) {
+      return res.status(403).json({
+        error: 'profile_locked',
+        detail:
+          lockState.reason ||
+          'Your profile is locked pending human review and further changes to links, work experience, or education are blocked.',
+        lock: lockState,
+      });
     }
 
-    // Update sub-tables
-    upsertSubTables(userId, clean);
+    // No critical changes => skip Gemini, save normally, no audit log entry.
+    if (!hasCriticalChanges) {
+      applyProfileWrite(userId, clean);
+      return res.json({
+        profile: loadFullProfile(userId),
+        lock: loadLockState(userId),
+      });
+    }
 
-    return res.json({ profile: loadFullProfile(userId) });
+    // First-ever critical save for this user (signup baseline, or a
+    // grandfathered seeded user that never went through this pipeline before)
+    // is trusted: skip Gemini, log a baseline approved row, save.
+    if (!hasAnyHistory(userId)) {
+      applyProfileWrite(userId, clean);
+      recordAttempt({
+        userId,
+        decision: 'approved',
+        diff: { changes },
+        agentDecision: null,
+        agentReasoning: 'Baseline profile (no prior history; not reviewed).',
+      });
+      return res.json({
+        profile: loadFullProfile(userId),
+        lock: loadLockState(userId),
+      });
+    }
+
+    // Real review path: ask Gemini.
+    let verdict;
+    try {
+      verdict = await reviewCriticalChange({
+        currentProfile,
+        diff: { changes },
+        history: loadHistory(userId),
+      });
+    } catch (err) {
+      // Fail closed: reject the save with an error, but DO NOT lock the user.
+      // No fraud verdict was reached.
+      console.error('[applicant/profile PATCH] credibility review failed:', err);
+      return res.status(503).json({
+        error: 'review_unavailable',
+        detail:
+          'Profile credibility review is temporarily unavailable. Please try saving again in a moment.',
+      });
+    }
+
+    if (verdict.verdict === 'decline') {
+      recordAttempt({
+        userId,
+        decision: 'rejected',
+        diff: { changes },
+        agentDecision: 'decline',
+        agentReasoning: verdict.reasoning,
+      });
+      lockUser(userId, verdict.reasoning);
+      return res.status(409).json({
+        error: 'profile_change_rejected',
+        detail: verdict.reasoning,
+        lock: loadLockState(userId),
+      });
+    }
+
+    applyProfileWrite(userId, clean);
+    recordAttempt({
+      userId,
+      decision: 'approved',
+      diff: { changes },
+      agentDecision: 'approve',
+      agentReasoning: verdict.reasoning,
+    });
+    return res.json({
+      profile: loadFullProfile(userId),
+      lock: loadLockState(userId),
+    });
   } catch (e) {
     console.error('[applicant/profile PATCH]', e);
     return res.status(500).json({ error: 'server_error' });
