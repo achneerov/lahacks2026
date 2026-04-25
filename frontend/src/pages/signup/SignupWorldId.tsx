@@ -152,11 +152,14 @@ export default function SignupWorldId() {
       <div style={styles.rightPanel}>
         <div style={styles.rightContentBox}>
           <div style={styles.stepRow}>
-            <span style={styles.stepEyebrow}>Step 2 of 3</span>
+            <span style={styles.stepEyebrow}>
+              {isApplicant ? 'Step 2 of 4' : 'Step 2 of 2'}
+            </span>
             <div style={styles.stepSegments} aria-hidden>
               <div style={{ ...styles.stepSeg, ...styles.stepSegOn }} />
               <div style={{ ...styles.stepSeg, ...styles.stepSegCurrent }} />
-              <div style={styles.stepSeg} />
+              {isApplicant && <div style={styles.stepSeg} />}
+              {isApplicant && <div style={styles.stepSeg} />}
             </div>
             <div style={styles.formHeader}>
               <h1 style={styles.formTitle}>Verify with World ID</h1>
@@ -169,7 +172,7 @@ export default function SignupWorldId() {
 
           <p style={styles.callout}>
             {isApplicant
-              ? 'After verifying, you’ll continue to your applicant profile to finish signup.'
+              ? 'After verifying, you’ll fill out your applicant profile and add any supporting documents to finish signup.'
               : 'After verifying, your recruiter account is created and you’ll go to your home view.'}
           </p>
 

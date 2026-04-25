@@ -125,7 +125,7 @@ export default function SignupBasics() {
         <div style={styles.rightContentBox}>
           
           <div style={styles.formHeader}>
-            <span style={styles.stepEyebrow}>Step 1 of 3</span>
+            <span style={styles.stepEyebrow}>Step 1 of 4</span>
             <h2 style={styles.formTitle}>Initialize Profile</h2>
             <p style={styles.formSubtitle}>Set up your foundational credentials. We'll handle World ID verification next.</p>
           </div>

@@ -7,7 +7,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { ApplicantProfileInput, SignupRole, WorldIdResult } from '../lib/api';
+import type {
+  ApplicantDocumentKind,
+  ApplicantProfileInput,
+  SignupRole,
+  WorldIdResult,
+} from '../lib/api';
 
 export interface SignupBasics {
   email: string;
@@ -15,15 +20,25 @@ export interface SignupBasics {
   role: SignupRole;
 }
 
+export interface PendingDocument {
+  id: string;
+  file: File;
+  kind: ApplicantDocumentKind;
+  title: string;
+}
+
 interface SignupState {
   basics: SignupBasics | null;
   password: string | null;
   worldIdResult: WorldIdResult | null;
   applicantProfile: ApplicantProfileInput | null;
+  pendingDocuments: PendingDocument[];
   setBasics: (basics: SignupBasics) => void;
   setPassword: (password: string) => void;
   setWorldIdResult: (result: WorldIdResult | null) => void;
   setApplicantProfile: (profile: ApplicantProfileInput | null) => void;
+  addPendingDocument: (doc: PendingDocument) => void;
+  removePendingDocument: (id: string) => void;
   reset: () => void;
 }
 
@@ -67,6 +82,7 @@ export function SignupProvider({ children }: { children: ReactNode }) {
   const [applicantProfile, setApplicantProfileState] = useState<ApplicantProfileInput | null>(
     () => loadApplicantProfile()
   );
+  const [pendingDocuments, setPendingDocumentsState] = useState<PendingDocument[]>([]);
 
   useEffect(() => {
     if (basics) {
@@ -94,11 +110,20 @@ export function SignupProvider({ children }: { children: ReactNode }) {
     (next: ApplicantProfileInput | null) => setApplicantProfileState(next),
     []
   );
+  const addPendingDocument = useCallback(
+    (doc: PendingDocument) => setPendingDocumentsState(prev => [...prev, doc]),
+    []
+  );
+  const removePendingDocument = useCallback(
+    (id: string) => setPendingDocumentsState(prev => prev.filter(d => d.id !== id)),
+    []
+  );
   const reset = useCallback(() => {
     setBasicsState(null);
     setPasswordState(null);
     setWorldIdResultState(null);
     setApplicantProfileState(null);
+    setPendingDocumentsState([]);
   }, []);
 
   const value = useMemo(
@@ -107,10 +132,13 @@ export function SignupProvider({ children }: { children: ReactNode }) {
       password,
       worldIdResult,
       applicantProfile,
+      pendingDocuments,
       setBasics,
       setPassword,
       setWorldIdResult,
       setApplicantProfile,
+      addPendingDocument,
+      removePendingDocument,
       reset,
     }),
     [
@@ -118,10 +146,13 @@ export function SignupProvider({ children }: { children: ReactNode }) {
       password,
       worldIdResult,
       applicantProfile,
+      pendingDocuments,
       setBasics,
       setPassword,
       setWorldIdResult,
       setApplicantProfile,
+      addPendingDocument,
+      removePendingDocument,
       reset,
     ]
   );
