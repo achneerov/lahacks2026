@@ -228,4 +228,130 @@ router.get('/jobs', requireAuth, requireApplicant, (req, res) => {
   }
 });
 
+const APPLICATION_STATUSES = ['Pending', 'Declined', 'SentToRecruiter'];
+
+router.get('/applications', requireAuth, requireApplicant, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      q,
+      status,
+      limit: rawLimit,
+      offset: rawOffset,
+    } = req.query;
+
+    const limit = Math.max(1, Math.min(100, parseInt(rawLimit, 10) || 50));
+    const offset = Math.max(0, parseInt(rawOffset, 10) || 0);
+
+    const where = ['a.applicant_id = ?'];
+    const params = [userId];
+
+    if (status && typeof status === 'string') {
+      const list = status
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => APPLICATION_STATUSES.includes(s));
+      if (list.length > 0) {
+        where.push(`a.status IN (${list.map(() => '?').join(',')})`);
+        params.push(...list);
+      }
+    }
+
+    if (q && typeof q === 'string' && q.trim() !== '') {
+      const like = `%${q.trim()}%`;
+      where.push(
+        '(jp.title LIKE ? OR jp.company LIKE ? OR jp.location LIKE ? OR u.username LIKE ?)'
+      );
+      params.push(like, like, like, like);
+    }
+
+    const whereSql = `WHERE ${where.join(' AND ')}`;
+
+    const { total } = db
+      .prepare(
+        `SELECT COUNT(*) AS total
+           FROM applications a
+           JOIN job_postings jp ON jp.id = a.job_posting_id
+           JOIN users u         ON u.id = jp.poster_id
+           ${whereSql}`
+      )
+      .get(...params);
+
+    const counts = db
+      .prepare(
+        `SELECT a.status AS status, COUNT(*) AS n
+           FROM applications a
+          WHERE a.applicant_id = ?
+          GROUP BY a.status`
+      )
+      .all(userId);
+
+    const status_counts = {
+      Pending: 0,
+      Declined: 0,
+      SentToRecruiter: 0,
+    };
+    for (const row of counts) status_counts[row.status] = row.n;
+
+    const applications = db
+      .prepare(
+        `SELECT
+           a.id              AS id,
+           a.status          AS status,
+           a.notes           AS notes,
+           a.created_at      AS applied_at,
+           a.updated_at      AS updated_at,
+           jp.id             AS job_id,
+           jp.title          AS job_title,
+           jp.company        AS company,
+           jp.location       AS location,
+           jp.remote         AS remote,
+           jp.employment_type AS employment_type,
+           jp.salary_min     AS salary_min,
+           jp.salary_max     AS salary_max,
+           jp.salary_currency AS salary_currency,
+           jp.is_active      AS job_is_active,
+           u.username        AS poster_username
+         FROM applications a
+         JOIN job_postings jp ON jp.id = a.job_posting_id
+         JOIN users u         ON u.id  = jp.poster_id
+         ${whereSql}
+         ORDER BY a.updated_at DESC, a.id DESC
+         LIMIT ? OFFSET ?`
+      )
+      .all(...params, limit, offset)
+      .map((r) => ({
+        id: r.id,
+        status: r.status,
+        notes: r.notes,
+        applied_at: r.applied_at,
+        updated_at: r.updated_at,
+        job: {
+          id: r.job_id,
+          title: r.job_title,
+          company: r.company,
+          location: r.location,
+          remote: r.remote,
+          employment_type: r.employment_type,
+          salary_min: r.salary_min,
+          salary_max: r.salary_max,
+          salary_currency: r.salary_currency,
+          is_active: r.job_is_active,
+          poster_username: r.poster_username,
+        },
+      }));
+
+    return res.json({
+      total,
+      limit,
+      offset,
+      status_counts,
+      applications,
+    });
+  } catch (e) {
+    console.error('[applicant/applications]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
 module.exports = router;
