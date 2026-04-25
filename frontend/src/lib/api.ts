@@ -65,6 +65,24 @@ export interface SignupBasicsResponse {
   role: SignupRole;
 }
 
+export interface ApplicantProfileInput {
+  full_name?: string;
+  phone?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  headline?: string;
+  bio?: string;
+  resume_url?: string;
+  linkedin_url?: string;
+  github_url?: string;
+  portfolio_url?: string;
+  years_experience?: number | null;
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
 
@@ -85,6 +103,7 @@ export const api = {
     username: string;
     role: Role;
     world_id_result: WorldIdResult;
+    profile?: ApplicantProfileInput;
   }) => request<AuthResponse>('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
 
   login: (body: { email: string; password: string }) =>
