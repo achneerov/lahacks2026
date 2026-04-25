@@ -37,19 +37,19 @@ const STATUS_TONE: Record<
   { color: string; bg: string; border: string }
 > = {
   Pending: {
-    color: '#946200',
-    bg: 'rgba(255, 184, 0, 0.12)',
-    border: 'rgba(255, 184, 0, 0.45)',
+    color: 'var(--warning)',
+    bg: 'var(--warning-bg)',
+    border: 'var(--warning-border)',
   },
   SentToRecruiter: {
-    color: '#106a3d',
-    bg: 'rgba(16, 106, 61, 0.12)',
-    border: 'rgba(16, 106, 61, 0.4)',
+    color: 'var(--success)',
+    bg: 'var(--success-bg)',
+    border: 'var(--success-border)',
   },
   Declined: {
-    color: '#9a1a1a',
-    bg: 'rgba(154, 26, 26, 0.1)',
-    border: 'rgba(154, 26, 26, 0.35)',
+    color: 'var(--danger)',
+    bg: 'var(--danger-bg)',
+    border: 'var(--danger-border)',
   },
 };
 
@@ -451,9 +451,9 @@ const styles: Record<string, CSSProperties> = {
     padding: '4px 12px',
     fontSize: 12,
     fontWeight: 500,
-    color: '#0F3D3A',
-    background: '#EAF6F5',
-    border: '1px solid #76B6B2',
+    color: 'var(--text-h)',
+    background: 'var(--accent-bg)',
+    border: '1px solid var(--accent-border)',
     borderRadius: 999,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
@@ -597,9 +597,9 @@ const styles: Record<string, CSSProperties> = {
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
+    color: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
     borderRadius: 10,
   },
   list: {
@@ -665,7 +665,7 @@ const styles: Record<string, CSSProperties> = {
     color: 'var(--text)',
   },
   metaWarning: {
-    color: '#9a1a1a',
+    color: 'var(--danger)',
   },
   pill: {
     fontSize: 11,

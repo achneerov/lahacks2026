@@ -352,7 +352,7 @@ export default function Negotiation() {
               background: verdict
                 ? verdict.decision === 'recommend'
                   ? 'var(--accent)'
-                  : '#9a1a1a'
+                  : 'var(--danger)'
                 : 'var(--accent)',
             }}
           />
@@ -373,15 +373,15 @@ export default function Negotiation() {
             <span
               style={{
                 ...styles.statusPill,
-                color: verdict.decision === 'recommend' ? '#106a3d' : '#9a1a1a',
+                color: verdict.decision === 'recommend' ? 'var(--success)' : 'var(--danger)',
                 background:
                   verdict.decision === 'recommend'
-                    ? 'rgba(16, 106, 61, 0.12)'
-                    : 'rgba(154, 26, 26, 0.10)',
+                    ? 'var(--success-bg)'
+                    : 'var(--danger-bg)',
                 borderColor:
                   verdict.decision === 'recommend'
-                    ? 'rgba(16, 106, 61, 0.4)'
-                    : 'rgba(154, 26, 26, 0.35)',
+                    ? 'var(--success-border)'
+                    : 'var(--danger-border)',
               }}
             >
               {verdict.decision === 'recommend'
@@ -556,24 +556,24 @@ function VerdictCard({
       style={{
         ...styles.verdictCard,
         borderColor: isRecommend
-          ? 'rgba(16, 106, 61, 0.4)'
-          : 'rgba(154, 26, 26, 0.35)',
+          ? 'var(--success-border)'
+          : 'var(--danger-border)',
         background: isRecommend
-          ? 'rgba(16, 106, 61, 0.06)'
-          : 'rgba(154, 26, 26, 0.04)',
+          ? 'var(--success-bg)'
+          : 'var(--danger-bg)',
       }}
     >
       <div style={styles.verdictHeader}>
         <span
           style={{
             ...styles.verdictBadge,
-            color: isRecommend ? '#106a3d' : '#9a1a1a',
+            color: isRecommend ? 'var(--success)' : 'var(--danger)',
             background: isRecommend
-              ? 'rgba(16, 106, 61, 0.12)'
-              : 'rgba(154, 26, 26, 0.10)',
+              ? 'var(--success-bg)'
+              : 'var(--danger-bg)',
             borderColor: isRecommend
-              ? 'rgba(16, 106, 61, 0.4)'
-              : 'rgba(154, 26, 26, 0.35)',
+              ? 'var(--success-border)'
+              : 'var(--danger-border)',
           }}
         >
           {verdict.early
@@ -705,17 +705,17 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 12,
     fontWeight: 500,
     padding: '3px 10px',
-    color: '#946200',
-    background: 'rgba(255, 184, 0, 0.12)',
-    border: '1px solid rgba(255, 184, 0, 0.45)',
+    color: 'var(--warning)',
+    background: 'var(--warning-bg)',
+    border: '1px solid var(--warning-border)',
     borderRadius: 999,
   },
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
+    color: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
     borderRadius: 10,
   },
   transcript: {
@@ -786,12 +786,12 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.2,
   },
   bubbleSenderApplicant: {
-    background: '#1E6B4A',
-    borderColor: '#1E6B4A',
+    background: 'var(--success)',
+    borderColor: 'var(--success)',
   },
   bubbleSenderRecruiter: {
-    background: '#3D2D74',
-    borderColor: '#3D2D74',
+    background: 'var(--brand-ink)',
+    borderColor: 'var(--brand-ink)',
   },
   bubbleTurn: {
     fontSize: 11,

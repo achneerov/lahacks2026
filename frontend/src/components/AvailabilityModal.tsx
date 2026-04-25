@@ -330,9 +330,9 @@ const styles: Record<string, CSSProperties> = {
   error: {
     padding: '8px 12px',
     fontSize: 13,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
+    color: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
     borderRadius: 8,
   },
   actions: {

@@ -14,14 +14,14 @@ const VERIFICATION_META: Record<
 
 const TONE_STYLES: Record<'high' | 'mid' | 'low', CSSProperties> = {
   high: {
-    color: '#106a3d',
-    background: 'rgba(16, 106, 61, 0.12)',
-    borderColor: 'rgba(16, 106, 61, 0.4)',
+    color: 'var(--success)',
+    background: 'var(--success-bg)',
+    borderColor: 'var(--success-border)',
   },
   mid: {
-    color: '#946200',
-    background: 'rgba(255, 184, 0, 0.12)',
-    borderColor: 'rgba(255, 184, 0, 0.45)',
+    color: 'var(--warning)',
+    background: 'var(--warning-bg)',
+    borderColor: 'var(--warning-border)',
   },
   low: {
     color: 'var(--text)',

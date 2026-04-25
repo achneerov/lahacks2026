@@ -45,19 +45,19 @@ const STATUS_TONE: Record<
   { color: string; bg: string; border: string }
 > = {
   Pending: {
-    color: '#946200',
-    bg: 'rgba(255, 184, 0, 0.12)',
-    border: 'rgba(255, 184, 0, 0.45)',
+    color: 'var(--warning)',
+    bg: 'var(--warning-bg)',
+    border: 'var(--warning-border)',
   },
   SentToRecruiter: {
-    color: '#106a3d',
-    bg: 'rgba(16, 106, 61, 0.12)',
-    border: 'rgba(16, 106, 61, 0.4)',
+    color: 'var(--success)',
+    bg: 'var(--success-bg)',
+    border: 'var(--success-border)',
   },
   Declined: {
-    color: '#9a1a1a',
-    bg: 'rgba(154, 26, 26, 0.1)',
-    border: 'rgba(154, 26, 26, 0.35)',
+    color: 'var(--danger)',
+    bg: 'var(--danger-bg)',
+    border: 'var(--danger-border)',
   },
 };
 
@@ -650,7 +650,7 @@ function ApplicantModal({
             {detailLoading ? (
               <p style={styles.empty}>Loading trust signals…</p>
             ) : detailError ? (
-              <p style={{ ...styles.empty, color: '#9a1a1a' }}>{detailError}</p>
+              <p style={{ ...styles.empty, color: 'var(--danger)' }}>{detailError}</p>
             ) : (
               <div style={styles.trustGrid}>
                 <TrustStat
@@ -835,7 +835,7 @@ function ApplicantModal({
               <div style={styles.agentBox}>
                 {agentLoading && <p style={styles.empty}>Loading transcript…</p>}
                 {agentError && (
-                  <p style={{ ...styles.empty, color: '#9a1a1a' }}>{agentError}</p>
+                  <p style={{ ...styles.empty, color: 'var(--danger)' }}>{agentError}</p>
                 )}
                 {!agentLoading && !agentError && agentData && (
                   agentData.conversation == null || agentData.messages.length === 0 ? (
@@ -1015,9 +1015,9 @@ const styles: Record<string, CSSProperties> = {
     border: '1px solid',
   },
   statusPillActive: {
-    color: '#106a3d',
-    background: 'rgba(16, 106, 61, 0.12)',
-    borderColor: 'rgba(16, 106, 61, 0.4)',
+    color: 'var(--success)',
+    background: 'var(--success-bg)',
+    borderColor: 'var(--success-border)',
   },
   statusPillClosed: {
     color: 'var(--text)',
@@ -1038,9 +1038,9 @@ const styles: Record<string, CSSProperties> = {
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
+    color: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
     borderRadius: 10,
   },
   loading: { color: 'var(--text)', fontSize: 14 },

@@ -678,22 +678,22 @@ function Field({
 }
 
 function severityColor(s: JobReviewSeverity) {
-  if (s === 'error') return '#9a1a1a';
-  if (s === 'warning') return '#946200';
+  if (s === 'error') return 'var(--danger)';
+  if (s === 'warning') return 'var(--warning)';
   return 'var(--text)';
 }
 
 function severityStyle(s: JobReviewSeverity): CSSProperties {
   if (s === 'error') {
     return {
-      borderColor: 'rgba(154, 26, 26, 0.45)',
-      background: 'rgba(154, 26, 26, 0.08)',
+      borderColor: 'var(--danger-border)',
+      background: 'var(--danger-bg)',
     };
   }
   if (s === 'warning') {
     return {
-      borderColor: 'rgba(255, 184, 0, 0.5)',
-      background: 'rgba(255, 184, 0, 0.1)',
+      borderColor: 'var(--warning-border)',
+      background: 'var(--warning-bg)',
     };
   }
   return {
@@ -758,9 +758,9 @@ const styles: Record<string, CSSProperties> = {
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
+    color: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
     borderRadius: 10,
   },
   cardCol: {
@@ -798,11 +798,11 @@ const styles: Record<string, CSSProperties> = {
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
-  requiredMark: { color: '#9a1a1a' },
+  requiredMark: { color: 'var(--danger)' },
   fieldValidationError: {
     fontSize: 12,
     fontWeight: 500,
-    color: '#b00020',
+    color: 'var(--danger-strong)',
   },
   input: {
     padding: '10px 12px',
@@ -817,9 +817,9 @@ const styles: Record<string, CSSProperties> = {
     boxSizing: 'border-box',
   },
   inputError: {
-    borderColor: '#b00020',
-    background: 'rgba(176, 0, 32, 0.04)',
-    boxShadow: '0 0 0 3px rgba(176, 0, 32, 0.12)',
+    borderColor: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    boxShadow: '0 0 0 3px var(--danger-bg)',
   },
   toggleRow: {
     display: 'flex',
@@ -888,7 +888,7 @@ const styles: Record<string, CSSProperties> = {
   reviewClean: {
     margin: 0,
     fontSize: 13,
-    color: '#106a3d',
+    color: 'var(--success)',
   },
   issueList: {
     listStyle: 'none',
@@ -965,6 +965,6 @@ const styles: Record<string, CSSProperties> = {
   warningFootnote: {
     margin: 0,
     fontSize: 12,
-    color: '#946200',
+    color: 'var(--warning)',
   },
 };

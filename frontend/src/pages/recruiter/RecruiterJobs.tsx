@@ -465,9 +465,9 @@ const styles: Record<string, CSSProperties> = {
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
+    color: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
     borderRadius: 10,
   },
   list: {
@@ -513,9 +513,9 @@ const styles: Record<string, CSSProperties> = {
     border: '1px solid',
   },
   statusPillActive: {
-    color: '#106a3d',
-    background: 'rgba(16, 106, 61, 0.12)',
-    borderColor: 'rgba(16, 106, 61, 0.4)',
+    color: 'var(--success)',
+    background: 'var(--success-bg)',
+    borderColor: 'var(--success-border)',
   },
   statusPillClosed: {
     color: 'var(--text)',

@@ -1,17 +1,56 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
+  /* Impulse global palette (Wealthsimple-inspired) */
+  --brand-orange: #ef5022;
+  --brand-teal: #74b7b5;
+  --brand-ink: #231f21;
+  --brand-gold: #fcb113;
+
+  /* 25% opacity ladder */
+  --orange-25: rgba(239, 80, 34, 0.25);
+  --orange-50: rgba(239, 80, 34, 0.5);
+  --orange-75: rgba(239, 80, 34, 0.75);
+  --orange-100: rgba(239, 80, 34, 1);
+  --teal-25: rgba(116, 183, 181, 0.25);
+  --teal-50: rgba(116, 183, 181, 0.5);
+  --teal-75: rgba(116, 183, 181, 0.75);
+  --teal-100: rgba(116, 183, 181, 1);
+  --ink-25: rgba(35, 31, 33, 0.25);
+  --ink-50: rgba(35, 31, 33, 0.5);
+  --ink-75: rgba(35, 31, 33, 0.75);
+  --ink-100: rgba(35, 31, 33, 1);
+  --gold-25: rgba(252, 177, 19, 0.25);
+  --gold-50: rgba(252, 177, 19, 0.5);
+  --gold-75: rgba(252, 177, 19, 0.75);
+  --gold-100: rgba(252, 177, 19, 1);
+
+  /* Semantic tokens used across pages */
+  --text: var(--ink-75);
+  --text-h: var(--brand-ink);
   --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --border: var(--teal-25);
+  --code-bg: var(--gold-25);
+  --accent: var(--brand-teal);
+  --accent-bg: var(--teal-25);
+  --accent-border: var(--teal-50);
+  --social-bg: var(--teal-25);
+  --accent-warm: var(--brand-orange);
+  --accent-highlight: var(--brand-gold);
+  --success: #106a3d;
+  --success-bg: rgba(16, 106, 61, 0.12);
+  --success-border: rgba(16, 106, 61, 0.4);
+  --warning: #946200;
+  --warning-bg: var(--gold-25);
+  --warning-border: var(--gold-50);
+  --danger: #9a1a1a;
+  --danger-bg: rgba(154, 26, 26, 0.1);
+  --danger-border: rgba(154, 26, 26, 0.35);
+  --danger-strong: #b00020;
+  --danger-strong-bg: rgba(176, 0, 32, 0.08);
+  --danger-strong-border: rgba(176, 0, 32, 0.25);
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(35, 31, 33, 0.12) 0 10px 15px -3px, rgba(35, 31, 33, 0.06) 0 4px 6px -2px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: 'Playfair Display', serif;
@@ -34,17 +73,29 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
+    --text: rgba(255, 255, 255, 0.78);
+    --text-h: #ffffff;
+    --bg: #181517;
+    --border: var(--teal-50);
+    --code-bg: rgba(252, 177, 19, 0.18);
+    --accent: var(--brand-teal);
+    --accent-bg: rgba(116, 183, 181, 0.22);
+    --accent-border: var(--teal-75);
+    --social-bg: rgba(116, 183, 181, 0.2);
+    --success: #7bd8a7;
+    --success-bg: rgba(123, 216, 167, 0.18);
+    --success-border: rgba(123, 216, 167, 0.45);
+    --warning: #ffd26e;
+    --warning-bg: rgba(252, 177, 19, 0.22);
+    --warning-border: rgba(252, 177, 19, 0.5);
+    --danger: #f29aa8;
+    --danger-bg: rgba(242, 154, 168, 0.16);
+    --danger-border: rgba(242, 154, 168, 0.4);
+    --danger-strong: #ff8ca0;
+    --danger-strong-bg: rgba(255, 140, 160, 0.18);
+    --danger-strong-border: rgba(255, 140, 160, 0.42);
     --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+      rgba(0, 0, 0, 0.45) 0 10px 15px -3px, rgba(0, 0, 0, 0.3) 0 4px 6px -2px;
   }
 
   #social .button-icon {
@@ -152,7 +203,7 @@ input[type=range].wealth-slider::-webkit-slider-thumb {
   height: 28px;
   width: 28px;
   border-radius: 50%;
-  background: #111827;
+  background: var(--brand-ink);
   cursor: pointer;
   margin-top: -12px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -162,7 +213,7 @@ input[type=range].wealth-slider::-webkit-slider-runnable-track {
   width: 100%;
   height: 6px;
   cursor: pointer;
-  background: #E5E7EB;
+  background: var(--teal-25);
   border-radius: 3px;
 }
 input[type=range].wealth-slider:focus {
