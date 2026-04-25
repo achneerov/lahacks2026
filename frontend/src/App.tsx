@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './auth/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import { SignupProvider } from './signup/SignupContext';
 import RequireRole from './components/RequireRole';
 import AppShell from './layouts/AppShell';
@@ -17,6 +18,14 @@ import RecruiterJobs from './pages/recruiter/RecruiterJobs';
 import RecruiterJobForm from './pages/recruiter/RecruiterJobForm';
 import RecruiterJobDetail from './pages/recruiter/RecruiterJobDetail';
 import RecruiterMessages from './pages/recruiter/RecruiterMessages';
+import Negotiation from './pages/Negotiation';
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div style={{ padding: 32, color: 'var(--text)' }}>Loading…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
 
 function App() {
   return (
@@ -120,6 +129,17 @@ function App() {
                     <RecruiterMessages />
                   </AppShell>
                 </RequireRole>
+              }
+            />
+
+            <Route
+              path="/applications/:id"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <Negotiation />
+                  </AppShell>
+                </RequireAuth>
               }
             />
           </Routes>
