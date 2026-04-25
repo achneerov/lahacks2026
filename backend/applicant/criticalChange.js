@@ -264,21 +264,10 @@ function lockUser(userId, reason) {
   ).run(reason || 'Suspicious profile change detected.', userId);
 }
 
-// True iff the user has at least one approved or rejected entry already.
-// We use this to detect "first save ever" and skip the credibility check on
-// the baseline (a brand-new applicant has nothing to compare against).
-function hasAnyHistory(userId) {
-  const row = db
-    .prepare('SELECT 1 AS x FROM profile_change_log WHERE user_id = ? LIMIT 1')
-    .get(userId);
-  return !!row;
-}
-
 module.exports = {
   computeCriticalDiff,
   loadHistory,
   recordAttempt,
   loadLockState,
   lockUser,
-  hasAnyHistory,
 };
