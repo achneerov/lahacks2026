@@ -80,5 +80,8 @@
     "expected_time_to_hire": "",
     "contact_person": "",
     "contact_email_phone": ""
+  },
+  "recruiter_agent": {
+    "system_prompt": ""
   }
 }

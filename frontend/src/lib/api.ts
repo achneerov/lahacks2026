@@ -1,7 +1,7 @@
 const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001';
+export const API_BASE_URL = API_BASE;
 
-export type Role = 'Applicant' | 'Recruiter' | 'Agent';
-export type SignupRole = 'Applicant' | 'Recruiter';
+export type Role = 'Applicant' | 'Recruiter';
 
 export interface User {
   id: number;
@@ -62,7 +62,7 @@ export interface SignupBasicsResponse {
   ok: true;
   email: string;
   username: string;
-  role: SignupRole;
+  role: Role;
 }
 
 export interface ApplicantProfileInput {
@@ -260,13 +260,22 @@ export interface ApplicationJobSummary {
   poster_username: string;
 }
 
+// Returned by /api/applicant/applications (enriched with job info).
+// Also returned by /api/applications/:id (raw row, no `job`).
+// Negotiation-only columns are optional so both shapes type-check.
 export interface Application {
   id: number;
   status: ApplicationStatus;
   notes: string | null;
-  applied_at: string;
-  updated_at: string;
-  job: ApplicationJobSummary;
+  applied_at?: string;
+  updated_at?: string;
+  job?: ApplicationJobSummary;
+
+  applicant_id?: number;
+  job_posting_id?: number;
+  agent_reasoning?: string | null;
+  created_at?: string;
+  decided_at?: string | null;
 }
 
 export interface ApplicantApplicationsQuery {
@@ -282,6 +291,29 @@ export interface ApplicantApplicationsResponse {
   offset: number;
   status_counts: Record<ApplicationStatus, number>;
   applications: Application[];
+}
+
+// Lightweight job row returned by GET /api/jobs (used by the apply flow).
+export interface JobSummary {
+  id: number;
+  poster_id: number;
+  job_title: string;
+  company_name: string | null;
+  summary: string | null;
+  work_model: string | null;
+  office_locations_json: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  currency: string | null;
+  employment_type: string | null;
+  job_level: string | null;
+}
+
+export interface NegotiationMessage {
+  turn_index: number;
+  sender: 'applicant_agent' | 'recruiter_agent';
+  content: string;
+  created_at: string;
 }
 
 export interface ConversationParty {
@@ -405,7 +437,7 @@ export const api = {
     email: string;
     password: string;
     username: string;
-    role: SignupRole;
+    role: Role;
   }) =>
     request<SignupBasicsResponse>('/api/auth/signup/check-basics', {
       method: 'POST',
@@ -464,6 +496,23 @@ export const api = {
     request<SendMessageResponse>(
       `/api/applicant/conversations/${conversationId}/messages`,
       { method: 'POST', body: JSON.stringify({ content }) },
+      token,
+    ),
+
+  listJobs: (token: string) =>
+    request<{ jobs: JobSummary[] }>('/api/jobs', {}, token),
+
+  apply: (token: string, jobPostingId: number) =>
+    request<{ application: Application }>(
+      '/api/applications',
+      { method: 'POST', body: JSON.stringify({ job_posting_id: jobPostingId }) },
+      token,
+    ),
+
+  getApplication: (token: string, id: number) =>
+    request<{ application: Application; messages: NegotiationMessage[] }>(
+      `/api/applications/${id}`,
+      {},
       token,
     ),
 };

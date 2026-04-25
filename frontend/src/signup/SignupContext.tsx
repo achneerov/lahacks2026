@@ -7,12 +7,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { ApplicantProfileInput, SignupRole, WorldIdResult } from '../lib/api';
+import type { ApplicantProfileInput, Role, WorldIdResult } from '../lib/api';
 
 export interface SignupBasics {
   email: string;
   username: string;
-  role: SignupRole;
+  role: Role;
 }
 
 interface SignupState {

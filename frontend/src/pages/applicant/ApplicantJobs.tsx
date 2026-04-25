@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   api,
   ApiError,
@@ -31,6 +32,10 @@ const PAGE_SIZE = 20;
 
 export default function ApplicantJobs() {
   const { token } = useAuth();
+  const nav = useNavigate();
+
+  const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -111,6 +116,24 @@ export default function ApplicantJobs() {
     setLocation('');
     setEmploymentType('');
     setRemote('any');
+  }
+
+  async function applyToJob(jobId: number) {
+    if (!token || applyingJobId != null) return;
+    setApplyingJobId(jobId);
+    setApplyError(null);
+    try {
+      const { application } = await api.apply(token, jobId);
+      nav(`/applications/${application.id}`);
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : 'apply_failed';
+      setApplyError(
+        code === 'already_applied'
+          ? 'You have already applied to this job.'
+          : `Apply failed: ${code}`,
+      );
+      setApplyingJobId(null);
+    }
   }
 
   return (
@@ -206,6 +229,12 @@ export default function ApplicantJobs() {
         </div>
       )}
 
+      {applyError && (
+        <div role="alert" style={styles.errorBanner}>
+          {applyError}
+        </div>
+      )}
+
       <section style={styles.layout}>
         <div style={styles.list}>
           {loading && jobs.length === 0 ? (
@@ -282,7 +311,11 @@ export default function ApplicantJobs() {
 
         <aside style={styles.detail} aria-label="Job details">
           {selectedJob ? (
-            <JobDetail job={selectedJob} />
+            <JobDetail
+              job={selectedJob}
+              applying={applyingJobId === selectedJob.id}
+              onApply={() => applyToJob(selectedJob.id)}
+            />
           ) : (
             <div style={styles.detailEmpty}>
               <h2 style={styles.detailEmptyTitle}>Select a job</h2>
@@ -298,7 +331,15 @@ export default function ApplicantJobs() {
   );
 }
 
-function JobDetail({ job }: { job: JobPosting }) {
+function JobDetail({
+  job,
+  applying,
+  onApply,
+}: {
+  job: JobPosting;
+  applying: boolean;
+  onApply: () => void;
+}) {
   return (
     <div style={styles.detailInner}>
       <header style={styles.detailHeader}>
@@ -337,8 +378,13 @@ function JobDetail({ job }: { job: JobPosting }) {
       </div>
 
       <div style={styles.detailActions}>
-        <button type="button" style={styles.primaryBtn} disabled>
-          Apply (coming soon)
+        <button
+          type="button"
+          style={applying ? styles.primaryBtn : styles.primaryBtnActive}
+          disabled={applying}
+          onClick={onApply}
+        >
+          {applying ? 'Starting negotiation…' : 'Apply'}
         </button>
         <button type="button" style={styles.secondaryBtn} disabled>
           Message recruiter
@@ -692,6 +738,16 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 10,
     cursor: 'not-allowed',
     opacity: 0.8,
+  },
+  primaryBtnActive: {
+    padding: '10px 16px',
+    fontSize: 14,
+    fontWeight: 500,
+    color: 'var(--bg)',
+    background: 'var(--accent)',
+    border: '1px solid var(--accent)',
+    borderRadius: 10,
+    cursor: 'pointer',
   },
   secondaryBtn: {
     padding: '10px 16px',

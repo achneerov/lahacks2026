@@ -7,8 +7,7 @@ const { signToken, requireAuth } = require('./jwt');
 
 const router = express.Router();
 
-const ROLES = ['Applicant', 'Recruiter', 'Agent'];
-const SIGNUP_ROLES = ['Applicant', 'Recruiter'];
+const ROLES = ['Applicant', 'Recruiter'];
 const BCRYPT_ROUNDS = 10;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
@@ -118,7 +117,7 @@ router.post('/signup/check-basics', (req, res) => {
   if (!email || !password || !username || !role) {
     return res.status(400).json({ error: 'missing_fields' });
   }
-  if (!SIGNUP_ROLES.includes(role)) {
+  if (!ROLES.includes(role)) {
     return res.status(400).json({ error: 'invalid_role' });
   }
   if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {

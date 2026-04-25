@@ -8,7 +8,7 @@ import {
 import { api, ApiError, type Role, type WorldIdContext } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 
-const ROLES: Role[] = ['Applicant', 'Recruiter', 'Agent'];
+const ROLES: Role[] = ['Applicant', 'Recruiter'];
 
 export default function Register() {
   const nav = useNavigate();

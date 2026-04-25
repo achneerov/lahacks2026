@@ -15,6 +15,7 @@ import ApplicantApplications from './pages/applicant/ApplicantApplications';
 import ApplicantProfile from './pages/applicant/ApplicantProfile';
 import RecruiterJobs from './pages/recruiter/RecruiterJobs';
 import RecruiterMessages from './pages/recruiter/RecruiterMessages';
+import Negotiation from './pages/Negotiation';
 
 function App() {
   return (
@@ -90,6 +91,8 @@ function App() {
                 </RequireRole>
               }
             />
+
+            <Route path="/applications/:id" element={<Negotiation />} />
           </Routes>
         </SignupProvider>
       </BrowserRouter>

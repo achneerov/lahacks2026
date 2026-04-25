@@ -1,9 +1,9 @@
 import { useState, useEffect, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ApiError, api, type SignupRole } from '../../lib/api';
+import { ApiError, api, type Role } from '../../lib/api';
 import { useSignup } from '../../signup/SignupContext';
 
-const ROLES: { value: SignupRole; title: string; subtitle: string }[] = [
+const ROLES: { value: Role; title: string; subtitle: string }[] = [
   {
     value: 'Applicant',
     title: 'Applicant',
@@ -26,7 +26,7 @@ export default function SignupBasics() {
   const [email, setEmail] = useState(basics?.email ?? '');
   const [username, setUsername] = useState(basics?.username ?? '');
   const [pw, setPw] = useState('');
-  const [role, setRole] = useState<SignupRole>(basics?.role ?? 'Applicant');
+  const [role, setRole] = useState<Role>(basics?.role ?? 'Applicant');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
