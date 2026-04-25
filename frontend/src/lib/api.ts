@@ -148,6 +148,64 @@ export interface ApplicantHomeResponse {
   featured_jobs: ApplicantFeaturedJob[];
 }
 
+export interface RecruiterHomeStats {
+  active_postings: number;
+  total_postings: number;
+  total_applicants: number;
+  total_applications: number;
+  new_applicants_7d: number;
+  pending_applications: number;
+  active_conversations: number;
+  messages_received: number;
+}
+
+export interface RecruiterRecentPosting {
+  id: number;
+  title: string;
+  company: string | null;
+  location: string | null;
+  remote: 0 | 1;
+  employment_type:
+    | 'FullTime'
+    | 'PartTime'
+    | 'Contract'
+    | 'Internship'
+    | 'Temporary'
+    | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  is_active: 0 | 1;
+  created_at: string;
+  applicant_count: number;
+  new_applicants_7d: number;
+  pending_count: number;
+}
+
+export interface RecruiterRecentApplication {
+  id: number;
+  status: 'Pending' | 'Declined' | 'SentToRecruiter';
+  applied_at: string;
+  updated_at: string;
+  job: {
+    id: number;
+    title: string;
+    company: string | null;
+  };
+  applicant: {
+    id: number;
+    username: string;
+    full_name: string | null;
+    headline: string | null;
+  };
+}
+
+export interface RecruiterHomeResponse {
+  stats: RecruiterHomeStats;
+  recent_postings: RecruiterRecentPosting[];
+  recent_applications: RecruiterRecentApplication[];
+}
+
 export type EmploymentType =
   | 'FullTime'
   | 'PartTime'
@@ -286,6 +344,9 @@ export const api = {
 
   applicantHome: (token: string) =>
     request<ApplicantHomeResponse>('/api/applicant/home', {}, token),
+
+  recruiterHome: (token: string) =>
+    request<RecruiterHomeResponse>('/api/recruiter/home', {}, token),
 
   applicantGetProfile: (token: string) =>
     request<ApplicantProfileResponse>('/api/applicant/profile', {}, token),
