@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, type SignupRole } from '../../lib/api';
 import { useSignup } from '../../signup/SignupContext';
@@ -29,6 +29,24 @@ export default function SignupBasics() {
   const [role, setRole] = useState<SignupRole>(basics?.role ?? 'Applicant');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function quickFill() {
+    setEmail('testuser@example.com');
+    setUsername('testuser');
+    setPw('password123');
+    setRole('Applicant');
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        quickFill();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const localValid =
     EMAIL_RE.test(email.trim()) &&

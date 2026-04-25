@@ -296,6 +296,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  checkWorldId: (body: { world_id_result: WorldIdResult }) =>
+    request<{ ok: true }>('/api/auth/signup/check-world-id', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   register: (body: {
     email: string;
     password: string;

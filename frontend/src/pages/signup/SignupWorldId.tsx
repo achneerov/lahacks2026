@@ -69,7 +69,19 @@ export default function SignupWorldId() {
     setWorldIdResult(result);
 
     if (isApplicant) {
-      nav('/signup/profile');
+      setSubmitting(true);
+      try {
+        await api.checkWorldId({ world_id_result: result });
+        nav('/signup/profile');
+      } catch (e) {
+        setError(
+          e instanceof ApiError
+            ? errorMessage(e.code, e.detail)
+            : 'Something went wrong. Please try again.'
+        );
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
