@@ -501,8 +501,7 @@ export default function ApplicantProfile() {
             type="button"
             style={styles.openTicketBtn}
             onClick={() => {
-              // TODO: wire to real ticket flow.
-              console.log('[applicant/profile] open ticket clicked (no-op)');
+              window.location.href = 'mailto:support@impulse.com?subject=Profile%20Lock%20-%20Request%20to%20Unlock';
             }}
           >
             Open a ticket
