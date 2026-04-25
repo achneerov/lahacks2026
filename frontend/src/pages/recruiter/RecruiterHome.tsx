@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   api,
   ApiError,
+  formatApplicantDisplayName,
+  formatOfficeLocations,
   type RecruiterHomeResponse,
   type RecruiterRecentPosting,
 } from '../../lib/api';
@@ -157,7 +159,7 @@ export default function RecruiterHome() {
                 <li key={a.id} style={styles.listItem}>
                   <div style={styles.itemTopRow}>
                     <span style={styles.itemTitle}>
-                      {a.applicant.full_name || a.applicant.username}
+                      {formatApplicantDisplayName(a.applicant)}
                     </span>
                     <span style={styles.pill}>{statusLabel(a.status)}</span>
                   </div>
@@ -166,20 +168,17 @@ export default function RecruiterHome() {
                       to={`/recruiter/jobs?job=${a.job.id}`}
                       style={styles.itemMetaLink}
                     >
-                      {a.job.title}
+                      {a.job.job_title}
                     </Link>
-                    {a.job.company && (
+                    {a.job.company_name && (
                       <span style={styles.itemMetaMuted}>
-                        · {a.job.company}
+                        · {a.job.company_name}
                       </span>
                     )}
                     <span style={styles.itemMetaMuted}>
                       · {formatRelative(a.applied_at)}
                     </span>
                   </div>
-                  {a.applicant.headline && (
-                    <p style={styles.itemBody}>{a.applicant.headline}</p>
-                  )}
                 </li>
               ))}
             </ul>
@@ -193,6 +192,8 @@ export default function RecruiterHome() {
 }
 
 function PostingItem({ posting }: { posting: RecruiterRecentPosting }) {
+  const locations = formatOfficeLocations(posting.office_locations_json);
+  const isRemote = posting.work_model === 'Remote';
   return (
     <li>
       <Link
@@ -200,7 +201,7 @@ function PostingItem({ posting }: { posting: RecruiterRecentPosting }) {
         style={styles.postingLink}
       >
         <div style={styles.itemTopRow}>
-          <span style={styles.itemTitle}>{posting.title}</span>
+          <span style={styles.itemTitle}>{posting.job_title}</span>
           <span
             style={{
               ...styles.pill,
@@ -211,13 +212,13 @@ function PostingItem({ posting }: { posting: RecruiterRecentPosting }) {
           </span>
         </div>
         <div style={styles.itemMeta}>
-          {posting.company && (
-            <span style={styles.itemMetaText}>{posting.company}</span>
+          {posting.company_name && (
+            <span style={styles.itemMetaText}>{posting.company_name}</span>
           )}
-          {posting.location && (
-            <span style={styles.itemMetaMuted}>· {posting.location}</span>
+          {locations && (
+            <span style={styles.itemMetaMuted}>· {locations}</span>
           )}
-          {posting.remote === 1 && (
+          {isRemote && (
             <span style={styles.itemMetaMuted}>· Remote</span>
           )}
           {posting.employment_type && (
@@ -297,9 +298,9 @@ function employmentLabel(t: string) {
 function formatSalary(j: {
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
 }) {
-  const cur = j.salary_currency || 'USD';
+  const cur = j.currency || 'USD';
   if (j.salary_min == null && j.salary_max == null) {
     return 'Compensation not disclosed';
   }

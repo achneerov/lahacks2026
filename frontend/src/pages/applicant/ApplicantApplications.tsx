@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   api,
   ApiError,
+  formatOfficeLocations,
   type Application,
   type ApplicantApplicationsQuery,
   type ApplicantApplicationsResponse,
@@ -300,11 +301,14 @@ export default function ApplicantApplications() {
 function ApplicationRow({ application }: { application: Application }) {
   const tone = STATUS_TONE[application.status];
   const job = application.job;
+  if (!job) return null;
+  const locations = formatOfficeLocations(job.office_locations_json);
+  const isRemote = job.work_model === 'Remote';
   return (
     <li style={styles.row}>
       <div style={styles.rowMain}>
         <div style={styles.rowTopRow}>
-          <span style={styles.jobTitle}>{job.title}</span>
+          <span style={styles.jobTitle}>{job.job_title}</span>
           <span
             style={{
               ...styles.statusBadge,
@@ -317,11 +321,11 @@ function ApplicationRow({ application }: { application: Application }) {
           </span>
         </div>
         <div style={styles.rowMeta}>
-          {job.company && <span style={styles.metaStrong}>{job.company}</span>}
-          {job.location && (
-            <span style={styles.metaMuted}>· {job.location}</span>
+          {job.company_name && (
+            <span style={styles.metaStrong}>{job.company_name}</span>
           )}
-          {job.remote === 1 && <span style={styles.metaMuted}>· Remote</span>}
+          {locations && <span style={styles.metaMuted}>· {locations}</span>}
+          {isRemote && <span style={styles.metaMuted}>· Remote</span>}
           {job.employment_type && (
             <span style={styles.pill}>
               {EMPLOYMENT_LABELS[job.employment_type]}
@@ -331,7 +335,7 @@ function ApplicationRow({ application }: { application: Application }) {
         <div style={styles.rowMeta}>
           <span style={styles.salary}>{formatSalary(job)}</span>
           <span style={styles.metaMuted}>
-            · Applied {formatRelative(application.applied_at)} · Posted by @
+            · Applied {formatRelative(application.applied_at ?? application.created_at ?? '')} · Posted by @
             {job.poster_username}
           </span>
           {job.is_active === 0 && (
@@ -382,9 +386,9 @@ function SummaryCard({
 function formatSalary(j: {
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
 }) {
-  const cur = j.salary_currency || 'USD';
+  const cur = j.currency || 'USD';
   if (j.salary_min == null && j.salary_max == null) {
     return 'Compensation not disclosed';
   }

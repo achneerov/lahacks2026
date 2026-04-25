@@ -88,17 +88,17 @@ router.get('/home', requireAuth, requireRecruiter, (req, res) => {
     const recent_postings = db
       .prepare(
         `SELECT
-           jp.id              AS id,
-           jp.title           AS title,
-           jp.company         AS company,
-           jp.location        AS location,
-           jp.remote          AS remote,
-           jp.employment_type AS employment_type,
-           jp.salary_min      AS salary_min,
-           jp.salary_max      AS salary_max,
-           jp.salary_currency AS salary_currency,
-           jp.is_active       AS is_active,
-           jp.created_at      AS created_at,
+           jp.id                    AS id,
+           jp.job_title             AS job_title,
+           jp.company_name          AS company_name,
+           jp.office_locations_json AS office_locations_json,
+           jp.work_model            AS work_model,
+           jp.employment_type       AS employment_type,
+           jp.salary_min            AS salary_min,
+           jp.salary_max            AS salary_max,
+           jp.currency              AS currency,
+           jp.is_active             AS is_active,
+           jp.created_at            AS created_at,
            (SELECT COUNT(*) FROM applications a
               WHERE a.job_posting_id = jp.id) AS applicant_count,
            (SELECT COUNT(*) FROM applications a
@@ -117,17 +117,18 @@ router.get('/home', requireAuth, requireRecruiter, (req, res) => {
     const recent_applications = db
       .prepare(
         `SELECT
-           a.id              AS id,
-           a.status          AS status,
-           a.created_at      AS applied_at,
-           a.updated_at      AS updated_at,
-           jp.id             AS job_id,
-           jp.title          AS job_title,
-           jp.company        AS job_company,
-           u.id              AS applicant_id,
-           u.username        AS applicant_username,
-           up.full_name      AS applicant_full_name,
-           up.headline       AS applicant_headline
+           a.id                  AS id,
+           a.status              AS status,
+           a.created_at          AS applied_at,
+           a.updated_at          AS updated_at,
+           jp.id                 AS job_id,
+           jp.job_title          AS job_title,
+           jp.company_name       AS job_company,
+           u.id                  AS applicant_id,
+           u.username            AS applicant_username,
+           up.first_name         AS applicant_first_name,
+           up.last_name          AS applicant_last_name,
+           up.preferred_name     AS applicant_preferred_name
          FROM applications a
          JOIN job_postings jp  ON jp.id = a.job_posting_id
          JOIN users u          ON u.id  = a.applicant_id
@@ -144,14 +145,15 @@ router.get('/home', requireAuth, requireRecruiter, (req, res) => {
         updated_at: r.updated_at,
         job: {
           id: r.job_id,
-          title: r.job_title,
-          company: r.job_company,
+          job_title: r.job_title,
+          company_name: r.job_company,
         },
         applicant: {
           id: r.applicant_id,
           username: r.applicant_username,
-          full_name: r.applicant_full_name,
-          headline: r.applicant_headline,
+          first_name: r.applicant_first_name,
+          last_name: r.applicant_last_name,
+          preferred_name: r.applicant_preferred_name,
         },
       }));
 

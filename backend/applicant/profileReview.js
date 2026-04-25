@@ -1,24 +1,28 @@
 const SENSITIVE_FIELDS = new Set([
-  'full_name',
-  'years_experience',
+  'first_name',
+  'last_name',
 ]);
 
 const FIELD_LABELS = {
-  full_name: 'Full name',
-  phone: 'Phone',
-  address_line1: 'Address line 1',
-  address_line2: 'Address line 2',
+  first_name: 'First name',
+  middle_initial: 'Middle initial',
+  last_name: 'Last name',
+  preferred_name: 'Preferred name',
+  phone_number: 'Phone number',
+  street_address: 'Street address',
+  apt_suite_unit: 'Apt / Suite / Unit',
   city: 'City',
   state: 'State',
-  postal_code: 'Postal code',
-  country: 'Country',
-  headline: 'Headline',
-  bio: 'Bio',
-  resume_url: 'Resume URL',
+  zip_code: 'ZIP code',
   linkedin_url: 'LinkedIn URL',
-  github_url: 'GitHub URL',
-  portfolio_url: 'Portfolio URL',
-  years_experience: 'Years of experience',
+  website_portfolio: 'Website / portfolio',
+  github_or_other_portfolio: 'GitHub / other portfolio',
+  challenge_you_overcame: 'Challenge you overcame',
+  greatest_strength: 'Greatest strength',
+  greatest_weakness: 'Greatest weakness',
+  five_year_goals: 'Five-year goals',
+  leadership_experience: 'Leadership experience',
+  anything_else: 'Anything else',
 };
 
 const TICKET_MESSAGE =
@@ -58,7 +62,7 @@ function heuristicReview(currentProfile, proposed) {
 
     if (oldValue === newValue) continue;
 
-    if (field === 'full_name') {
+    if (field === 'first_name' || field === 'last_name') {
       if (oldValue && newValue) {
         const overlap = tokenOverlap(oldValue, newValue);
         if (overlap < 0.5) {
@@ -66,16 +70,6 @@ function heuristicReview(currentProfile, proposed) {
         }
       }
       continue;
-    }
-
-    if (field === 'years_experience') {
-      const oldN = oldValue == null ? null : Number(oldValue);
-      const newN = newValue == null ? null : Number(newValue);
-      if (oldN != null && newN != null) {
-        if (newN < oldN) {
-          warnings[field] = TICKET_MESSAGE;
-        }
-      }
     }
   }
 

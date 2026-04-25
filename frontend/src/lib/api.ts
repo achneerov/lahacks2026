@@ -66,38 +66,47 @@ export interface SignupBasicsResponse {
 }
 
 export interface ApplicantProfileInput {
-  first_name?: string;
-  middle_initial?: string;
-  last_name?: string;
-  preferred_name?: string;
-  phone_number?: string;
-  street_address?: string;
-  apt_suite_unit?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  linkedin_url?: string;
-  website_portfolio?: string;
-  github_or_other_portfolio?: string;
-  anything_else?: string;
+  first_name?: string | null;
+  middle_initial?: string | null;
+  last_name?: string | null;
+  preferred_name?: string | null;
+  phone_number?: string | null;
+  street_address?: string | null;
+  apt_suite_unit?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  linkedin_url?: string | null;
+  website_portfolio?: string | null;
+  github_or_other_portfolio?: string | null;
+  challenge_you_overcame?: string | null;
+  greatest_strength?: string | null;
+  greatest_weakness?: string | null;
+  five_year_goals?: string | null;
+  leadership_experience?: string | null;
+  anything_else?: string | null;
 }
 
 export interface ApplicantProfile {
-  full_name: string | null;
-  phone: string | null;
-  address_line1: string | null;
-  address_line2: string | null;
+  first_name: string | null;
+  middle_initial: string | null;
+  last_name: string | null;
+  preferred_name: string | null;
+  phone_number: string | null;
+  street_address: string | null;
+  apt_suite_unit: string | null;
   city: string | null;
   state: string | null;
-  postal_code: string | null;
-  country: string | null;
-  headline: string | null;
-  bio: string | null;
-  resume_url: string | null;
+  zip_code: string | null;
   linkedin_url: string | null;
-  github_url: string | null;
-  portfolio_url: string | null;
-  years_experience: number | null;
+  website_portfolio: string | null;
+  github_or_other_portfolio: string | null;
+  challenge_you_overcame: string | null;
+  greatest_strength: string | null;
+  greatest_weakness: string | null;
+  five_year_goals: string | null;
+  leadership_experience: string | null;
+  anything_else: string | null;
   updated_at: string | null;
 }
 
@@ -160,10 +169,10 @@ export interface RecruiterHomeStats {
 
 export interface RecruiterRecentPosting {
   id: number;
-  title: string;
-  company: string | null;
-  location: string | null;
-  remote: 0 | 1;
+  job_title: string;
+  company_name: string | null;
+  office_locations_json: string | null;
+  work_model: string | null;
   employment_type:
     | 'FullTime'
     | 'PartTime'
@@ -173,7 +182,7 @@ export interface RecruiterRecentPosting {
     | null;
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
   is_active: 0 | 1;
   created_at: string;
   applicant_count: number;
@@ -188,14 +197,15 @@ export interface RecruiterRecentApplication {
   updated_at: string;
   job: {
     id: number;
-    title: string;
-    company: string | null;
+    job_title: string;
+    company_name: string | null;
   };
   applicant: {
     id: number;
     username: string;
-    full_name: string | null;
-    headline: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    preferred_name: string | null;
   };
 }
 
@@ -247,14 +257,14 @@ export type ApplicationStatus = 'Pending' | 'Declined' | 'SentToRecruiter';
 
 export interface ApplicationJobSummary {
   id: number;
-  title: string;
-  company: string | null;
-  location: string | null;
-  remote: 0 | 1;
+  job_title: string;
+  company_name: string | null;
+  office_locations_json: string | null;
+  work_model: string | null;
   employment_type: EmploymentType | null;
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
   is_active: 0 | 1;
   poster_username: string;
 }
@@ -275,6 +285,37 @@ export interface Application {
   agent_reasoning?: string | null;
   created_at?: string;
   decided_at?: string | null;
+}
+
+export function parseOfficeLocations(json: string | null | undefined): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((x): x is string => typeof x === 'string');
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+export function formatOfficeLocations(json: string | null | undefined): string | null {
+  const list = parseOfficeLocations(json);
+  if (list.length === 0) return null;
+  return list.join(' • ');
+}
+
+export function formatApplicantDisplayName(p: {
+  first_name?: string | null;
+  last_name?: string | null;
+  preferred_name?: string | null;
+  username?: string;
+}): string {
+  const first = p.preferred_name?.trim() || p.first_name?.trim() || '';
+  const last = p.last_name?.trim() || '';
+  const composed = [first, last].filter(Boolean).join(' ').trim();
+  return composed || p.username || '';
 }
 
 export interface ApplicantApplicationsQuery {

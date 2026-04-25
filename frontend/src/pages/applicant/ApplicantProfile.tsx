@@ -14,63 +14,74 @@ import {
 import { useAuth } from '../../auth/AuthContext';
 
 type FormState = {
-  full_name: string;
-  phone: string;
-  address_line1: string;
-  address_line2: string;
+  first_name: string;
+  middle_initial: string;
+  last_name: string;
+  preferred_name: string;
+  phone_number: string;
+  street_address: string;
+  apt_suite_unit: string;
   city: string;
   state: string;
-  postal_code: string;
-  country: string;
-  headline: string;
-  bio: string;
-  resume_url: string;
+  zip_code: string;
   linkedin_url: string;
-  github_url: string;
-  portfolio_url: string;
-  years_experience: string;
+  website_portfolio: string;
+  github_or_other_portfolio: string;
+  challenge_you_overcame: string;
+  greatest_strength: string;
+  greatest_weakness: string;
+  five_year_goals: string;
+  leadership_experience: string;
+  anything_else: string;
 };
 
 type FieldKey = keyof FormState;
 type WarningMap = Partial<Record<FieldKey, string>>;
 
 const EMPTY_FORM: FormState = {
-  full_name: '',
-  phone: '',
-  address_line1: '',
-  address_line2: '',
+  first_name: '',
+  middle_initial: '',
+  last_name: '',
+  preferred_name: '',
+  phone_number: '',
+  street_address: '',
+  apt_suite_unit: '',
   city: '',
   state: '',
-  postal_code: '',
-  country: '',
-  headline: '',
-  bio: '',
-  resume_url: '',
+  zip_code: '',
   linkedin_url: '',
-  github_url: '',
-  portfolio_url: '',
-  years_experience: '',
+  website_portfolio: '',
+  github_or_other_portfolio: '',
+  challenge_you_overcame: '',
+  greatest_strength: '',
+  greatest_weakness: '',
+  five_year_goals: '',
+  leadership_experience: '',
+  anything_else: '',
 };
 
 function profileToForm(p: ApplicantProfile | null): FormState {
   if (!p) return { ...EMPTY_FORM };
   return {
-    full_name: p.full_name ?? '',
-    phone: p.phone ?? '',
-    address_line1: p.address_line1 ?? '',
-    address_line2: p.address_line2 ?? '',
+    first_name: p.first_name ?? '',
+    middle_initial: p.middle_initial ?? '',
+    last_name: p.last_name ?? '',
+    preferred_name: p.preferred_name ?? '',
+    phone_number: p.phone_number ?? '',
+    street_address: p.street_address ?? '',
+    apt_suite_unit: p.apt_suite_unit ?? '',
     city: p.city ?? '',
     state: p.state ?? '',
-    postal_code: p.postal_code ?? '',
-    country: p.country ?? '',
-    headline: p.headline ?? '',
-    bio: p.bio ?? '',
-    resume_url: p.resume_url ?? '',
+    zip_code: p.zip_code ?? '',
     linkedin_url: p.linkedin_url ?? '',
-    github_url: p.github_url ?? '',
-    portfolio_url: p.portfolio_url ?? '',
-    years_experience:
-      p.years_experience == null ? '' : String(p.years_experience),
+    website_portfolio: p.website_portfolio ?? '',
+    github_or_other_portfolio: p.github_or_other_portfolio ?? '',
+    challenge_you_overcame: p.challenge_you_overcame ?? '',
+    greatest_strength: p.greatest_strength ?? '',
+    greatest_weakness: p.greatest_weakness ?? '',
+    five_year_goals: p.five_year_goals ?? '',
+    leadership_experience: p.leadership_experience ?? '',
+    anything_else: p.anything_else ?? '',
   };
 }
 
@@ -80,16 +91,12 @@ function diffPayload(form: FormState, base: FormState): ApplicantProfileInput {
     const a = form[k].trim();
     const b = base[k].trim();
     if (a === b) return;
-    if (k === 'years_experience') {
-      out.years_experience = a === '' ? null : Number(a);
-    } else {
-      (out as Record<string, string>)[k] = a;
-    }
+    (out as Record<string, string | null>)[k] = a === '' ? null : a;
   });
   return out;
 }
 
-export default function ApplicantProfile() {
+export default function ApplicantProfilePage() {
   const { token } = useAuth();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -219,7 +226,7 @@ export default function ApplicantProfile() {
         <span style={styles.eyebrow}>Applicant</span>
         <h1 style={styles.title}>Edit profile</h1>
         <p style={styles.subtitle}>
-          Update your personal details, resume, and links so recruiters can
+          Update your personal details, address, and links so recruiters can
           find you. Changes to identity-level fields are reviewed before saving.
         </p>
         {updatedAt && (
@@ -262,50 +269,69 @@ export default function ApplicantProfile() {
         }}
       >
         <Section title="Identity">
-          <Field
-            label="Full name"
-            value={form.full_name}
-            onChange={(v) => update('full_name', v)}
-            warning={warnings.full_name}
-            disabled={busy}
-            placeholder="Jane Doe"
-          />
-          <Field
-            label="Headline"
-            value={form.headline}
-            onChange={(v) => update('headline', v)}
-            warning={warnings.headline}
-            disabled={busy}
-            placeholder="Senior frontend engineer"
-          />
-        </Section>
-
-        <Section title="Contact">
-          <Field
-            label="Phone"
-            value={form.phone}
-            onChange={(v) => update('phone', v)}
-            warning={warnings.phone}
-            disabled={busy}
-            placeholder="+1 555 555 5555"
-            type="tel"
-          />
+          <div style={styles.row3}>
+            <Field
+              label="First name"
+              value={form.first_name}
+              onChange={(v) => update('first_name', v)}
+              warning={warnings.first_name}
+              disabled={busy}
+              placeholder="Alex"
+            />
+            <Field
+              label="Middle initial"
+              value={form.middle_initial}
+              onChange={(v) => update('middle_initial', v)}
+              warning={warnings.middle_initial}
+              disabled={busy}
+              placeholder="J"
+            />
+            <Field
+              label="Last name"
+              value={form.last_name}
+              onChange={(v) => update('last_name', v)}
+              warning={warnings.last_name}
+              disabled={busy}
+              placeholder="Chen"
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Preferred name"
+              value={form.preferred_name}
+              onChange={(v) => update('preferred_name', v)}
+              warning={warnings.preferred_name}
+              disabled={busy}
+              placeholder="Alex"
+            />
+            <Field
+              label="Phone"
+              value={form.phone_number}
+              onChange={(v) => update('phone_number', v)}
+              warning={warnings.phone_number}
+              disabled={busy}
+              type="tel"
+              placeholder="+1 555 555 5555"
+            />
+          </div>
         </Section>
 
         <Section title="Address">
           <Field
-            label="Address line 1"
-            value={form.address_line1}
-            onChange={(v) => update('address_line1', v)}
-            warning={warnings.address_line1}
+            label="Street address"
+            value={form.street_address}
+            onChange={(v) => update('street_address', v)}
+            warning={warnings.street_address}
             disabled={busy}
+            placeholder="123 Market St"
           />
           <Field
-            label="Address line 2"
-            value={form.address_line2}
-            onChange={(v) => update('address_line2', v)}
-            warning={warnings.address_line2}
+            label="Apt / suite / unit"
+            value={form.apt_suite_unit}
+            onChange={(v) => update('apt_suite_unit', v)}
+            warning={warnings.apt_suite_unit}
             disabled={busy}
+            placeholder="Apt 4B"
           />
           <div style={styles.row}>
             <Field
@@ -323,56 +349,16 @@ export default function ApplicantProfile() {
               disabled={busy}
             />
             <Field
-              label="Postal code"
-              value={form.postal_code}
-              onChange={(v) => update('postal_code', v)}
-              warning={warnings.postal_code}
-              disabled={busy}
-            />
-            <Field
-              label="Country"
-              value={form.country}
-              onChange={(v) => update('country', v)}
-              warning={warnings.country}
+              label="ZIP code"
+              value={form.zip_code}
+              onChange={(v) => update('zip_code', v)}
+              warning={warnings.zip_code}
               disabled={busy}
             />
           </div>
         </Section>
 
-        <Section title="Experience">
-          <Field
-            label="Years of experience"
-            value={form.years_experience}
-            onChange={(v) => update('years_experience', v)}
-            warning={warnings.years_experience}
-            disabled={busy}
-            type="number"
-            min={0}
-            max={80}
-            placeholder="e.g. 5"
-          />
-          <Field
-            label="Bio"
-            value={form.bio}
-            onChange={(v) => update('bio', v)}
-            warning={warnings.bio}
-            disabled={busy}
-            multiline
-            rows={5}
-            placeholder="A short paragraph about your background and what you're looking for."
-          />
-        </Section>
-
         <Section title="Links">
-          <Field
-            label="Resume URL"
-            value={form.resume_url}
-            onChange={(v) => update('resume_url', v)}
-            warning={warnings.resume_url}
-            disabled={busy}
-            type="url"
-            placeholder="https://…"
-          />
           <Field
             label="LinkedIn URL"
             value={form.linkedin_url}
@@ -383,22 +369,79 @@ export default function ApplicantProfile() {
             placeholder="https://linkedin.com/in/…"
           />
           <Field
-            label="GitHub URL"
-            value={form.github_url}
-            onChange={(v) => update('github_url', v)}
-            warning={warnings.github_url}
+            label="Website / portfolio"
+            value={form.website_portfolio}
+            onChange={(v) => update('website_portfolio', v)}
+            warning={warnings.website_portfolio}
+            disabled={busy}
+            type="url"
+            placeholder="https://yourname.dev"
+          />
+          <Field
+            label="GitHub or other portfolio"
+            value={form.github_or_other_portfolio}
+            onChange={(v) => update('github_or_other_portfolio', v)}
+            warning={warnings.github_or_other_portfolio}
             disabled={busy}
             type="url"
             placeholder="https://github.com/…"
           />
+        </Section>
+
+        <Section title="About you">
           <Field
-            label="Portfolio URL"
-            value={form.portfolio_url}
-            onChange={(v) => update('portfolio_url', v)}
-            warning={warnings.portfolio_url}
+            label="A challenge you overcame"
+            value={form.challenge_you_overcame}
+            onChange={(v) => update('challenge_you_overcame', v)}
+            warning={warnings.challenge_you_overcame}
             disabled={busy}
-            type="url"
-            placeholder="https://…"
+            multiline
+            rows={4}
+          />
+          <Field
+            label="Your greatest strength"
+            value={form.greatest_strength}
+            onChange={(v) => update('greatest_strength', v)}
+            warning={warnings.greatest_strength}
+            disabled={busy}
+            multiline
+            rows={3}
+          />
+          <Field
+            label="Your greatest weakness"
+            value={form.greatest_weakness}
+            onChange={(v) => update('greatest_weakness', v)}
+            warning={warnings.greatest_weakness}
+            disabled={busy}
+            multiline
+            rows={3}
+          />
+          <Field
+            label="Where do you see yourself in five years?"
+            value={form.five_year_goals}
+            onChange={(v) => update('five_year_goals', v)}
+            warning={warnings.five_year_goals}
+            disabled={busy}
+            multiline
+            rows={3}
+          />
+          <Field
+            label="Leadership experience"
+            value={form.leadership_experience}
+            onChange={(v) => update('leadership_experience', v)}
+            warning={warnings.leadership_experience}
+            disabled={busy}
+            multiline
+            rows={3}
+          />
+          <Field
+            label="Anything else recruiters should know?"
+            value={form.anything_else}
+            onChange={(v) => update('anything_else', v)}
+            warning={warnings.anything_else}
+            disabled={busy}
+            multiline
+            rows={4}
           />
         </Section>
 
@@ -623,6 +666,11 @@ const styles: Record<string, CSSProperties> = {
   row: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: 12,
+  },
+  row3: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 100px 1fr',
     gap: 12,
   },
   field: {
