@@ -212,8 +212,15 @@ export interface ApplicantProfile {
   eeo: EeoInput | null;
 }
 
+export interface ProfileLockState {
+  locked: boolean;
+  reason: string | null;
+  locked_at: string | null;
+}
+
 export interface ApplicantProfileResponse {
   profile: ApplicantProfile;
+  lock: ProfileLockState;
 }
 
 export interface ApplicantProfileReviewResponse {
