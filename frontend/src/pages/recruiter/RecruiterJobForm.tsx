@@ -78,7 +78,6 @@ type FormState = {
   dei_statement: string;
   // Application process
   application_deadline: string;
-  how_to_apply: string;
   documents_required: string;
   interview_rounds: string;
   interview_format: string;
@@ -109,7 +108,7 @@ const EMPTY_FORM: FormState = {
   nice_industry_background: '',
   company_website: '', industry: '', company_size: '', company_stage: '',
   mission_values: '', culture_description: '', dei_statement: '',
-  application_deadline: '', how_to_apply: '', documents_required: '',
+  application_deadline: '', documents_required: '',
   interview_rounds: '', interview_format: '', expected_time_to_hire: '',
   contact_person: '', contact_email_phone: '',
   is_active: true,
@@ -190,7 +189,7 @@ function jobToForm(job: RecruiterJob | null): FormState {
     company_stage: job.company_stage ?? '',
     mission_values: job.mission_values ?? '', culture_description: job.culture_description ?? '',
     dei_statement: job.dei_statement ?? '',
-    application_deadline: job.application_deadline ?? '', how_to_apply: job.how_to_apply ?? '',
+    application_deadline: job.application_deadline ?? '',
     documents_required: tryParseJsonArray(job.documents_required).join('\n'),
     interview_rounds: job.interview_rounds != null ? String(job.interview_rounds) : '',
     interview_format: tryParseJsonArray(job.interview_format).join('\n'),
@@ -258,7 +257,6 @@ function buildPayload(form: FormState): RecruiterJobInput {
     culture_description: strOrNull(form.culture_description),
     dei_statement: strOrNull(form.dei_statement),
     application_deadline: strOrNull(form.application_deadline),
-    how_to_apply: strOrNull(form.how_to_apply),
     documents_required: linesToArray(form.documents_required),
     interview_rounds: numOrNull(form.interview_rounds),
     interview_format: linesToArray(form.interview_format),
@@ -281,6 +279,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
   const [saving, setSaving] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [issues, setIssues] = useState<JobReviewIssue[]>([]);
   const [reviewSource, setReviewSource] = useState<'llm' | 'heuristic' | null>(null);
   const [reviewedAt, setReviewedAt] = useState<Date | null>(null);
@@ -314,6 +313,9 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
 
   function update<K extends FieldKey>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
+    }
   }
 
   async function handleReview() {
@@ -340,10 +342,18 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
-    if (!form.title.trim()) {
-      setError('Title is required.');
-      return;
-    }
+    setError(null);
+
+    const errs: Partial<Record<FieldKey, string>> = {};
+    if (!form.title.trim()) errs.title = 'Title is required.';
+    if (!form.company.trim()) errs.company = 'Company is required.';
+    if (!form.employment_type) errs.employment_type = 'Employment type is required.';
+    if (!form.location.trim()) errs.location = 'Location is required.';
+    if (!form.work_model) errs.work_model = 'Work model is required.';
+    if (!form.summary.trim()) errs.summary = 'Role summary is required.';
+    if (!form.application_deadline.trim()) errs.application_deadline = 'Application deadline is required.';
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     setSaving(true);
     setError(null);
     try {
@@ -411,10 +421,10 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
       <section style={styles.cardCol}>
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Job Basics</legend>
-          <Field label="Title" required issues={issuesByField.get('title')} input={<input type="text" value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Senior Backend Engineer" style={styles.input} required />} />
+          <Field label="Title" required issues={issuesByField.get('title')} validationError={fieldErrors.title} input={<input type="text" value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Senior Backend Engineer" style={fieldErrors.title ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
           <div style={styles.gridTwo}>
-            <Field label="Company" issues={issuesByField.get('company')} input={<input type="text" value={form.company} onChange={e => update('company', e.target.value)} placeholder="e.g. Acme Corp" style={styles.input} />} />
-            <Field label="Employment type" input={<select value={form.employment_type} onChange={e => update('employment_type', e.target.value as EmploymentType | '')} style={styles.input}>{EMPLOYMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>} />
+            <Field label="Company" required issues={issuesByField.get('company')} validationError={fieldErrors.company} input={<input type="text" value={form.company} onChange={e => update('company', e.target.value)} placeholder="e.g. Acme Corp" style={fieldErrors.company ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
+            <Field label="Employment type" required validationError={fieldErrors.employment_type} input={<select value={form.employment_type} onChange={e => update('employment_type', e.target.value as EmploymentType | '')} style={fieldErrors.employment_type ? { ...styles.input, ...styles.inputError } : styles.input}>{EMPLOYMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>} />
           </div>
           <div style={styles.gridTwo}>
             <Field label="Job ID / Requisition #" input={<input type="text" value={form.job_id_requisition} onChange={e => update('job_id_requisition', e.target.value)} style={styles.input} />} />
@@ -435,8 +445,8 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Location</legend>
           <div style={styles.gridTwo}>
-            <Field label="Location" input={<input type="text" value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. San Francisco, CA" style={styles.input} />} />
-            <Field label="Work model" input={<select value={form.work_model} onChange={e => update('work_model', e.target.value)} style={styles.input}><option value="">Not specified</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="on-site">On-site</option></select>} />
+            <Field label="Location" required validationError={fieldErrors.location} input={<input type="text" value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. San Francisco, CA" style={fieldErrors.location ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
+            <Field label="Work model" required validationError={fieldErrors.work_model} input={<select value={form.work_model} onChange={e => update('work_model', e.target.value)} style={fieldErrors.work_model ? { ...styles.input, ...styles.inputError } : styles.input}><option value="">Not specified</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="on-site">On-site</option></select>} />
           </div>
           <Field label="Office locations (one per line)" input={<textarea value={form.office_locations} onChange={e => update('office_locations', e.target.value)} rows={2} placeholder="San Francisco, CA&#10;New York, NY" style={{ ...styles.input, resize: 'vertical' }} />} />
           {form.work_model === 'hybrid' && <Field label="Days in office per week" input={<input type="number" min={0} max={7} value={form.hybrid_days_in_office} onChange={e => update('hybrid_days_in_office', e.target.value)} style={styles.input} />} />}
@@ -474,7 +484,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
 
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Role Description</legend>
-          <Field label="Summary" input={<textarea value={form.summary} onChange={e => update('summary', e.target.value)} rows={3} placeholder="Brief overview of the role" style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="Summary" required validationError={fieldErrors.summary} input={<textarea value={form.summary} onChange={e => update('summary', e.target.value)} rows={3} placeholder="Brief overview of the role" style={fieldErrors.summary ? { ...styles.input, ...styles.inputError, resize: 'vertical' as const } : { ...styles.input, resize: 'vertical' as const }} required />} />
           <Field label="Key responsibilities (one per line)" input={<textarea value={form.key_responsibilities} onChange={e => update('key_responsibilities', e.target.value)} rows={4} placeholder="Design and implement APIs&#10;Mentor junior engineers" style={{ ...styles.input, resize: 'vertical' }} />} />
           <Field label="Full description" issues={issuesByField.get('description')} input={<textarea value={form.description} onChange={e => update('description', e.target.value)} rows={6} placeholder="Detailed role description…" style={{ ...styles.input, minHeight: 140, resize: 'vertical' }} />} />
           <Field label="Why is this role open?" input={<input type="text" value={form.why_role_is_open} onChange={e => update('why_role_is_open', e.target.value)} placeholder="New headcount / Backfill" style={styles.input} />} />
@@ -525,10 +535,9 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Application Process</legend>
           <div style={styles.gridTwo}>
-            <Field label="Application deadline" input={<input type="date" value={form.application_deadline} onChange={e => update('application_deadline', e.target.value)} style={styles.input} />} />
+            <Field label="Application deadline" required validationError={fieldErrors.application_deadline} input={<input type="date" value={form.application_deadline} onChange={e => update('application_deadline', e.target.value)} style={fieldErrors.application_deadline ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
             <Field label="Expected time to hire" input={<input type="text" value={form.expected_time_to_hire} onChange={e => update('expected_time_to_hire', e.target.value)} placeholder="e.g. 4-6 weeks" style={styles.input} />} />
           </div>
-          <Field label="How to apply" input={<input type="text" value={form.how_to_apply} onChange={e => update('how_to_apply', e.target.value)} placeholder="Portal / Email / Referral" style={styles.input} />} />
           <Field label="Documents required (one per line)" input={<textarea value={form.documents_required} onChange={e => update('documents_required', e.target.value)} rows={2} placeholder="Resume&#10;Cover letter" style={{ ...styles.input, resize: 'vertical' }} />} />
           <div style={styles.gridTwo}>
             <Field label="Interview rounds" input={<input type="number" min={0} value={form.interview_rounds} onChange={e => update('interview_rounds', e.target.value)} style={styles.input} />} />
@@ -603,7 +612,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
         </Link>
         <button
           type="submit"
-          disabled={saving || !form.title.trim()}
+          disabled={saving}
           style={styles.submitBtn}
         >
           {saving
@@ -628,11 +637,13 @@ function Field({
   label,
   required,
   issues,
+  validationError,
   input,
 }: {
   label: string;
   required?: boolean;
   issues?: JobReviewIssue[];
+  validationError?: string;
   input: React.ReactNode;
 }) {
   return (
@@ -642,6 +653,9 @@ function Field({
         {required && <span style={styles.requiredMark}> *</span>}
       </span>
       {input}
+      {validationError && (
+        <span style={styles.fieldValidationError}>{validationError}</span>
+      )}
       {issues && issues.length > 0 && (
         <ul style={styles.fieldIssues}>
           {issues.map((i, idx) => (
@@ -777,6 +791,11 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: 0.4,
   },
   requiredMark: { color: '#9a1a1a' },
+  fieldValidationError: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#b00020',
+  },
   input: {
     padding: '10px 12px',
     fontSize: 14,
@@ -788,6 +807,11 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: 'inherit',
     width: '100%',
     boxSizing: 'border-box',
+  },
+  inputError: {
+    borderColor: '#b00020',
+    background: 'rgba(176, 0, 32, 0.04)',
+    boxShadow: '0 0 0 3px rgba(176, 0, 32, 0.12)',
   },
   toggleRow: {
     display: 'flex',
