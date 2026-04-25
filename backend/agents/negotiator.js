@@ -30,7 +30,7 @@ const RECRUITER_TOOLS = [
             reason: {
               type: Type.STRING,
               description:
-                'A concise factual explanation, grounded in the applicant profile, of why the candidate is fundamentally ineligible. Two sentences maximum.',
+                "A concise factual explanation, grounded ONLY in claims APPLICANT_AGENT made (or failed to make) in this transcript, of why the candidate is fundamentally ineligible. You do not have access to the candidate's profile — do not pretend you do. Two sentences maximum.",
             },
           },
           required: ['reason'],
@@ -146,10 +146,12 @@ async function runNegotiation(applicationId) {
   const jobPosting = getJobPosting(application.job_posting_id);
   if (!jobPosting) throw new Error(`job ${application.job_posting_id} not loadable`);
 
-  const promptCtx = { applicantProfile: applicantBundle.profile, jobPosting };
   const sysPrompts = {
-    applicant_agent: applicantAgentSystemPrompt(promptCtx),
-    recruiter_agent: recruiterAgentSystemPrompt(promptCtx),
+    applicant_agent: applicantAgentSystemPrompt({
+      applicantProfile: applicantBundle.profile,
+      jobPosting,
+    }),
+    recruiter_agent: recruiterAgentSystemPrompt({ jobPosting }),
   };
 
   const transcript = []; // shared in-memory: [{ turnIndex, sender, content }]
@@ -251,7 +253,7 @@ async function runNegotiation(applicationId) {
         model: MODEL,
         contents: buildVerdictContents(transcript),
         config: {
-          systemInstruction: verdictSystemPrompt(promptCtx),
+          systemInstruction: verdictSystemPrompt({ jobPosting }),
           responseMimeType: 'application/json',
           responseJsonSchema: VERDICT_SCHEMA,
         },
