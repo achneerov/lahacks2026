@@ -85,111 +85,152 @@ export default function SignupBasics() {
   }
 
   return (
-    <main style={styles.page}>
-      <section style={styles.card}>
-        <header style={styles.header}>
-          <span style={styles.eyebrow}>Step 1 of 3</span>
-          <h1 style={styles.title}>Create your account</h1>
-          <p style={styles.subtitle}>
-            Start with the basics. We'll set up World ID verification next.
-          </p>
-        </header>
-
-        <form onSubmit={onSubmit} style={styles.form} noValidate>
-          <label style={styles.label}>
-            <span style={styles.labelText}>Username</span>
-            <input
-              type="text"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="alex.chneerov"
-              minLength={3}
-              maxLength={32}
-              required
-              style={styles.input}
-            />
-            <span style={styles.hint}>3–32 chars. Letters, numbers, dot, underscore, hyphen.</span>
-          </label>
-
-          <label style={styles.label}>
-            <span style={styles.labelText}>Email</span>
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              style={styles.input}
-            />
-          </label>
-
-          <label style={styles.label}>
-            <span style={styles.labelText}>Password</span>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              placeholder="At least 8 characters"
-              minLength={8}
-              required
-              style={styles.input}
-            />
-            <span style={styles.hint}>Minimum 8 characters.</span>
-          </label>
-
-          <fieldset style={styles.fieldset}>
-            <legend style={styles.legend}>I am signing up as a</legend>
-            <div style={styles.roleGrid}>
-              {ROLES.map((r) => {
-                const active = role === r.value;
-                return (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRole(r.value)}
-                    style={{
-                      ...styles.roleCard,
-                      ...(active ? styles.roleCardActive : null),
-                    }}
-                    aria-pressed={active}
-                  >
-                    <span style={styles.roleTitle}>{r.title}</span>
-                    <span style={styles.roleSubtitle}>{r.subtitle}</span>
-                  </button>
-                );
-              })}
+    <div className="landing-page" style={styles.pageContainer}>
+      
+      {/* LEFT PANEL: Branding & Philosophy */}
+      <div style={styles.leftPanel}>
+        <div style={styles.leftOverlay}></div>
+        <div style={styles.leftContent}>
+          <div style={styles.logoRow}>
+            <div style={styles.logoIcon}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </div>
-          </fieldset>
+            <span style={styles.logoText}>AegisTalent</span>
+          </div>
 
-          {error && (
-            <div role="alert" style={styles.error}>
-              {error}
+          <div style={styles.heroTextContainer}>
+            <h1 style={styles.heroTitle}>Objective Precision in Talent Acquisition.</h1>
+            <p style={styles.heroSubtitle}>
+              Deploy high-performance AI agents to bridge the gap between enterprise needs and global talent pools.
+            </p>
+          </div>
+
+          <div style={styles.statsRow}>
+            <div style={styles.statBlock}>
+              <div style={styles.statLabel}>VERIFIED USERS</div>
+              <div style={styles.statValue}>42,000+</div>
             </div>
-          )}
+            <div style={styles.statBlock}>
+              <div style={styles.statLabel}>AI PRECISION</div>
+              <div style={styles.statValue}>99.8%</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <button
-            type="submit"
-            disabled={!localValid || submitting}
-            style={{
-              ...styles.primary,
-              ...((!localValid || submitting) ? styles.primaryDisabled : null),
-            }}
+      {/* RIGHT PANEL: Authentication Form */}
+      <div style={styles.rightPanel}>
+        <div style={styles.rightContentBox}>
+          
+          <div style={styles.formHeader}>
+            <span style={styles.stepEyebrow}>Step 1 of 3</span>
+            <h2 style={styles.formTitle}>Initialize Profile</h2>
+            <p style={styles.formSubtitle}>Set up your foundational credentials. We'll handle World ID verification next.</p>
+          </div>
+
+          <form onSubmit={onSubmit} style={styles.form} noValidate>
+            
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>USERNAME</label>
+              <input
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="alex.chneerov"
+                minLength={3}
+                maxLength={32}
+                required
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>CORPORATE EMAIL</label>
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="name@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>PASSWORD</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                minLength={8}
+                required
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>ACCOUNT TYPE</label>
+              <div style={styles.roleGrid}>
+                {ROLES.map((r) => {
+                  const active = role === r.value;
+                  return (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setRole(r.value)}
+                      style={{
+                        ...styles.roleCard,
+                        ...(active ? styles.roleCardActive : null),
+                      }}
+                      aria-pressed={active}
+                    >
+                      <span style={{...styles.roleTitle, color: active ? 'white' : '#1E293B'}}>{r.title}</span>
+                      <span style={{...styles.roleSubtitle, color: active ? '#CBD5E1' : '#64748B'}}>{r.subtitle}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={!localValid || submitting} 
+              style={{
+                ...styles.signInBtn,
+                ...((!localValid || submitting) ? styles.disabledBtn : null)
+              }}
+            >
+              {submitting ? 'PROCESSING...' : 'CONTINUE TO VERIFICATION'}
+            </button>
+            
+            {error && <div style={styles.errorBox}>{error}</div>}
+          </form>
+
+          <div style={styles.divider}></div>
+
+          <button 
+            type="button" 
+            onClick={() => nav('/login')} 
+            style={styles.createBtn}
           >
-            {submitting ? 'Checking…' : 'Continue'}
+            SIGN IN INSTEAD
           </button>
-        </form>
 
-        <p style={styles.footer}>
-          Already have an account?{' '}
-          <Link to="/login" style={styles.footerLink}>
-            Sign in
-          </Link>
-        </p>
-      </section>
-    </main>
+          <div style={styles.footerLinks}>
+            <span>Privacy Policy</span>
+            <span style={styles.dot}>•</span>
+            <span>Service Terms</span>
+            <span style={styles.dot}>•</span>
+            <span>SOC2 Compliance</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -214,174 +255,248 @@ function errorMessage(code: string, detail?: string): string {
   }
 }
 
-const styles: Record<string, CSSProperties> = {
-  page: {
-    flex: 1,
+const styles: Record<string, React.CSSProperties> = {
+  pageContainer: {
+    display: 'flex',
+    width: '100vw',
+    height: '100vh',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    margin: 0,
+    overflow: 'hidden'
+  },
+  
+  // LEFT PANEL
+  leftPanel: {
+    flex: '1.2',
+    position: 'relative',
+    backgroundImage: 'url("/images/office.png")', // the darker office
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  leftOverlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: '#000000',
+    opacity: 0.75,
+  },
+  leftContent: {
+    position: 'relative',
+    zIndex: 1,
+    padding: '48px 64px',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    color: 'white'
+  },
+  logoRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  logoIcon: {
+    width: '32px',
+    height: '32px',
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  logoText: {
+    fontSize: '20px',
+    fontWeight: 500,
+    letterSpacing: '-0.5px'
+  },
+  heroTextContainer: {
+    maxWidth: '480px',
+    marginBottom: '80px'
+  },
+  heroTitle: {
+    fontSize: '28px',
+    fontWeight: 400,
+    margin: '0 0 24px',
+    lineHeight: 1.3,
+    color: 'white'
+  },
+  heroSubtitle: {
+    fontSize: '16px',
+    color: '#CBD5E1', // slate-300
+    lineHeight: 1.6,
+    margin: 0
+  },
+  statsRow: {
+    display: 'flex',
+    gap: '64px',
+    borderTop: '1px solid rgba(255,255,255,0.1)',
+    paddingTop: '32px'
+  },
+  statLabel: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#94A3B8', // slate-400
+    letterSpacing: '1px',
+    marginBottom: '8px'
+  },
+  statValue: {
+    fontSize: '20px',
+    fontWeight: 400
+  },
+
+  // RIGHT PANEL
+  rightPanel: {
+    flex: '1',
+    backgroundColor: '#F8FAFC', // very light slate/gray
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '48px 24px',
-    boxSizing: 'border-box',
+    borderLeft: '1px solid #E2E8F0', // slate-200
+    overflowY: 'auto'
   },
-  card: {
+  rightContentBox: {
     width: '100%',
-    maxWidth: 480,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 28,
-    padding: 32,
-    border: '1px solid var(--border)',
-    borderRadius: 16,
-    background: 'var(--bg)',
-    boxShadow: 'var(--shadow)',
-    textAlign: 'left',
+    maxWidth: '440px',
+    padding: '40px 32px'
   },
-  header: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 12,
+  formHeader: {
+    marginBottom: '32px'
   },
-  eyebrow: {
+  stepEyebrow: {
     display: 'inline-block',
-    padding: '4px 12px',
-    fontSize: 12,
-    fontWeight: 500,
-    color: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    letterSpacing: 0.4,
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#3B82F6', // a confident blue
+    letterSpacing: '1px',
     textTransform: 'uppercase',
+    marginBottom: '8px'
   },
-  title: {
-    margin: 0,
-    color: 'var(--text-h)',
-    fontSize: 28,
-    lineHeight: 1.15,
-    letterSpacing: '-0.5px',
+  formTitle: {
+    fontSize: '22px',
+    fontWeight: 500,
+    color: '#1E293B', // slate-800
+    margin: '0 0 8px'
   },
-  subtitle: {
+  formSubtitle: {
+    fontSize: '14px',
+    color: '#64748B', // slate-500
     margin: 0,
-    color: 'var(--text)',
-    fontSize: 15,
-    lineHeight: 1.5,
+    lineHeight: 1.5
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 18,
+    gap: '20px'
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
   },
   label: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-  },
-  labelText: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'var(--text-h)',
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#1E293B',
+    letterSpacing: '0.5px'
   },
   input: {
-    appearance: 'none',
     width: '100%',
-    boxSizing: 'border-box',
-    padding: '12px 14px',
-    fontSize: 15,
-    color: 'var(--text-h)',
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
+    padding: '16px',
+    fontSize: '15px',
+    color: '#0F172A',
+    backgroundColor: 'white',
+    border: '1px solid #CBD5E1', // slate-300
+    borderRadius: '999px',
     outline: 'none',
-    fontFamily: 'inherit',
-  },
-  hint: {
-    fontSize: 12,
-    color: 'var(--text)',
-  },
-  fieldset: {
-    border: 0,
-    padding: 0,
-    margin: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 10,
-  },
-  legend: {
-    padding: 0,
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'var(--text-h)',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.2s',
   },
   roleGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: 12,
+    gap: '12px',
   },
   roleCard: {
     appearance: 'none',
     cursor: 'pointer',
     textAlign: 'left',
-    padding: '14px 16px',
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 12,
+    padding: '16px 24px',
+    background: 'white',
+    border: '1px solid #CBD5E1',
+    borderRadius: '24px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
-    transition: 'border-color 120ms ease, background 120ms ease, box-shadow 120ms ease',
-    color: 'var(--text)',
-    font: 'inherit',
+    gap: '6px',
+    transition: 'all 0.2s ease',
   },
   roleCardActive: {
-    borderColor: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    boxShadow: '0 0 0 3px var(--accent-bg)',
+    borderColor: '#0F172A',
+    background: '#0F172A',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
   },
   roleTitle: {
-    fontSize: 14,
+    fontSize: '14px',
     fontWeight: 600,
-    color: 'var(--text-h)',
   },
   roleSubtitle: {
-    fontSize: 12,
-    color: 'var(--text)',
+    fontSize: '12px',
     lineHeight: 1.4,
   },
-  error: {
-    padding: '10px 12px',
-    fontSize: 13,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
-    borderRadius: 8,
-  },
-  primary: {
-    appearance: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '14px 24px',
-    fontSize: 16,
+  signInBtn: {
+    width: '100%',
+    marginTop: '12px',
+    padding: '16px',
+    fontSize: '14px',
     fontWeight: 600,
+    backgroundColor: '#000',
     color: '#fff',
-    background: 'var(--accent)',
-    borderRadius: 12,
-    transition: 'transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease',
+    border: 'none',
+    borderRadius: '999px',
+    cursor: 'pointer',
+    letterSpacing: '0.5px',
+    transition: 'opacity 0.2s'
   },
-  primaryDisabled: {
-    cursor: 'not-allowed',
-    opacity: 0.55,
+  disabledBtn: {
+    opacity: 0.5,
+    cursor: 'not-allowed'
   },
-  footer: {
-    margin: 0,
-    fontSize: 14,
-    color: 'var(--text)',
-    textAlign: 'center',
+  errorBox: {
+    padding: '12px',
+    backgroundColor: '#FEF2F2',
+    color: '#DC2626',
+    borderRadius: '8px',
+    fontSize: '13px',
+    textAlign: 'center'
   },
-  footerLink: {
-    color: 'var(--accent)',
-    fontWeight: 500,
-    textDecoration: 'underline',
-    textUnderlineOffset: 3,
+  divider: {
+    height: '1px',
+    backgroundColor: '#E2E8F0',
+    margin: '24px 0'
   },
+  createBtn: {
+    width: '100%',
+    padding: '16px',
+    fontSize: '14px',
+    fontWeight: 600,
+    backgroundColor: 'transparent',
+    color: '#1E293B',
+    border: '1px solid #CBD5E1',
+    borderRadius: '999px',
+    cursor: 'pointer',
+    letterSpacing: '0.5px',
+    transition: 'all 0.2s'
+  },
+  footerLinks: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '12px',
+    marginTop: '40px',
+    fontSize: '12px',
+    color: '#94A3B8'
+  },
+  dot: {
+    fontSize: '10px'
+  }
 };
