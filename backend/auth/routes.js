@@ -4,6 +4,7 @@ const { signRequest } = require('@worldcoin/idkit-server');
 const db = require('../db');
 const { verifyWorldId } = require('./verifyWorldId');
 const { signToken, requireAuth } = require('./jwt');
+const { recordAttempt } = require('../applicant/criticalChange');
 
 const router = express.Router();
 
@@ -352,6 +353,21 @@ router.post('/register', async (req, res) => {
              VALUES (?, ?, ?, ?, ?)`
           ).run(userId, e.gender||null, e.race_ethnicity||null, e.disability_status||null, e.veteran_status||null);
         }
+      }
+
+      // Seed a baseline entry in profile_change_log for applicants so that
+      // the very first PATCH /applicant/profile that touches a critical
+      // field goes through Gemini review (instead of being auto-approved as
+      // a "no prior history" baseline). The signup payload is the truth we
+      // compare future critical edits against.
+      if (role === 'Applicant') {
+        recordAttempt({
+          userId,
+          decision: 'approved',
+          diff: { changes: [] },
+          agentDecision: null,
+          agentReasoning: 'Signup baseline.',
+        });
       }
 
       return userId;

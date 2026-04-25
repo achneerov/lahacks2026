@@ -8,7 +8,6 @@ const {
   recordAttempt,
   loadLockState,
   lockUser,
-  hasAnyHistory,
 } = require('./criticalChange');
 const { reviewCriticalChange } = require('../agents/profile-credibility');
 
@@ -330,24 +329,6 @@ router.patch('/profile', requireAuth, requireApplicant, async (req, res) => {
     // No critical changes => skip Gemini, save normally, no audit log entry.
     if (!hasCriticalChanges) {
       applyProfileWrite(userId, clean);
-      return res.json({
-        profile: loadFullProfile(userId),
-        lock: loadLockState(userId),
-      });
-    }
-
-    // First-ever critical save for this user (signup baseline, or a
-    // grandfathered seeded user that never went through this pipeline before)
-    // is trusted: skip Gemini, log a baseline approved row, save.
-    if (!hasAnyHistory(userId)) {
-      applyProfileWrite(userId, clean);
-      recordAttempt({
-        userId,
-        decision: 'approved',
-        diff: { changes },
-        agentDecision: null,
-        agentReasoning: 'Baseline profile (no prior history; not reviewed).',
-      });
       return res.json({
         profile: loadFullProfile(userId),
         lock: loadLockState(userId),
