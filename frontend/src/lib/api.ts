@@ -1,6 +1,7 @@
 const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001';
 
 export type Role = 'Applicant' | 'Recruiter' | 'Agent';
+export type SignupRole = 'Applicant' | 'Recruiter';
 
 export interface User {
   id: number;
@@ -57,8 +58,26 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
   return data as T;
 }
 
+export interface SignupBasicsResponse {
+  ok: true;
+  email: string;
+  username: string;
+  role: SignupRole;
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
+
+  signupCheckBasics: (body: {
+    email: string;
+    password: string;
+    username: string;
+    role: SignupRole;
+  }) =>
+    request<SignupBasicsResponse>('/api/auth/signup/check-basics', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   register: (body: {
     email: string;

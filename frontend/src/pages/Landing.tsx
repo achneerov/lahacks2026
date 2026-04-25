@@ -19,7 +19,7 @@ export default function Landing() {
         <div style={styles.actions}>
           <button
             type="button"
-            onClick={() => nav('/register')}
+            onClick={() => nav('/signup')}
             style={styles.primary}
             onMouseEnter={(e) => {
               (e.currentTarget.style.transform = 'translateY(-1px)');
