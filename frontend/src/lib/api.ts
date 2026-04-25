@@ -120,11 +120,65 @@ export interface ApplicantHomeResponse {
   featured_jobs: ApplicantFeaturedJob[];
 }
 
+export type EmploymentType =
+  | 'FullTime'
+  | 'PartTime'
+  | 'Contract'
+  | 'Internship'
+  | 'Temporary';
+
+export interface JobPosting {
+  id: number;
+  title: string;
+  company: string | null;
+  description: string | null;
+  location: string | null;
+  remote: 0 | 1;
+  employment_type: EmploymentType | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  created_at: string;
+  poster_username: string;
+}
+
+export interface ApplicantJobsQuery {
+  q?: string;
+  employment_type?: EmploymentType;
+  remote?: boolean;
+  location?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ApplicantJobsResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  jobs: JobPosting[];
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
 
   applicantHome: (token: string) =>
     request<ApplicantHomeResponse>('/api/applicant/home', {}, token),
+
+  applicantJobs: (token: string, query: ApplicantJobsQuery = {}) => {
+    const params = new URLSearchParams();
+    if (query.q) params.set('q', query.q);
+    if (query.employment_type) params.set('employment_type', query.employment_type);
+    if (typeof query.remote === 'boolean') params.set('remote', query.remote ? '1' : '0');
+    if (query.location) params.set('location', query.location);
+    if (query.limit != null) params.set('limit', String(query.limit));
+    if (query.offset != null) params.set('offset', String(query.offset));
+    const qs = params.toString();
+    return request<ApplicantJobsResponse>(
+      `/api/applicant/jobs${qs ? `?${qs}` : ''}`,
+      {},
+      token,
+    );
+  },
 
   signupCheckBasics: (body: {
     email: string;

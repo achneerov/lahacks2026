@@ -158,4 +158,74 @@ router.get('/home', requireAuth, requireApplicant, (req, res) => {
   }
 });
 
+router.get('/jobs', requireAuth, requireApplicant, (req, res) => {
+  try {
+    const {
+      q,
+      employment_type,
+      remote,
+      location,
+      limit: rawLimit,
+      offset: rawOffset,
+    } = req.query;
+
+    const limit = Math.max(1, Math.min(100, parseInt(rawLimit, 10) || 50));
+    const offset = Math.max(0, parseInt(rawOffset, 10) || 0);
+
+    const where = ['jp.is_active = 1'];
+    const params = [];
+
+    if (q && typeof q === 'string' && q.trim() !== '') {
+      const like = `%${q.trim()}%`;
+      where.push('(jp.title LIKE ? OR jp.company LIKE ? OR jp.description LIKE ?)');
+      params.push(like, like, like);
+    }
+
+    if (employment_type && typeof employment_type === 'string') {
+      const allowed = ['FullTime', 'PartTime', 'Contract', 'Internship', 'Temporary'];
+      if (allowed.includes(employment_type)) {
+        where.push('jp.employment_type = ?');
+        params.push(employment_type);
+      }
+    }
+
+    if (remote === '1' || remote === 'true') {
+      where.push('jp.remote = 1');
+    } else if (remote === '0' || remote === 'false') {
+      where.push('jp.remote = 0');
+    }
+
+    if (location && typeof location === 'string' && location.trim() !== '') {
+      where.push('jp.location LIKE ?');
+      params.push(`%${location.trim()}%`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const { total } = db
+      .prepare(`SELECT COUNT(*) AS total FROM job_postings jp ${whereSql}`)
+      .get(...params);
+
+    const jobs = db
+      .prepare(
+        `SELECT
+           jp.id, jp.title, jp.company, jp.description, jp.location, jp.remote,
+           jp.employment_type, jp.salary_min, jp.salary_max, jp.salary_currency,
+           jp.created_at,
+           u.username AS poster_username
+         FROM job_postings jp
+         JOIN users u ON u.id = jp.poster_id
+         ${whereSql}
+         ORDER BY jp.created_at DESC
+         LIMIT ? OFFSET ?`
+      )
+      .all(...params, limit, offset);
+
+    return res.json({ total, limit, offset, jobs });
+  } catch (e) {
+    console.error('[applicant/jobs]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
 module.exports = router;
