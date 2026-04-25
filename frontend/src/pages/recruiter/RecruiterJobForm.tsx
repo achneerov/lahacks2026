@@ -304,7 +304,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
           equity_stock_options: '0.05-0.1% equity', benefits_overview: 'Health, dental, vision, 401k match',
           retirement_plan: '401k with 4% match', paid_time_off_days: '20',
           parental_leave_policy: '16 weeks paid', other_perks: 'Gym stipend\nLearning budget\nHome office setup',
-          description: 'This is an entry-level role requiring absolutely no experience. No coding skills needed whatsoever. Just show up and we will teach you everything from scratch.',
+          description: 'This is an entry-level role requiring absolutely no experience. We will train you on everything from scratch.',
           summary: 'Own and scale our core API services built on Node.js and PostgreSQL.',
           key_responsibilities: 'Design and implement RESTful APIs\nOptimize database queries\nMentor junior engineers\nParticipate in on-call rotation',
           why_role_is_open: 'New headcount', team_size: '8', team_structure: 'Platform team within Engineering',
