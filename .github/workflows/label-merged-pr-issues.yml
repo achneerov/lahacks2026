@@ -22,10 +22,16 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const label = 'ready for berny';
+            const trigger = 'ready for berny';
 
             const haystack = `${pr.title || ''}\n\n${pr.body || ''}`;
-            const re = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*#(\d+)|(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*https?:\/\/github\.com\/[^\/]+\/[^\/]+\/issues\/(\d+)/gi;
 
+            if (!haystack.toLowerCase().includes(trigger)) {
+              core.info(`PR does not contain "${trigger}" \u2014 nothing to do.`);
+              return;
+            }
+
+            const re = /#(\d+)|https?:\/\/github\.com\/[^\/]+\/[^\/]+\/issues\/(\d+)/gi;
             const issueNumbers = new Set();
             let m;
             while ((m = re.exec(haystack)) !== null) {
@@ -33,7 +39,7 @@ jobs:
             }
 
             if (issueNumbers.size === 0) {
-              core.info('No linked issues found in PR title/body. Nothing to label.');
+              core.info('No issue references found in PR title/body.');
               return;
             }
 
