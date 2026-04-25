@@ -2,11 +2,18 @@ const FIELD_LABELS = {
   title: 'Title',
   company: 'Company',
   description: 'Description',
+  summary: 'Summary',
   location: 'Location',
   employment_type: 'Employment type',
   salary_min: 'Minimum salary',
   salary_max: 'Maximum salary',
   salary_currency: 'Salary currency',
+  job_level: 'Job level',
+  work_model: 'Work model',
+  key_responsibilities: 'Key responsibilities',
+  req_years_of_experience: 'Required experience',
+  req_technical_skills: 'Required skills',
+  benefits_overview: 'Benefits',
 };
 
 const SEVERITIES = new Set(['info', 'warning', 'error']);
@@ -93,30 +100,40 @@ async function llmReview(posting) {
     title: clip(posting.title || '', 200),
     company: clip(posting.company || '', 200),
     description: clip(posting.description || '', 4000),
+    summary: clip(posting.summary || '', 1000),
     location: clip(posting.location || '', 200),
     remote: posting.remote ? true : false,
     employment_type: posting.employment_type || null,
+    job_level: posting.job_level || null,
+    work_model: posting.work_model || null,
     salary_min: posting.salary_min ?? null,
     salary_max: posting.salary_max ?? null,
     salary_currency: posting.salary_currency || null,
+    req_years_of_experience: posting.req_years_of_experience ?? null,
+    req_technical_skills: posting.req_technical_skills || null,
   };
 
-  const sys = `You are a hiring expert reviewing a draft job posting. Identify specific, actionable issues with the posting that the recruiter should fix before publishing.
+  const sys = `You are a hiring expert reviewing a draft job posting. Only flag issues that are clearly wrong or contradictory. Do NOT nitpick.
 
-Look for:
-- Vague or generic phrasing ("rockstar", "ninja", "fast-paced") that doesn't convey real expectations.
-- Questions or descriptions that are unclear, ambiguous, or could be improved.
-- Spelling or grammar mistakes (typos).
-- Missing critical info (responsibilities, requirements, what success looks like).
-- Inconsistencies (e.g. salary range that doesn't make sense, location vs remote mismatch).
+Only flag:
+- Clear contradictions between fields (e.g. title says "Senior" but job level says "Junior", or salary doesn't match seniority).
 - Discriminatory or non-inclusive language.
+- Obvious spelling or grammar mistakes.
+
+Do NOT flag:
+- A role having both a physical location AND being remote — that is normal (remote-friendly with an office option).
+- Minor style preferences or phrasing choices.
+- Missing optional information.
+- Anything that is a matter of opinion rather than a factual contradiction.
+
+Return at most 1 issue — the single most important one. If the posting looks reasonable, return zero issues.
 
 For each issue, return one entry. Use the field name that most directly relates to the issue.
 
 Return STRICT JSON of the form:
 {"issues": [{"field": "<field>", "severity": "info|warning", "message": "<short, specific suggestion>"}]}
 
-Allowed fields: title, company, description, location, employment_type, salary_min, salary_max, salary_currency.
+Allowed fields: title, company, description, summary, location, employment_type, salary_min, salary_max, salary_currency, job_level, work_model, key_responsibilities, req_years_of_experience, req_technical_skills, benefits_overview.
 Severity must be either "info" (minor suggestion) or "warning" (should fix before publishing).
 If the posting looks good, return {"issues": []}. Keep messages concise (under 160 chars).`;
 
