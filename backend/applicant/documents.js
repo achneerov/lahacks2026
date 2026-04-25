@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
-const { PDFParse } = require('pdf-parse');
+const pdfParse = require('pdf-parse');
 
 const db = require('../db');
 const { requireAuth } = require('../auth/jwt');
@@ -92,20 +92,14 @@ router.post(
     const filename = (req.file.originalname || 'document.pdf').slice(0, 255);
 
     let textContent = null;
-    let parser = null;
     try {
-      parser = new PDFParse({ data: req.file.buffer });
-      const parsed = await parser.getText();
+      const parsed = await pdfParse(req.file.buffer);
       textContent = typeof parsed.text === 'string' ? parsed.text.trim() : null;
       if (textContent && textContent.length > 200000) {
         textContent = textContent.slice(0, 200000);
       }
     } catch (e) {
       console.warn('[applicant/documents POST] pdf parse failed:', e.message);
-    } finally {
-      if (parser && typeof parser.destroy === 'function') {
-        try { await parser.destroy(); } catch {}
-      }
     }
 
     const dir = userDir(req.user.id);
