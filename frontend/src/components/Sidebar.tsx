@@ -1,0 +1,293 @@
+import type { CSSProperties, ReactNode } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import type { Role } from '../lib/api';
+
+type NavItem = { to: string; label: string; icon: ReactNode; end?: boolean };
+
+const APPLICANT_NAV: NavItem[] = [
+  { to: '/', label: 'Home', icon: <HomeIcon />, end: true },
+  { to: '/applicant/messages', label: 'Messages', icon: <ChatIcon /> },
+  { to: '/applicant/jobs', label: 'Job postings', icon: <BriefcaseIcon /> },
+  { to: '/applicant/applications', label: 'Applications', icon: <ListIcon /> },
+  { to: '/applicant/profile', label: 'Edit profile', icon: <UserIcon /> },
+];
+
+const RECRUITER_NAV: NavItem[] = [
+  { to: '/', label: 'Home', icon: <HomeIcon />, end: true },
+  { to: '/recruiter/jobs', label: 'Job postings', icon: <BriefcaseIcon /> },
+  { to: '/recruiter/messages', label: 'Messages', icon: <ChatIcon /> },
+];
+
+function navForRole(role: Role | string): NavItem[] {
+  if (role === 'Applicant') return APPLICANT_NAV;
+  if (role === 'Recruiter') return RECRUITER_NAV;
+  return [{ to: '/', label: 'Home', icon: <HomeIcon />, end: true }];
+}
+
+export default function Sidebar() {
+  const { user, logout } = useAuth();
+  const nav = useNavigate();
+
+  const items = user ? navForRole(user.role) : [];
+
+  return (
+    <aside className="app-sidebar" style={styles.aside}>
+      <div style={styles.brandRow}>
+        <span style={styles.brandMark} aria-hidden="true">
+          <SparkIcon />
+        </span>
+        <span style={styles.brandText}>Verified</span>
+      </div>
+
+      <nav style={styles.nav} aria-label="Primary">
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            style={({ isActive }) => ({
+              ...styles.navItem,
+              ...(isActive ? styles.navItemActive : null),
+            })}
+          >
+            <span style={styles.navIcon} aria-hidden="true">
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      {user && (
+        <div style={styles.footer}>
+          <div style={styles.userBlock}>
+            <span style={styles.userAvatar} aria-hidden="true">
+              {user.username.slice(0, 1).toUpperCase()}
+            </span>
+            <div style={styles.userMeta}>
+              <span style={styles.userName}>{user.username}</span>
+              <span style={styles.userRole}>{user.role}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            style={styles.logout}
+            onClick={() => {
+              logout();
+              nav('/');
+            }}
+          >
+            <span style={styles.navIcon} aria-hidden="true">
+              <LogoutIcon />
+            </span>
+            <span>Log out</span>
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function iconProps() {
+  return {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+}
+
+function HomeIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5 10.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9.5" />
+    </svg>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M21 12c0 4.418-4.03 8-9 8a9.9 9.9 0 0 1-4.255-.949L3 20l1.395-3.72A7.9 7.9 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+  );
+}
+
+function BriefcaseIcon() {
+  return (
+    <svg {...iconProps()}>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+      <path d="M3 13h18" />
+    </svg>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg {...iconProps()}>
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M9 8h6M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg {...iconProps()}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6L12 2zM19 14l.9 2.7L22 17.5l-2.1.8L19 21l-.9-2.7L16 17.5l2.1-.8L19 14z" />
+    </svg>
+  );
+}
+
+const styles: Record<string, CSSProperties> = {
+  aside: {
+    width: 240,
+    flexShrink: 0,
+    boxSizing: 'border-box',
+    padding: '24px 16px',
+    borderRight: '1px solid var(--border)',
+    background: 'var(--bg)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24,
+    position: 'sticky',
+    top: 0,
+    alignSelf: 'flex-start',
+    height: '100svh',
+  },
+  brandRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '4px 8px',
+  },
+  brandMark: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    background: 'var(--accent-bg)',
+    color: 'var(--accent)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid var(--accent-border)',
+  },
+  brandText: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: 'var(--text-h)',
+    letterSpacing: '-0.2px',
+  },
+  nav: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    flex: 1,
+    minHeight: 0,
+  },
+  navItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 12px',
+    borderRadius: 10,
+    fontSize: 14,
+    color: 'var(--text)',
+    textDecoration: 'none',
+    transition: 'background 120ms ease, color 120ms ease',
+  },
+  navItemActive: {
+    background: 'var(--accent-bg)',
+    color: 'var(--accent)',
+    fontWeight: 500,
+  },
+  navIcon: {
+    display: 'inline-flex',
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    paddingTop: 16,
+    borderTop: '1px solid var(--border)',
+  },
+  userBlock: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '4px 8px',
+  },
+  userAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    background: 'var(--accent)',
+    color: '#fff',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 14,
+    fontWeight: 600,
+  },
+  userMeta: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: 500,
+    color: 'var(--text-h)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  userRole: {
+    fontSize: 12,
+    color: 'var(--text)',
+  },
+  logout: {
+    appearance: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 12px',
+    fontSize: 14,
+    color: 'var(--text)',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: 10,
+    fontFamily: 'inherit',
+  },
+};

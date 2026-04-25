@@ -1,43 +1,41 @@
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import AppShell from '../layouts/AppShell';
 import Landing from './Landing';
+import ApplicantHome from './applicant/ApplicantHome';
+import RecruiterHome from './recruiter/RecruiterHome';
 
 export default function Home() {
-  const { user, loading, logout } = useAuth();
-  const nav = useNavigate();
+  const { user, loading } = useAuth();
 
-  if (loading) return <div style={styles.container}>Loading…</div>;
+  if (loading) {
+    return <div style={{ padding: 32, color: 'var(--text)' }}>Loading…</div>;
+  }
 
   if (!user) return <Landing />;
 
+  if (user.role === 'Applicant') {
+    return (
+      <AppShell>
+        <ApplicantHome />
+      </AppShell>
+    );
+  }
+
+  if (user.role === 'Recruiter') {
+    return (
+      <AppShell>
+        <RecruiterHome />
+      </AppShell>
+    );
+  }
+
   return (
-    <div style={styles.container}>
-      <h1>Hi, {user.username}</h1>
-      <p>Role: {user.role}</p>
-      <p>Email: {user.email}</p>
-      <button
-        type="button"
-        onClick={() => {
-          logout();
-          nav('/');
-        }}
-        style={styles.button}
-      >
-        Log out
-      </button>
-    </div>
+    <AppShell>
+      <div style={{ padding: 32 }}>
+        <h1>Hi, {user.username}</h1>
+        <p>Role: {user.role}</p>
+        <p>Email: {user.email}</p>
+      </div>
+    </AppShell>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: { maxWidth: 420, margin: '40px auto', padding: 24, fontFamily: 'system-ui' },
-  button: {
-    padding: '10px 16px',
-    fontSize: 16,
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 4,
-    cursor: 'pointer',
-  },
-};
