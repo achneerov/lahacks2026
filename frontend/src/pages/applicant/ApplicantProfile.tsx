@@ -769,69 +769,6 @@ export default function ApplicantProfile() {
           )}
         </Section>
 
-        <Section
-          title="References"
-          action={
-            <button type="button" onClick={addReference} style={styles.addBtn}>
-              + Add reference
-            </button>
-          }
-        >
-          {references.length === 0 ? (
-            <p style={styles.emptyHint}>
-              No references yet. Click <strong>+ Add reference</strong> to add one.
-            </p>
-          ) : (
-            references.map((r, i) => (
-              <ReferenceCard
-                key={r._key}
-                index={i}
-                value={r}
-                onChange={patch => updateReference(i, patch)}
-                onRemove={() => removeReference(i)}
-                onToggle={() => toggleReference(i)}
-              />
-            ))
-          )}
-        </Section>
-
-        <Section title="About you">
-          <Textarea
-            label="A challenge you overcame"
-            value={aboutMe.challenge_you_overcame ?? ''}
-            onChange={v => patchAbout({ challenge_you_overcame: v })}
-            rows={3}
-          />
-          <div style={styles.row}>
-            <Field
-              label="Greatest strength"
-              value={aboutMe.greatest_strength ?? ''}
-              onChange={v => patchAbout({ greatest_strength: v })}
-            />
-            <Field
-              label="Greatest weakness"
-              value={aboutMe.greatest_weakness ?? ''}
-              onChange={v => patchAbout({ greatest_weakness: v })}
-            />
-          </div>
-          <Field
-            label="Five-year goals"
-            value={aboutMe.five_year_goals ?? ''}
-            onChange={v => patchAbout({ five_year_goals: v })}
-          />
-          <Field
-            label="Leadership experience"
-            value={aboutMe.leadership_experience ?? ''}
-            onChange={v => patchAbout({ leadership_experience: v })}
-          />
-          <Textarea
-            label="Anything else"
-            value={aboutMe.anything_else ?? ''}
-            onChange={v => patchAbout({ anything_else: v })}
-            rows={3}
-          />
-        </Section>
-
         <Section title="Work eligibility">
           <Checkbox
             label="I am authorized to work in the United States"
