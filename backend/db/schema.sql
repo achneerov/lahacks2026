@@ -81,15 +81,19 @@ CREATE INDEX idx_job_postings_poster ON job_postings(poster_id);
 CREATE INDEX idx_job_postings_active ON job_postings(is_active);
 
 CREATE TABLE conversations (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_1_id   INTEGER NOT NULL,
-  user_2_id   INTEGER NOT NULL,
-  active      INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
-  created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (user_1_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_2_id) REFERENCES users(id) ON DELETE CASCADE,
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_1_id       INTEGER NOT NULL,
+  user_2_id       INTEGER NOT NULL,
+  job_posting_id  INTEGER,
+  active          INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+  created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_1_id)      REFERENCES users(id)        ON DELETE CASCADE,
+  FOREIGN KEY (user_2_id)      REFERENCES users(id)        ON DELETE CASCADE,
+  FOREIGN KEY (job_posting_id) REFERENCES job_postings(id) ON DELETE SET NULL,
   CHECK (user_1_id <> user_2_id)
 );
+
+CREATE INDEX idx_conversations_job_posting ON conversations(job_posting_id);
 
 -- Prevent duplicate conversations between the same pair, regardless of order.
 CREATE UNIQUE INDEX idx_conversations_unique_pair

@@ -45,11 +45,11 @@ VALUES
    240000, 320000, 'USD', 1);
 
 -- Conversations
-INSERT INTO conversations (id, user_1_id, user_2_id, active) VALUES
-  (1, 1, 4, 1), -- Alice (Applicant) <-> Dana (Recruiter)
-  (2, 2, 5, 1), -- Bob   (Applicant) <-> Eric (Recruiter)
-  (3, 3, 6, 1), -- Carol (Applicant) <-> Frank (Agent)
-  (4, 1, 6, 0); -- Alice (Applicant) <-> Frank (Agent), inactive
+INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active) VALUES
+  (1, 1, 4, 1,    1), -- Alice (Applicant) <-> Dana (Recruiter), about Senior Backend role
+  (2, 2, 5, 4,    1), -- Bob   (Applicant) <-> Eric (Recruiter), about Staff ML role
+  (3, 3, 6, NULL, 1), -- Carol (Applicant) <-> Frank (Agent), general
+  (4, 1, 6, 2,    0); -- Alice (Applicant) <-> Frank (Agent), about Frontend role, inactive
 
 -- Messages
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content) VALUES
