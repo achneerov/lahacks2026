@@ -14,7 +14,39 @@ function requireRecruiter(req, res, next) {
 
 const EMPLOYMENT_TYPES = ['FullTime', 'PartTime', 'Contract', 'Internship', 'Temporary'];
 
-const JOB_TEXT_FIELDS = ['title', 'company', 'description', 'location', 'salary_currency'];
+const JOB_TEXT_FIELDS = [
+  'title', 'company', 'description', 'location', 'salary_currency',
+  'job_id_requisition', 'department', 'team', 'reporting_to',
+  'permanent_or_fixed_term', 'contract_duration', 'job_level',
+  'work_model', 'travel_percentage', 'pay_frequency',
+  'bonus_commission_structure', 'equity_stock_options', 'benefits_overview',
+  'retirement_plan', 'parental_leave_policy',
+  'summary', 'why_role_is_open', 'team_structure',
+  'req_education_level', 'req_field_of_study', 'req_work_authorization',
+  'nice_education', 'nice_industry_background',
+  'company_website', 'industry', 'company_stage',
+  'mission_values', 'culture_description', 'dei_statement',
+  'application_deadline', 'how_to_apply', 'expected_time_to_hire',
+  'contact_person', 'contact_email_phone',
+];
+
+const JOB_JSON_ARRAY_FIELDS = [
+  'office_locations', 'other_perks', 'key_responsibilities',
+  'cross_functional_collaborators', 'req_certifications', 'req_technical_skills',
+  'nice_technical_skills', 'documents_required', 'interview_format',
+];
+
+const JOB_JSON_OBJECT_ARRAY_FIELDS = ['req_languages'];
+
+const JOB_INT_FIELDS = [
+  'number_of_direct_reports', 'hybrid_days_in_office', 'paid_time_off_days',
+  'team_size', 'req_years_of_experience', 'nice_years_of_experience',
+  'company_size', 'interview_rounds',
+];
+
+const JOB_BOOL_FIELDS = [
+  'willing_to_hire_internationally', 'travel_required', 'relocation_assistance',
+];
 
 function sanitizeJobPayload(raw, { partial = false } = {}) {
   if (!raw || typeof raw !== 'object') {
@@ -50,6 +82,57 @@ function sanitizeJobPayload(raw, { partial = false } = {}) {
       err.code = 'invalid_job';
       throw err;
     }
+  }
+
+  // Boolean fields
+  for (const key of JOB_BOOL_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === true || v === 1 || v === '1') out[key] = 1;
+    else if (v === false || v === 0 || v === '0' || v == null) out[key] = 0;
+    else {
+      const err = new Error(`job.${key} must be a boolean`);
+      err.code = 'invalid_job';
+      throw err;
+    }
+  }
+
+  // Integer fields
+  for (const key of JOB_INT_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === null || v === undefined || v === '') { out[key] = null; continue; }
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) {
+      const err = new Error(`job.${key} must be a non-negative number`);
+      err.code = 'invalid_job';
+      throw err;
+    }
+    out[key] = Math.round(n);
+  }
+
+  // JSON array fields (arrays of strings)
+  for (const key of JOB_JSON_ARRAY_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === null || v === undefined) { out[key] = null; continue; }
+    if (Array.isArray(v)) { out[key] = JSON.stringify(v); continue; }
+    if (typeof v === 'string') { out[key] = v; continue; }
+    const err = new Error(`job.${key} must be an array`);
+    err.code = 'invalid_job';
+    throw err;
+  }
+
+  // JSON object array fields (e.g. req_languages)
+  for (const key of JOB_JSON_OBJECT_ARRAY_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === null || v === undefined) { out[key] = null; continue; }
+    if (Array.isArray(v)) { out[key] = JSON.stringify(v); continue; }
+    if (typeof v === 'string') { out[key] = v; continue; }
+    const err = new Error(`job.${key} must be an array`);
+    err.code = 'invalid_job';
+    throw err;
   }
 
   if (Object.prototype.hasOwnProperty.call(raw, 'employment_type')) {
@@ -119,11 +202,7 @@ function sanitizeJobPayload(raw, { partial = false } = {}) {
 function loadJobForRecruiter(jobId, recruiterId) {
   return db
     .prepare(
-      `SELECT id, poster_id, title, company, description, location, remote,
-              employment_type, salary_min, salary_max, salary_currency,
-              is_active, created_at
-         FROM job_postings
-        WHERE id = ? AND poster_id = ?`
+      `SELECT * FROM job_postings WHERE id = ? AND poster_id = ?`
     )
     .get(jobId, recruiterId);
 }
@@ -394,28 +473,15 @@ router.post('/jobs', requireAuth, requireRecruiter, (req, res) => {
   }
 
   try {
+    const cols = Object.keys(clean);
     const info = db
       .prepare(
         `INSERT INTO job_postings
-           (poster_id, title, company, description, location, remote,
-            employment_type, salary_min, salary_max, salary_currency, is_active)
+           (poster_id, ${cols.join(', ')})
          VALUES
-           (@poster_id, @title, @company, @description, @location, @remote,
-            @employment_type, @salary_min, @salary_max, @salary_currency, @is_active)`
+           (@poster_id, ${cols.map(c => '@' + c).join(', ')})`
       )
-      .run({
-        poster_id: userId,
-        title: clean.title,
-        company: clean.company ?? null,
-        description: clean.description ?? null,
-        location: clean.location ?? null,
-        remote: clean.remote ?? 0,
-        employment_type: clean.employment_type ?? null,
-        salary_min: clean.salary_min ?? null,
-        salary_max: clean.salary_max ?? null,
-        salary_currency: clean.salary_currency ?? 'USD',
-        is_active: clean.is_active ?? 1,
-      });
+      .run({ poster_id: userId, ...clean });
 
     const job = loadJobForRecruiter(info.lastInsertRowid, userId);
     return res.status(201).json({ job });
