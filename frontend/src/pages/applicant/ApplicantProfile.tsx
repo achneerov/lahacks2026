@@ -1,6 +1,6 @@
 import {
   useEffect,
-  useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -10,12 +10,25 @@ import {
   ApiError,
   type ApplicantProfile as ProfileType,
   type ApplicantProfileInput,
+  type WorkExperienceInput,
+  type EducationInput,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 
+type WorkExpItem = WorkExperienceInput & { _key: number; _expanded: boolean };
+type EduItem = EducationInput & { _key: number; _expanded: boolean };
+
+const EMPLOYMENT_TYPES: { value: string; label: string }[] = [
+  { value: '', label: '— Select —' },
+  { value: 'FullTime', label: 'Full-time' },
+  { value: 'PartTime', label: 'Part-time' },
+  { value: 'Contract', label: 'Contract' },
+  { value: 'Internship', label: 'Internship' },
+  { value: 'Temporary', label: 'Temporary' },
+];
+
 export default function ApplicantProfile() {
   const { token } = useAuth();
-  const [profile, setProfile] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +52,37 @@ export default function ApplicantProfile() {
   const [websitePortfolio, setWebsitePortfolio] = useState('');
   const [githubOrOther, setGithubOrOther] = useState('');
 
+  const [workExp, setWorkExp] = useState<WorkExpItem[]>([]);
+  const [education, setEducation] = useState<EduItem[]>([]);
+  const keyCounter = useRef(0);
+  const nextKey = () => ++keyCounter.current;
+
+  function hydrate(p: ProfileType) {
+    const pi = p.personal_information;
+    setFirstName(pi.first_name ?? '');
+    setMiddleInitial(pi.middle_initial ?? '');
+    setLastName(pi.last_name ?? '');
+    setPreferredName(pi.preferred_name ?? '');
+    setPronouns(pi.pronouns ?? '');
+    setDateOfBirth(pi.date_of_birth ?? '');
+    setPhoneNumber(pi.phone_number ?? '');
+    setAlternativePhone(pi.alternative_phone ?? '');
+    setStreetAddress(pi.street_address ?? '');
+    setAptSuiteUnit(pi.apt_suite_unit ?? '');
+    setCity(pi.city ?? '');
+    setState(pi.state ?? '');
+    setZipCode(pi.zip_code ?? '');
+    setLinkedinUrl(pi.linkedin_url ?? '');
+    setWebsitePortfolio(pi.website_portfolio ?? '');
+    setGithubOrOther(pi.github_or_other_portfolio ?? '');
+    setWorkExp(
+      p.work_experience.map(w => ({ ...w, _key: nextKey(), _expanded: false })),
+    );
+    setEducation(
+      p.education.map(e => ({ ...e, _key: nextKey(), _expanded: false })),
+    );
+  }
+
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
@@ -46,30 +90,60 @@ export default function ApplicantProfile() {
     setError(null);
     api.applicantGetProfile(token).then(d => {
       if (cancelled) return;
-      setProfile(d.profile);
-      const p = d.profile.personal_information;
-      setFirstName(p.first_name ?? '');
-      setMiddleInitial(p.middle_initial ?? '');
-      setLastName(p.last_name ?? '');
-      setPreferredName(p.preferred_name ?? '');
-      setPronouns(p.pronouns ?? '');
-      setDateOfBirth(p.date_of_birth ?? '');
-      setPhoneNumber(p.phone_number ?? '');
-      setAlternativePhone(p.alternative_phone ?? '');
-      setStreetAddress(p.street_address ?? '');
-      setAptSuiteUnit(p.apt_suite_unit ?? '');
-      setCity(p.city ?? '');
-      setState(p.state ?? '');
-      setZipCode(p.zip_code ?? '');
-      setLinkedinUrl(p.linkedin_url ?? '');
-      setWebsitePortfolio(p.website_portfolio ?? '');
-      setGithubOrOther(p.github_or_other_portfolio ?? '');
+      hydrate(d.profile);
     }).catch(err => {
       if (cancelled) return;
       setError(err instanceof ApiError ? err.detail || err.code : 'Could not load profile.');
     }).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  function updateWork(idx: number, patch: Partial<WorkExperienceInput>) {
+    setWorkExp(prev => prev.map((w, i) => (i === idx ? { ...w, ...patch } : w)));
+  }
+  function removeWork(idx: number) {
+    setWorkExp(prev => prev.filter((_, i) => i !== idx));
+  }
+  function toggleWork(idx: number) {
+    setWorkExp(prev =>
+      prev.map((w, i) => (i === idx ? { ...w, _expanded: !w._expanded } : w)),
+    );
+  }
+  function addWork() {
+    setWorkExp(prev => [
+      ...prev,
+      {
+        _key: nextKey(),
+        _expanded: true,
+        current_job: false,
+        employment_type: '',
+      },
+    ]);
+  }
+
+  function updateEdu(idx: number, patch: Partial<EducationInput>) {
+    setEducation(prev => prev.map((e, i) => (i === idx ? { ...e, ...patch } : e)));
+  }
+  function removeEdu(idx: number) {
+    setEducation(prev => prev.filter((_, i) => i !== idx));
+  }
+  function toggleEdu(idx: number) {
+    setEducation(prev =>
+      prev.map((e, i) => (i === idx ? { ...e, _expanded: !e._expanded } : e)),
+    );
+  }
+  function addEdu() {
+    setEducation(prev => [
+      ...prev,
+      {
+        _key: nextKey(),
+        _expanded: true,
+        graduated: false,
+        relevant_coursework: [],
+      },
+    ]);
+  }
 
   async function save() {
     if (!token || saving) return;
@@ -93,10 +167,38 @@ export default function ApplicantProfile() {
       linkedin_url: linkedinUrl.trim() || undefined,
       website_portfolio: websitePortfolio.trim() || undefined,
       github_or_other_portfolio: githubOrOther.trim() || undefined,
+      work_experience: workExp.map(({ _key: _wk, ...w }) => ({
+        job_title: (w.job_title ?? '').trim() || undefined,
+        company: (w.company ?? '').trim() || undefined,
+        city: (w.city ?? '').trim() || undefined,
+        state: (w.state ?? '').trim() || undefined,
+        employment_type: (w.employment_type ?? '').trim() || undefined,
+        start_date: (w.start_date ?? '').trim() || undefined,
+        end_date: w.current_job ? undefined : (w.end_date ?? '').trim() || undefined,
+        current_job: !!w.current_job,
+        responsibilities: (w.responsibilities ?? '').trim() || undefined,
+        key_achievements: (w.key_achievements ?? '').trim() || undefined,
+      })),
+      education: education.map(({ _key: _ek, ...e }) => ({
+        school: (e.school ?? '').trim() || undefined,
+        city: (e.city ?? '').trim() || undefined,
+        state: (e.state ?? '').trim() || undefined,
+        degree: (e.degree ?? '').trim() || undefined,
+        major: (e.major ?? '').trim() || undefined,
+        minor: (e.minor ?? '').trim() || undefined,
+        start_date: (e.start_date ?? '').trim() || undefined,
+        graduation_date: (e.graduation_date ?? '').trim() || undefined,
+        graduated: !!e.graduated,
+        gpa: (e.gpa ?? '').trim() || undefined,
+        honors: (e.honors ?? '').trim() || undefined,
+        relevant_coursework: Array.isArray(e.relevant_coursework)
+          ? e.relevant_coursework.filter(c => c && c.trim() !== '')
+          : [],
+      })),
     };
     try {
       const res = await api.applicantUpdateProfile(token, payload);
-      setProfile(res.profile);
+      hydrate(res.profile);
       setSuccess('Profile updated.');
     } catch (err) {
       setError(err instanceof ApiError ? err.detail || err.code : 'Could not save.');
@@ -152,17 +254,57 @@ export default function ApplicantProfile() {
           <Field label="GitHub / Other" value={githubOrOther} onChange={setGithubOrOther} type="url" />
         </Section>
 
-        {profile && profile.work_experience.length > 0 && (
-          <Section title="Work Experience">
-            {profile.work_experience.map((w, i) => (
-              <div key={i} style={styles.readonlyCard}>
-                <strong>{w.job_title}</strong> at {w.company} — {w.city}, {w.state}
-                {w.current_job && <span style={styles.badge}>Current</span>}
-              </div>
-            ))}
-            <p style={styles.hint}>Edit work experience, education, skills, and other sections from the full profile editor (coming soon).</p>
-          </Section>
-        )}
+        <Section
+          title="Work Experience"
+          action={
+            <button type="button" onClick={addWork} style={styles.addBtn}>
+              + Add experience
+            </button>
+          }
+        >
+          {workExp.length === 0 ? (
+            <p style={styles.emptyHint}>
+              No work experience yet. Click <strong>+ Add experience</strong> to add your first role.
+            </p>
+          ) : (
+            workExp.map((w, i) => (
+              <WorkExperienceCard
+                key={w._key}
+                index={i}
+                value={w}
+                onChange={patch => updateWork(i, patch)}
+                onRemove={() => removeWork(i)}
+                onToggle={() => toggleWork(i)}
+              />
+            ))
+          )}
+        </Section>
+
+        <Section
+          title="Education"
+          action={
+            <button type="button" onClick={addEdu} style={styles.addBtn}>
+              + Add education
+            </button>
+          }
+        >
+          {education.length === 0 ? (
+            <p style={styles.emptyHint}>
+              No education yet. Click <strong>+ Add education</strong> to add a school.
+            </p>
+          ) : (
+            education.map((e, i) => (
+              <EducationCard
+                key={e._key}
+                index={i}
+                value={e}
+                onChange={patch => updateEdu(i, patch)}
+                onRemove={() => removeEdu(i)}
+                onToggle={() => toggleEdu(i)}
+              />
+            ))
+          )}
+        </Section>
 
         <div style={styles.actionsRow}>
           <button type="submit" style={styles.primaryBtn} disabled={saving}>
@@ -174,10 +316,330 @@ export default function ApplicantProfile() {
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function WorkExperienceCard({
+  index,
+  value,
+  onChange,
+  onRemove,
+  onToggle,
+}: {
+  index: number;
+  value: WorkExpItem;
+  onChange: (patch: Partial<WorkExperienceInput>) => void;
+  onRemove: () => void;
+  onToggle: () => void;
+}) {
+  const expanded = value._expanded;
+  const title = value.job_title?.trim();
+  const company = value.company?.trim();
+  const heading =
+    title && company
+      ? `${title} · ${company}`
+      : title || company || `Experience #${index + 1}`;
+  const place = [value.city, value.state].filter(Boolean).join(', ');
+  const dateRange = formatDateRange(
+    value.start_date,
+    value.current_job ? 'Present' : value.end_date,
+  );
+  const summaryBits = [place, dateRange].filter(Boolean);
+
+  return (
+    <div style={expanded ? styles.editCard : styles.previewCard}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={styles.cardToggle}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse entry' : 'Expand to edit'}
+      >
+        <span style={styles.cardToggleMain}>
+          <span style={styles.cardTitle}>{heading}</span>
+          {summaryBits.length > 0 && (
+            <span style={styles.cardSubtitle}>{summaryBits.join(' · ')}</span>
+          )}
+          {value.current_job && <span style={styles.badge}>Current</span>}
+        </span>
+        <span style={styles.cardToggleControls}>
+          <span
+            aria-hidden="true"
+            style={{
+              ...styles.chevron,
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}
+          >
+            ›
+          </span>
+        </span>
+      </button>
+      {!expanded ? null : (
+        <div style={styles.cardBody}>
+          <div style={styles.cardActionsRow}>
+            <button type="button" onClick={onRemove} style={styles.removeBtn}>
+              Remove
+            </button>
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Job title"
+              value={value.job_title ?? ''}
+              onChange={v => onChange({ job_title: v })}
+            />
+            <Field
+              label="Company"
+              value={value.company ?? ''}
+              onChange={v => onChange({ company: v })}
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="City"
+              value={value.city ?? ''}
+              onChange={v => onChange({ city: v })}
+            />
+            <Field
+              label="State"
+              value={value.state ?? ''}
+              onChange={v => onChange({ state: v })}
+            />
+            <Select
+              label="Employment type"
+              value={value.employment_type ?? ''}
+              onChange={v => onChange({ employment_type: v })}
+              options={EMPLOYMENT_TYPES}
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Start date"
+              type="date"
+              value={value.start_date ?? ''}
+              onChange={v => onChange({ start_date: v })}
+            />
+            <Field
+              label="End date"
+              type="date"
+              value={value.current_job ? '' : value.end_date ?? ''}
+              onChange={v => onChange({ end_date: v })}
+              disabled={!!value.current_job}
+            />
+          </div>
+          <Checkbox
+            label="I currently work here"
+            checked={!!value.current_job}
+            onChange={v => onChange({ current_job: v, end_date: v ? undefined : value.end_date })}
+          />
+          <Textarea
+            label="Responsibilities"
+            value={value.responsibilities ?? ''}
+            onChange={v => onChange({ responsibilities: v })}
+            rows={3}
+            placeholder="What you owned day-to-day."
+          />
+          <Textarea
+            label="Key achievements"
+            value={value.key_achievements ?? ''}
+            onChange={v => onChange({ key_achievements: v })}
+            rows={3}
+            placeholder="Concrete wins: scope, scale, outcomes."
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EducationCard({
+  index,
+  value,
+  onChange,
+  onRemove,
+  onToggle,
+}: {
+  index: number;
+  value: EduItem;
+  onChange: (patch: Partial<EducationInput>) => void;
+  onRemove: () => void;
+  onToggle: () => void;
+}) {
+  const expanded = value._expanded;
+  const school = value.school?.trim();
+  const degreeMajor = [value.degree, value.major].filter(Boolean).join(' in ');
+  const heading =
+    school || degreeMajor || `Education #${index + 1}`;
+  const subBits: string[] = [];
+  if (school && degreeMajor) subBits.push(degreeMajor);
+  const place = [value.city, value.state].filter(Boolean).join(', ');
+  if (place) subBits.push(place);
+  const dateRange = formatDateRange(value.start_date, value.graduation_date);
+  if (dateRange) subBits.push(dateRange);
+  const courseworkText = (value.relevant_coursework ?? []).join(', ');
+
+  return (
+    <div style={expanded ? styles.editCard : styles.previewCard}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={styles.cardToggle}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse entry' : 'Expand to edit'}
+      >
+        <span style={styles.cardToggleMain}>
+          <span style={styles.cardTitle}>{heading}</span>
+          {subBits.length > 0 && (
+            <span style={styles.cardSubtitle}>{subBits.join(' · ')}</span>
+          )}
+          {value.graduated && <span style={styles.badge}>Graduated</span>}
+        </span>
+        <span style={styles.cardToggleControls}>
+          <span
+            aria-hidden="true"
+            style={{
+              ...styles.chevron,
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}
+          >
+            ›
+          </span>
+        </span>
+      </button>
+      {!expanded ? null : (
+        <div style={styles.cardBody}>
+          <div style={styles.cardActionsRow}>
+            <button type="button" onClick={onRemove} style={styles.removeBtn}>
+              Remove
+            </button>
+          </div>
+          <Field
+            label="School"
+            value={value.school ?? ''}
+            onChange={v => onChange({ school: v })}
+          />
+          <div style={styles.row}>
+            <Field
+              label="City"
+              value={value.city ?? ''}
+              onChange={v => onChange({ city: v })}
+            />
+            <Field
+              label="State"
+              value={value.state ?? ''}
+              onChange={v => onChange({ state: v })}
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Degree"
+              value={value.degree ?? ''}
+              onChange={v => onChange({ degree: v })}
+              placeholder="e.g. B.S."
+            />
+            <Field
+              label="Major"
+              value={value.major ?? ''}
+              onChange={v => onChange({ major: v })}
+            />
+            <Field
+              label="Minor"
+              value={value.minor ?? ''}
+              onChange={v => onChange({ minor: v })}
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Start date"
+              type="date"
+              value={value.start_date ?? ''}
+              onChange={v => onChange({ start_date: v })}
+            />
+            <Field
+              label={value.graduated ? 'Graduation date' : 'Expected graduation'}
+              type="date"
+              value={value.graduation_date ?? ''}
+              onChange={v => onChange({ graduation_date: v })}
+            />
+          </div>
+          <Checkbox
+            label="Graduated"
+            checked={!!value.graduated}
+            onChange={v => onChange({ graduated: v })}
+          />
+          <div style={styles.row}>
+            <Field
+              label="GPA"
+              value={value.gpa ?? ''}
+              onChange={v => onChange({ gpa: v })}
+              placeholder="e.g. 3.8"
+            />
+            <Field
+              label="Honors"
+              value={value.honors ?? ''}
+              onChange={v => onChange({ honors: v })}
+              placeholder="e.g. cum laude"
+            />
+          </div>
+          <Field
+            label="Relevant coursework (comma-separated)"
+            value={courseworkText}
+            onChange={v =>
+              onChange({
+                relevant_coursework: v
+                  .split(',')
+                  .map(s => s.trim())
+                  .filter(s => s !== ''),
+              })
+            }
+            placeholder="Algorithms, Operating Systems, Databases"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatDateRange(
+  start: string | null | undefined,
+  end: string | null | undefined,
+): string {
+  const s = formatYearMonth(start);
+  const e = end === 'Present' ? 'Present' : formatYearMonth(end);
+  if (!s && !e) return '';
+  if (!s) return e || '';
+  if (!e) return s;
+  return `${s} – ${e}`;
+}
+
+function formatYearMonth(value: string | null | undefined): string {
+  if (!value) return '';
+  // Inputs from <input type="date"> are YYYY-MM-DD; show as Mon YYYY.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (m) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    const monthIdx = parseInt(m[2], 10) - 1;
+    if (monthIdx >= 0 && monthIdx < 12) {
+      return `${months[monthIdx]} ${m[1]}`;
+    }
+  }
+  return value;
+}
+
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <section style={styles.section}>
-      <h2 style={styles.sectionTitle}>{title}</h2>
+      <div style={styles.sectionHeader}>
+        <h2 style={styles.sectionTitle}>{title}</h2>
+        {action}
+      </div>
       <div style={styles.sectionBody}>{children}</div>
     </section>
   );
@@ -202,6 +664,84 @@ function Field({ label, value, onChange, type = 'text', placeholder, disabled }:
   );
 }
 
+function Textarea({
+  label,
+  value,
+  onChange,
+  rows = 3,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+  placeholder?: string;
+}) {
+  return (
+    <label style={styles.field}>
+      <span style={styles.fieldLabel}>{label}</span>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        rows={rows}
+        placeholder={placeholder}
+        style={{ ...styles.input, ...styles.textarea }}
+      />
+    </label>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label style={styles.field}>
+      <span style={styles.fieldLabel}>{label}</span>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={styles.input}
+      >
+        {options.map(o => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function Checkbox({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label style={styles.checkboxRow}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        style={styles.checkbox}
+      />
+      <span style={styles.checkboxLabel}>{label}</span>
+    </label>
+  );
+}
+
 const styles: Record<string, CSSProperties> = {
   page: { flex: 1, width: '100%', boxSizing: 'border-box', padding: '40px 32px 64px', display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'left', maxWidth: 880 },
   header: { display: 'flex', flexDirection: 'column', gap: 6 },
@@ -212,15 +752,34 @@ const styles: Record<string, CSSProperties> = {
   successBanner: { padding: '10px 14px', fontSize: 14, color: '#0a6b2b', background: 'rgba(10, 107, 43, 0.08)', border: '1px solid rgba(10, 107, 43, 0.25)', borderRadius: 10 },
   form: { display: 'flex', flexDirection: 'column', gap: 20 },
   section: { display: 'flex', flexDirection: 'column', gap: 12, padding: 20, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--bg)', boxShadow: 'var(--shadow)' },
+  sectionHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   sectionTitle: { margin: 0, fontSize: 16, color: 'var(--text-h)' },
   sectionBody: { display: 'flex', flexDirection: 'column', gap: 14 },
   row: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 },
   field: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 },
   fieldLabel: { fontSize: 12, fontWeight: 500, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 0.4 },
   input: { padding: '10px 12px', fontSize: 14, color: 'var(--text-h)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, outline: 'none', fontFamily: 'inherit' },
+  textarea: { resize: 'vertical', minHeight: 72, lineHeight: 1.5 },
   readonlyCard: { padding: '10px 14px', fontSize: 14, color: 'var(--text-h)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 10 },
+  previewCard: { display: 'flex', flexDirection: 'column', padding: 0, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg)', overflow: 'hidden' },
+  editCard: { display: 'flex', flexDirection: 'column', gap: 12, padding: 0, border: '1px solid var(--accent-border)', borderRadius: 12, background: 'var(--accent-bg)', overflow: 'hidden' },
+  cardToggle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%', padding: '12px 14px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit' },
+  cardToggleMain: { display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, minWidth: 0, flex: 1 },
+  cardToggleControls: { display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text)' },
+  chevron: { display: 'inline-block', fontSize: 18, lineHeight: 1, transition: 'transform 120ms ease' },
+  cardBody: { display: 'flex', flexDirection: 'column', gap: 12, padding: '0 14px 14px' },
+  cardActionsRow: { display: 'flex', justifyContent: 'flex-end' },
+  cardHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
+  cardTitle: { fontSize: 14, fontWeight: 600, color: 'var(--text-h)' },
+  cardSubtitle: { fontSize: 13, color: 'var(--text)' },
+  removeBtn: { padding: '6px 10px', fontSize: 12, fontWeight: 500, color: '#9a1a1a', background: 'transparent', border: '1px solid rgba(154, 26, 26, 0.45)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
+  addBtn: { padding: '6px 12px', fontSize: 13, fontWeight: 500, color: 'var(--accent)', background: 'transparent', border: '1px dashed var(--accent-border)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
+  emptyHint: { margin: 0, fontSize: 13, color: 'var(--text)', padding: 12, border: '1px dashed var(--border)', borderRadius: 10, textAlign: 'center' },
   badge: { marginLeft: 8, padding: '2px 8px', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 999 },
   hint: { margin: 0, fontSize: 12, color: 'var(--text)' },
+  checkboxRow: { display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' },
+  checkbox: { width: 16, height: 16, accentColor: 'var(--accent)' },
+  checkboxLabel: { fontSize: 13, color: 'var(--text-h)' },
   actionsRow: { display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end', marginTop: 4 },
   primaryBtn: { padding: '10px 18px', fontSize: 14, fontWeight: 500, color: 'var(--bg)', background: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' },
 };
