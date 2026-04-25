@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -57,8 +58,32 @@ export default function ApplicantProfile() {
   const keyCounter = useRef(0);
   const nextKey = () => ++keyCounter.current;
 
+  // Snapshot of critical field values as loaded from the server (set in hydrate).
+  // Used to compute whether any critical field has actually changed.
+  const originalCritical = useRef<{
+    linkedinUrl: string;
+    websitePortfolio: string;
+    githubOrOther: string;
+    workJson: string;
+    eduJson: string;
+  } | null>(null);
+
+  function serializeWork(items: WorkExpItem[]): string {
+    return JSON.stringify(
+      items.map(({ _key: _k, _expanded: _e, ...w }) => w),
+    );
+  }
+  function serializeEdu(items: EduItem[]): string {
+    return JSON.stringify(
+      items.map(({ _key: _k, _expanded: _e, ...e }) => e),
+    );
+  }
+
   function hydrate(p: ProfileType) {
     const pi = p.personal_information;
+    const ln = pi.linkedin_url ?? '';
+    const wp = pi.website_portfolio ?? '';
+    const gh = pi.github_or_other_portfolio ?? '';
     setFirstName(pi.first_name ?? '');
     setMiddleInitial(pi.middle_initial ?? '');
     setLastName(pi.last_name ?? '');
@@ -72,16 +97,36 @@ export default function ApplicantProfile() {
     setCity(pi.city ?? '');
     setState(pi.state ?? '');
     setZipCode(pi.zip_code ?? '');
-    setLinkedinUrl(pi.linkedin_url ?? '');
-    setWebsitePortfolio(pi.website_portfolio ?? '');
-    setGithubOrOther(pi.github_or_other_portfolio ?? '');
-    setWorkExp(
-      p.work_experience.map(w => ({ ...w, _key: nextKey(), _expanded: false })),
-    );
-    setEducation(
-      p.education.map(e => ({ ...e, _key: nextKey(), _expanded: false })),
-    );
+    setLinkedinUrl(ln);
+    setWebsitePortfolio(wp);
+    setGithubOrOther(gh);
+    const newWork = p.work_experience.map(w => ({ ...w, _key: nextKey(), _expanded: false }));
+    const newEdu = p.education.map(e => ({ ...e, _key: nextKey(), _expanded: false }));
+    setWorkExp(newWork);
+    setEducation(newEdu);
+    // Capture the baseline for change detection.
+    originalCritical.current = {
+      linkedinUrl: ln,
+      websitePortfolio: wp,
+      githubOrOther: gh,
+      workJson: serializeWork(newWork),
+      eduJson: serializeEdu(newEdu),
+    };
   }
+
+  // True when at least one critical field differs from what the server returned.
+  const criticalEditsPending = useMemo(() => {
+    const orig = originalCritical.current;
+    if (!orig) return false;
+    return (
+      linkedinUrl !== orig.linkedinUrl ||
+      websitePortfolio !== orig.websitePortfolio ||
+      githubOrOther !== orig.githubOrOther ||
+      serializeWork(workExp) !== orig.workJson ||
+      serializeEdu(education) !== orig.eduJson
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedinUrl, websitePortfolio, githubOrOther, workExp, education]);
 
   useEffect(() => {
     if (!token) return;
@@ -217,6 +262,10 @@ export default function ApplicantProfile() {
         <p style={styles.subtitle}>Update your personal details and links.</p>
       </header>
 
+      <div role="note" style={styles.warningBanner}>
+        Heads up: updates to links, work experience, and education are high-impact profile changes and may be reviewed by automated credibility checks.
+      </div>
+
       {error && <div role="alert" style={styles.errorBanner}>{error}</div>}
       {success && <div role="status" style={styles.successBanner}>{success}</div>}
 
@@ -305,6 +354,12 @@ export default function ApplicantProfile() {
             ))
           )}
         </Section>
+
+        {criticalEditsPending && (
+          <div role="note" style={styles.saveWarningBanner}>
+            You changed one or more high-impact fields. These updates will be reviewed for profile credibility after you save.
+          </div>
+        )}
 
         <div style={styles.actionsRow}>
           <button type="submit" style={styles.primaryBtn} disabled={saving}>
@@ -652,13 +707,14 @@ interface FieldProps {
   type?: string;
   placeholder?: string;
   disabled?: boolean;
+  onFocus?: () => void;
 }
 
-function Field({ label, value, onChange, type = 'text', placeholder, disabled }: FieldProps) {
+function Field({ label, value, onChange, type = 'text', placeholder, disabled, onFocus }: FieldProps) {
   return (
     <label style={styles.field}>
       <span style={styles.fieldLabel}>{label}</span>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)}
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} onFocus={onFocus}
         placeholder={placeholder} disabled={disabled} style={styles.input} />
     </label>
   );
@@ -670,12 +726,14 @@ function Textarea({
   onChange,
   rows = 3,
   placeholder,
+  onFocus,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   rows?: number;
   placeholder?: string;
+  onFocus?: () => void;
 }) {
   return (
     <label style={styles.field}>
@@ -683,6 +741,7 @@ function Textarea({
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
+        onFocus={onFocus}
         rows={rows}
         placeholder={placeholder}
         style={{ ...styles.input, ...styles.textarea }}
@@ -696,11 +755,13 @@ function Select({
   value,
   onChange,
   options,
+  onFocus,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
+  onFocus?: () => void;
 }) {
   return (
     <label style={styles.field}>
@@ -708,6 +769,7 @@ function Select({
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
+        onFocus={onFocus}
         style={styles.input}
       >
         {options.map(o => (
@@ -724,10 +786,12 @@ function Checkbox({
   label,
   checked,
   onChange,
+  onFocus,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  onFocus?: () => void;
 }) {
   return (
     <label style={styles.checkboxRow}>
@@ -735,6 +799,7 @@ function Checkbox({
         type="checkbox"
         checked={checked}
         onChange={e => onChange(e.target.checked)}
+        onFocus={onFocus}
         style={styles.checkbox}
       />
       <span style={styles.checkboxLabel}>{label}</span>
@@ -749,6 +814,8 @@ const styles: Record<string, CSSProperties> = {
   title: { margin: '8px 0 4px', fontSize: 32, lineHeight: 1.1, color: 'var(--text-h)', letterSpacing: '-0.5px' },
   subtitle: { margin: 0, color: 'var(--text)', fontSize: 15, maxWidth: 640 },
   errorBanner: { padding: '10px 14px', fontSize: 14, color: '#b00020', background: 'rgba(176, 0, 32, 0.08)', border: '1px solid rgba(176, 0, 32, 0.25)', borderRadius: 10 },
+  warningBanner: { padding: '10px 14px', fontSize: 14, color: '#7a5600', background: 'rgba(255, 184, 0, 0.14)', border: '1px solid rgba(255, 184, 0, 0.5)', borderRadius: 10 },
+  saveWarningBanner: { padding: '10px 14px', fontSize: 13, color: '#7a5600', background: 'rgba(255, 184, 0, 0.12)', border: '1px solid rgba(255, 184, 0, 0.45)', borderRadius: 10 },
   successBanner: { padding: '10px 14px', fontSize: 14, color: '#0a6b2b', background: 'rgba(10, 107, 43, 0.08)', border: '1px solid rgba(10, 107, 43, 0.25)', borderRadius: 10 },
   form: { display: 'flex', flexDirection: 'column', gap: 20 },
   section: { display: 'flex', flexDirection: 'column', gap: 12, padding: 20, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--bg)', boxShadow: 'var(--shadow)' },
