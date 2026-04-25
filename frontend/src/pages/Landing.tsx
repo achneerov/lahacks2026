@@ -45,7 +45,7 @@ export default function Landing() {
             Integrity-First Hiring<br />for the Modern Enterprise
           </h1>
           <p style={styles.heroSubtitle}>
-            Aegis Talent integrates World ID to eliminate application fraud and verify human authenticity. Build teams grounded in verified identity and cryptographic trust.
+            Aegis Talent secures your hiring pipeline by verifying human authenticity at the source. Build teams grounded in verified identity and cryptographic trust.
           </p>
 
           <button
@@ -61,7 +61,7 @@ export default function Landing() {
               (e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)');
             }}
           >
-            Get Started with World ID
+            Get Started
           </button>
 
           <div style={styles.heroImageContainer}>
@@ -78,26 +78,6 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* MARQUEE SECTION */}
-        <section style={styles.marqueeContainer}>
-          <p style={styles.marqueeLabel}>INTEGRATES SEAMLESSLY WITH MODERN HIRING STACKS</p>
-          <div style={styles.marqueeOverlay}>
-            <div style={styles.marqueeContent}>
-              <div style={styles.marqueeItem}>Workday</div>
-              <div style={styles.marqueeItem}>Greenhouse</div>
-              <div style={styles.marqueeItem}>Lever</div>
-              <div style={styles.marqueeItem}>Ashby</div>
-              <div style={styles.marqueeItem}>BambooHR</div>
-              {/* Duplicate for infinite scroll */}
-              <div style={styles.marqueeItem}>Workday</div>
-              <div style={styles.marqueeItem}>Greenhouse</div>
-              <div style={styles.marqueeItem}>Lever</div>
-              <div style={styles.marqueeItem}>Ashby</div>
-              <div style={styles.marqueeItem}>BambooHR</div>
-            </div>
-          </div>
-        </section>
-
         {/* ROI CALCULATOR */}
         <section style={styles.bentoSection}>
           <div style={styles.bentoGrid}>
@@ -105,7 +85,7 @@ export default function Landing() {
             {/* ROI Calculator Card */}
             <div style={{...styles.bentoCard, ...styles.bentoRoiCard}}>
               <h2 style={styles.bentoRoiTitle}>Quantify your wasted effort.</h2>
-              <p style={styles.bentoRoiSubtitle}>See how much time you save filtering out spam with World ID.</p>
+              <p style={styles.bentoRoiSubtitle}>See how much time you save when every application is tied to a verified human.</p>
               
               <div style={styles.bentoCalcTop}>
                 <label style={styles.calcLabel}>Monthly Applications</label>
@@ -140,7 +120,7 @@ export default function Landing() {
         {/* SECTION 2: STANDARDS */}
         <section style={styles.standardsSection}>
           <div style={styles.sectionHeader}>
-            <h2 style={{...styles.sectionTitle, fontFamily: 'Playfair Display, serif'}}>The World ID Standard</h2>
+            <h2 style={{...styles.sectionTitle, fontFamily: 'Playfair Display, serif'}}>The Verification Standard</h2>
             <p style={styles.sectionSubtitle}>Defining honesty in the digital hiring landscape.</p>
           </div>
 
@@ -165,7 +145,7 @@ export default function Landing() {
                 </div>
               </div>
               <h3 style={styles.cardTitle}>Account Uniqueness</h3>
-              <p style={styles.cardBody}>One person, one account. By tying applications to a biometric <strong>World ID</strong> scan, we ensure total honesty and consistency. Candidates cannot create multiple profiles, guaranteeing that the professional history you see is the only one that exists.</p>
+              <p style={styles.cardBody}>One person, one account. By tying applications to a secure biometric protocol, we ensure total honesty and consistency. Candidates cannot create multiple profiles, guaranteeing that the professional history you see is the only one that exists.</p>
               <div style={styles.cardFooterLight}>SECURE TALENT ACQUISITION GUARANTEED</div>
             </div>
 
@@ -174,7 +154,7 @@ export default function Landing() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>
               </div>
               <h3 style={{...styles.cardTitle, color: 'white'}}>Dynamic Reliability Score</h3>
-              <p style={{...styles.cardBody, color: '#9ca3af'}}>Instantly filter out illegitimate applications and automated spam. Every candidate carries a verified Reliability Score based on their World ID status and historical consistency, allowing your team to focus only on high-signal prospects.</p>
+              <p style={{...styles.cardBody, color: '#9ca3af'}}>Every candidate carries a unified Reliability Score based on their verification status and historical consistency, allowing your team to focus only on high-signal prospects.</p>
               <div style={styles.cardFooterDark}>ELIMINATE APPLICATION NOISE</div>
             </div>
             
@@ -187,7 +167,7 @@ export default function Landing() {
               </div>
               <div style={styles.wideCardRight}>
                 <h3 style={styles.cardTitle}>Verified Credentials Only</h3>
-                <p style={styles.cardBody}>Our system validates the person behind the screen before a single line of a resume is read. By ensuring human uniqueness through World ID, we restore the value of individual achievement in an AI-saturated market.</p>
+                <p style={styles.cardBody}>Our system validates the person behind the screen before a single line of a resume is read. By ensuring human uniqueness, we restore the value of individual achievement in an AI-saturated market.</p>
               </div>
             </div>
           </div>
@@ -198,26 +178,26 @@ export default function Landing() {
       <section style={styles.darkSplitSection}>
         <div style={styles.darkSplitContent}>
           <div style={styles.darkSplitLeft}>
-            <h2 style={styles.darkSplitTitle}>Human Excellence,<br />Verified.</h2>
-            <p style={styles.darkSplitBody}>Aegis Talent protects your hiring pipeline from the chaos of bot-driven applications. By leveraging World ID, we ensure that every conversation starts with a verified human being.</p>
+            <h2 style={styles.darkSplitTitle}>Enterprise-grade.<br />Developer-friendly.</h2>
+            <p style={styles.darkSplitBody}>Aegis Talent is designed to fit seamlessly into any modern corporate infrastructure. We prioritize data sovereignty, ensuring candidate privacy is mathematically guaranteed without adding unnecessary friction to your recruitment flow.</p>
             <ul style={styles.checkList}>
               <li style={styles.checkListItem}>
                 <div style={styles.checkIconLightWrapper}>
                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
-                Biometric-backed account uniqueness
+                Plug-and-play ATS extensions
               </li>
               <li style={styles.checkListItem}>
                 <div style={styles.checkIconLightWrapper}>
                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
-                Protection against mass-bot applications
+                Zero internal biometric storage
               </li>
               <li style={styles.checkListItem}>
                 <div style={styles.checkIconLightWrapper}>
                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
-                World ID Personhood integration
+                GDPR & SOC2 Compliant pathways
               </li>
             </ul>
           </div>
