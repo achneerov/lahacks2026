@@ -590,7 +590,7 @@ const styles: Record<string, CSSProperties> = {
   },
   bubbleRecruiter: {
     background: 'var(--accent-bg)',
-    borderColor: 'var(--accent-border)',
+    border: '1px solid var(--accent-border)',
     borderTopRightRadius: 4,
   },
   bubbleHeader: {

@@ -571,7 +571,7 @@ const styles: Record<string, CSSProperties> = {
     transition: 'border-color 150ms ease, transform 150ms ease',
   },
   jobCardSelected: {
-    borderColor: 'var(--accent)',
+    border: '1px solid var(--accent)',
     boxShadow: '0 0 0 1px var(--accent)',
   },
   jobCardTopRow: {

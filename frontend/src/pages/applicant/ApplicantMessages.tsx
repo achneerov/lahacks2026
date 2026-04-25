@@ -633,7 +633,7 @@ const styles: Record<string, CSSProperties> = {
   filterChipActive: {
     color: 'var(--accent)',
     background: 'var(--accent-bg)',
-    borderColor: 'var(--accent-border)',
+    border: '1px solid var(--accent-border)',
   },
   conversationList: {
     flex: 1,

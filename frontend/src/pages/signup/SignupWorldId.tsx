@@ -20,6 +20,7 @@ export default function SignupWorldId() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoOpenedRef = useRef(false);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     if (ctx && !autoOpenedRef.current && !submitting) {
@@ -55,7 +56,7 @@ export default function SignupWorldId() {
     };
   }, [basics]);
 
-  if (!basics) return <Navigate to="/signup" replace />;
+  if (!basics && !completedRef.current) return <Navigate to="/signup" replace />;
 
   const isApplicant = basics.role === 'Applicant';
 
@@ -100,9 +101,10 @@ export default function SignupWorldId() {
         role: currentBasics.role,
         world_id_result: result,
       });
+      completedRef.current = true;
       setAuth(token, user);
-      reset();
       nav('/', { replace: true });
+      reset();
     } catch (e) {
       setError(
         e instanceof ApiError

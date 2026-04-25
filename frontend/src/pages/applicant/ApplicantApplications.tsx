@@ -558,7 +558,7 @@ const styles: Record<string, CSSProperties> = {
   tabActive: {
     color: 'var(--accent)',
     background: 'var(--accent-bg)',
-    borderColor: 'var(--accent-border)',
+    border: '1px solid var(--accent-border)',
     fontWeight: 500,
   },
   tabCount: {

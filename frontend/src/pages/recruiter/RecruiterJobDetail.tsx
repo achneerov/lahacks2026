@@ -1088,7 +1088,7 @@ const styles: Record<string, CSSProperties> = {
     gap: 4,
   },
   transcriptAgent: {
-    borderColor: 'var(--accent-border)',
+    border: '1px solid var(--accent-border)',
   },
   transcriptApplicant: {},
   transcriptAuthor: {

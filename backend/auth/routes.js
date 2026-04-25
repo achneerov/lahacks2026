@@ -401,7 +401,7 @@ router.get('/me', requireAuth, (req, res) => {
   const user = db
     .prepare('SELECT id, role, email, username, created_at FROM users WHERE id = ?')
     .get(req.user.id);
-  if (!user) return res.status(404).json({ error: 'not_found' });
+  if (!user) return res.status(401).json({ error: 'user_not_found' });
   return res.json({ user });
 });
 

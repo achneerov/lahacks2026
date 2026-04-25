@@ -432,7 +432,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.2s ease',
   },
   roleCardActive: {
-    borderColor: '#0F172A',
+    border: '1px solid #0F172A',
     background: '#0F172A',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
   },
