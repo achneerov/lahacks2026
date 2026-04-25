@@ -8,7 +8,10 @@ const { signToken, requireAuth } = require('./jwt');
 const router = express.Router();
 
 const ROLES = ['Applicant', 'Recruiter', 'Agent'];
+const SIGNUP_ROLES = ['Applicant', 'Recruiter'];
 const BCRYPT_ROUNDS = 10;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
 
 router.get('/world-id-context', (req, res) => {
   const rawKey = (process.env.WORLD_ID_SIGNING_KEY || '').trim();
@@ -38,6 +41,46 @@ router.get('/world-id-context', (req, res) => {
     console.error('[WorldID] signRequest failed:', e);
     return res.status(500).json({ error: 'sign_failed', detail: e.message });
   }
+});
+
+router.post('/signup/check-basics', (req, res) => {
+  const { email, password, username, role } = req.body || {};
+
+  if (!email || !password || !username || !role) {
+    return res.status(400).json({ error: 'missing_fields' });
+  }
+  if (!SIGNUP_ROLES.includes(role)) {
+    return res.status(400).json({ error: 'invalid_role' });
+  }
+  if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
+    return res.status(400).json({ error: 'invalid_email' });
+  }
+  if (typeof username !== 'string' || !USERNAME_RE.test(username.trim())) {
+    return res.status(400).json({ error: 'invalid_username' });
+  }
+  if (typeof password !== 'string' || password.length < 8) {
+    return res.status(400).json({ error: 'password_too_short' });
+  }
+
+  const normalizedEmail = email.trim();
+  const normalizedUsername = username.trim();
+
+  const existingEmail = db
+    .prepare('SELECT 1 FROM users WHERE email = ?')
+    .get(normalizedEmail);
+  if (existingEmail) return res.status(409).json({ error: 'email_taken' });
+
+  const existingUsername = db
+    .prepare('SELECT 1 FROM users WHERE username = ?')
+    .get(normalizedUsername);
+  if (existingUsername) return res.status(409).json({ error: 'username_taken' });
+
+  return res.json({
+    ok: true,
+    email: normalizedEmail,
+    username: normalizedUsername,
+    role,
+  });
 });
 
 router.post('/register', async (req, res) => {
