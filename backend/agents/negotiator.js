@@ -122,13 +122,22 @@ function persistMessage(applicationId, turnIndex, sender, content) {
   ).run(applicationId, turnIndex, sender, content);
 }
 
-function updateApplicationStatus(applicationId, status, reasoning) {
+function updateApplicationStatus(applicationId, status, reasoning, matchScore) {
   db.prepare(
     `UPDATE applications
-        SET status = ?, agent_reasoning = ?, decided_at = datetime('now'),
-            updated_at = datetime('now')
+        SET status = ?, agent_reasoning = ?, match_score = ?,
+            decided_at = datetime('now'), updated_at = datetime('now')
       WHERE id = ?`
-  ).run(status, reasoning, applicationId);
+  ).run(status, reasoning, matchScore, applicationId);
+}
+
+function clampMatchScore(raw, decision) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return decision === 'recommend' ? 65 : 25;
+  const clamped = Math.max(0, Math.min(100, n));
+  if (decision === 'recommend' && clamped < 50) return 55;
+  if (decision === 'decline' && clamped >= 50) return 40;
+  return Math.round(clamped);
 }
 
 async function runNegotiation(applicationId) {
@@ -220,11 +229,14 @@ async function runNegotiation(applicationId) {
           sender,
           content: reason,
         });
-        updateApplicationStatus(applicationId, 'Declined', reason);
+        // Hard early decline: low match score reflecting an unrecoverable gap.
+        const earlyMatch = 15;
+        updateApplicationStatus(applicationId, 'Declined', reason, earlyMatch);
         emit(applicationId, {
           type: 'verdict',
           decision: 'decline',
           reasoning: reason,
+          match_score: earlyMatch,
           status: 'Declined',
           early: true,
         });
@@ -261,7 +273,7 @@ async function runNegotiation(applicationId) {
     applicationId
   );
 
-  let verdict = { decision: 'decline', reasoning: 'Verdict parsing failed.' };
+  let verdict = { decision: 'decline', reasoning: 'Verdict parsing failed.', match_score: 20 };
   try {
     const raw = typeof verdictResp.text === 'string' ? verdictResp.text : '';
     const parsed = JSON.parse(raw);
@@ -271,19 +283,24 @@ async function runNegotiation(applicationId) {
       typeof parsed.reasoning === 'string' &&
       parsed.reasoning.trim() !== ''
     ) {
-      verdict = { decision: parsed.decision, reasoning: parsed.reasoning.trim() };
+      verdict = {
+        decision: parsed.decision,
+        reasoning: parsed.reasoning.trim(),
+        match_score: clampMatchScore(parsed.match_score, parsed.decision),
+      };
     }
   } catch (err) {
     console.warn(`[negotiator] verdict parse failed for app ${applicationId}:`, err.message);
   }
 
   const status = verdict.decision === 'recommend' ? 'SentToRecruiter' : 'Declined';
-  updateApplicationStatus(applicationId, status, verdict.reasoning);
+  updateApplicationStatus(applicationId, status, verdict.reasoning, verdict.match_score);
 
   emit(applicationId, {
     type: 'verdict',
     decision: verdict.decision,
     reasoning: verdict.reasoning,
+    match_score: verdict.match_score,
     status,
   });
   emit(applicationId, { type: 'done' });

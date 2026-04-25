@@ -13,7 +13,7 @@ function loadApplication(id) {
   return db
     .prepare(
       `SELECT a.id, a.applicant_id, a.job_posting_id, a.status, a.notes,
-              a.agent_reasoning, a.created_at, a.updated_at, a.decided_at,
+              a.agent_reasoning, a.match_score, a.created_at, a.updated_at, a.decided_at,
               jp.title         AS job_title,
               jp.company       AS job_company,
               jp.poster_id     AS job_poster_id,

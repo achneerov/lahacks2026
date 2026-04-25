@@ -105,13 +105,22 @@ function verdictSystemPrompt({ jobPosting }) {
 
 You will receive the full transcript between APPLICANT_AGENT and RECRUITER_AGENT for the job posting below.
 
-Decide: should the human recruiter actually talk to this candidate?
+Decide: should the human recruiter actually talk to this candidate, AND emit a numeric match_score (0-100) for sorting candidates in the recruiter dashboard.
 
 Rules:
 - Ground your reasoning ONLY in claims that were actually made in the transcript. Do not invent facts. Do not assume facts that were never stated.
 - "recommend" means: the candidate's stated evidence credibly fits the role, including any human recruiter directive.
 - "decline" means: the transcript reveals a real mismatch, the candidate dodged hard requirements, or the evidence is too thin to justify a recruiter's time.
 - The reasoning must be 1-3 sentences, specific to this transcript (cite which requirement was met or missed).
+
+match_score scale (be honest, not generous):
+  90-100: textbook fit, every hard requirement met with clear evidence.
+  70-89:  strong recommend; meets all hard requirements, some softs missing.
+  50-69:  borderline; partial fit, may still be worth a recruiter's time.
+  30-49:  weak; multiple gaps but not an outright disqualification.
+  0-29:   reject; failed a hard requirement or evidence is largely missing/dodged.
+
+If decision="recommend", match_score MUST be >= 50. If decision="decline", match_score MUST be < 50. The score should reflect the transcript, not be averaged toward 50.
 
 Output: a single JSON object matching the provided schema.
 
@@ -132,8 +141,13 @@ const VERDICT_SCHEMA = {
       description:
         'A 1-3 sentence justification, grounded only in claims made in the transcript.',
     },
+    match_score: {
+      type: Type.NUMBER,
+      description:
+        'A 0-100 fit score. >=50 only if decision is recommend; <50 only if decision is decline.',
+    },
   },
-  required: ['decision', 'reasoning'],
+  required: ['decision', 'reasoning', 'match_score'],
 };
 
 module.exports = {

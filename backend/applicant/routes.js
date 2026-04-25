@@ -10,8 +10,18 @@ const {
   lockUser,
 } = require('./criticalChange');
 const { reviewCriticalChange } = require('../agents/profile-credibility');
+const { insertMessage, setInterviewStatus } = require('../messaging');
 
 const router = express.Router();
+
+function parseJsonOrNull(raw) {
+  if (raw == null) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 const PROFILE_COLS = [
   'first_name', 'middle_initial', 'last_name', 'preferred_name', 'pronouns',
@@ -656,16 +666,45 @@ router.get('/conversations/:id/messages', requireAuth, requireApplicant, (req, r
   const conversationId = parseInt(req.params.id, 10);
   if (!Number.isInteger(conversationId) || conversationId <= 0) return res.status(400).json({ error: 'invalid_conversation_id' });
   try {
-    const convo = loadConversationForUser(conversationId, userId);
+    const convo = db.prepare(
+      `SELECT c.id, c.user_1_id, c.user_2_id, c.job_posting_id, c.active,
+              c.interview_status, c.closed_at, c.created_at,
+              jp.title AS job_title, jp.company AS job_company
+         FROM conversations c LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+        WHERE c.id = ? AND (c.user_1_id = ? OR c.user_2_id = ?)`
+    ).get(conversationId, userId, userId);
     if (!convo) return res.status(404).json({ error: 'not_found' });
     const otherUserId = convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
-    const otherParty = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
+    const otherParty = db.prepare(
+      `SELECT u.id, u.username, u.role, up.first_name, up.last_name
+         FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
+        WHERE u.id = ?`
+    ).get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
     const messages = db.prepare(
-      `SELECT conversation_index AS 'index', user_id, conversation_content AS content, created_at
+      `SELECT conversation_index AS msg_index, user_id, conversation_content AS content,
+              kind, metadata, created_at
          FROM messages WHERE conversation_id = ? ORDER BY conversation_index ASC`
-    ).all(conversationId).map(m => ({ ...m, from_me: m.user_id === userId }));
+    ).all(conversationId).map(m => ({
+      index: m.msg_index,
+      user_id: m.user_id,
+      content: m.content,
+      kind: m.kind || 'text',
+      metadata: parseJsonOrNull(m.metadata),
+      created_at: m.created_at,
+      from_me: m.user_id === userId,
+    }));
     return res.json({
-      conversation: { id: convo.id, job_posting_id: convo.job_posting_id, job_title: convo.job_title, job_company: convo.job_company, active: convo.active, created_at: convo.created_at, other_party: otherParty },
+      conversation: {
+        id: convo.id,
+        job_posting_id: convo.job_posting_id,
+        job_title: convo.job_title,
+        job_company: convo.job_company,
+        active: convo.active,
+        interview_status: convo.interview_status || 'none',
+        closed_at: convo.closed_at,
+        created_at: convo.created_at,
+        other_party: otherParty,
+      },
       messages,
     });
   } catch (e) {
@@ -687,14 +726,83 @@ router.post('/conversations/:id/messages', requireAuth, requireApplicant, (req, 
     const convo = loadConversationForUser(conversationId, userId);
     if (!convo) return res.status(404).json({ error: 'not_found' });
     if (convo.active === 0) return res.status(409).json({ error: 'conversation_closed' });
-    const inserted = db.transaction(() => {
-      const { next_index } = db.prepare('SELECT COALESCE(MAX(conversation_index) + 1, 0) AS next_index FROM messages WHERE conversation_id = ?').get(conversationId);
-      db.prepare('INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content) VALUES (?, ?, ?, ?)').run(conversationId, next_index, userId, content);
-      return db.prepare('SELECT conversation_index AS \'index\', user_id, conversation_content AS content, created_at FROM messages WHERE conversation_id = ? AND conversation_index = ?').get(conversationId, next_index);
-    })();
-    return res.status(201).json({ message: { ...inserted, from_me: true } });
+    const inserted = insertMessage({ conversationId, userId, content, kind: 'text' });
+    return res.status(201).json({
+      message: {
+        index: inserted.msg_index,
+        user_id: inserted.user_id,
+        content: inserted.content,
+        kind: inserted.kind || 'text',
+        metadata: parseJsonOrNull(inserted.metadata),
+        created_at: inserted.created_at,
+        from_me: true,
+      },
+    });
   } catch (e) {
     console.error('[applicant/conversations/messages POST]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// Reply to an interview_request with a list of timeslots. Posts an
+// availability_proposal card the recruiter's chat will render with a
+// "Send calendar invite" action per slot.
+router.post('/conversations/:id/availability', requireAuth, requireApplicant, (req, res) => {
+  const userId = req.user.id;
+  const conversationId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(conversationId) || conversationId <= 0) {
+    return res.status(400).json({ error: 'invalid_conversation_id' });
+  }
+
+  const slots = Array.isArray(req.body?.slots) ? req.body.slots : null;
+  if (!slots || slots.length === 0) {
+    return res.status(400).json({ error: 'missing_slots' });
+  }
+
+  const cleaned = [];
+  for (const s of slots) {
+    if (!s || typeof s !== 'object') continue;
+    const start = typeof s.start_iso === 'string' ? s.start_iso : null;
+    const end = typeof s.end_iso === 'string' ? s.end_iso : null;
+    if (!start || !end) continue;
+    if (Number.isNaN(Date.parse(start)) || Number.isNaN(Date.parse(end))) continue;
+    if (Date.parse(end) <= Date.parse(start)) continue;
+    const label = typeof s.label === 'string' && s.label.trim() ? s.label.trim() : new Date(start).toLocaleString();
+    cleaned.push({ label, start_iso: start, end_iso: end });
+    if (cleaned.length >= 6) break;
+  }
+  if (cleaned.length === 0) {
+    return res.status(400).json({ error: 'invalid_slots' });
+  }
+
+  try {
+    const convo = loadConversationForUser(conversationId, userId);
+    if (!convo) return res.status(404).json({ error: 'not_found' });
+    if (convo.active === 0) return res.status(409).json({ error: 'conversation_closed' });
+
+    const summary = `Here are ${cleaned.length} time${cleaned.length === 1 ? '' : 's'} that work for me — let me know which is best.`;
+    const inserted = insertMessage({
+      conversationId,
+      userId,
+      content: summary,
+      kind: 'availability_proposal',
+      metadata: { slots: cleaned },
+    });
+    setInterviewStatus(conversationId, 'availability_proposed');
+
+    return res.status(201).json({
+      message: {
+        index: inserted.msg_index,
+        user_id: inserted.user_id,
+        content: inserted.content,
+        kind: inserted.kind || 'availability_proposal',
+        metadata: parseJsonOrNull(inserted.metadata),
+        created_at: inserted.created_at,
+        from_me: true,
+      },
+    });
+  } catch (e) {
+    console.error('[applicant/conversations/:id/availability]', e);
     return res.status(500).json({ error: 'server_error' });
   }
 });

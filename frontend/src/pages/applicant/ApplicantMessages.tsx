@@ -10,11 +10,14 @@ import {
 import {
   api,
   ApiError,
+  type AvailabilitySlot,
   type ConversationDetail,
   type ConversationMessage,
   type ConversationSummary,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
+import AvailabilityModal from '../../components/AvailabilityModal';
+import { renderSpecialBubble } from '../../components/InterviewCards';
 
 type ActiveFilter = 'any' | 'open' | 'closed';
 
@@ -44,6 +47,8 @@ export default function ApplicantMessages() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  const [availabilityOpen, setAvailabilityOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -197,6 +202,21 @@ export default function ApplicantMessages() {
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleSendAvailability(slots: AvailabilitySlot[]) {
+    if (!token || selectedId == null) return;
+    const { message } = await api.applicantSendAvailability(
+      token,
+      selectedId,
+      slots,
+    );
+    setThread((prev) =>
+      prev && prev.conversation.id === selectedId
+        ? { ...prev, messages: [...prev.messages, message] }
+        : prev,
+    );
+    void loadConversations({ silent: true });
   }
 
   return (
@@ -374,15 +394,22 @@ export default function ApplicantMessages() {
                       <div style={styles.daySeparator}>
                         <span style={styles.dayLabel}>{group.label}</span>
                       </div>
-                      {group.messages.map((m) => (
-                        <MessageBubble
-                          key={m.index}
-                          message={m}
-                          otherName={
-                            thread.conversation.other_party.username
-                          }
-                        />
-                      ))}
+                      {group.messages.map((m) => {
+                        const special = renderSpecialBubble(m, 'applicant', {
+                          onProposeAvailability: () =>
+                            setAvailabilityOpen(true),
+                        });
+                        if (special) return <div key={m.index}>{special}</div>;
+                        return (
+                          <MessageBubble
+                            key={m.index}
+                            message={m}
+                            otherName={
+                              thread.conversation.other_party.username
+                            }
+                          />
+                        );
+                      })}
                     </div>
                   ))
                 )}
@@ -445,6 +472,13 @@ export default function ApplicantMessages() {
               </form>
             </>
           ) : null}
+
+          {availabilityOpen && (
+            <AvailabilityModal
+              onClose={() => setAvailabilityOpen(false)}
+              onSubmit={handleSendAvailability}
+            />
+          )}
 
           {selectedConversation && !thread && !threadLoading && !threadError && (
             <div style={styles.threadEmpty}>

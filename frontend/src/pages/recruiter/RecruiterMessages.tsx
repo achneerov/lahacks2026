@@ -7,14 +7,24 @@ import {
   type CSSProperties,
   type FormEvent,
 } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   api,
   ApiError,
+  type AvailabilitySlot,
+  type CalendarInviteInput,
   type ConversationDetail,
   type ConversationMessage,
   type ConversationSummary,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
+import { renderSpecialBubble } from '../../components/InterviewCards';
+import CalendarInviteModal from '../../components/CalendarInviteModal';
+import CloseChatModal from '../../components/CloseChatModal';
+import {
+  TrustScoreBadge,
+  VerificationLevelBadge,
+} from '../../components/Badges';
 
 type ActiveFilter = 'any' | 'open' | 'closed';
 
@@ -22,6 +32,7 @@ const POLL_INTERVAL_MS = 5000;
 
 export default function RecruiterMessages() {
   const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
@@ -33,7 +44,10 @@ export default function RecruiterMessages() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('any');
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const fromQuery = searchParams.get('conversation');
+    return fromQuery ? Number(fromQuery) : null;
+  });
   const [thread, setThread] = useState<{
     conversation: ConversationDetail;
     messages: ConversationMessage[];
@@ -44,6 +58,9 @@ export default function RecruiterMessages() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  const [inviteSlot, setInviteSlot] = useState<AvailabilitySlot | null>(null);
+  const [closeOpen, setCloseOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -93,6 +110,16 @@ export default function RecruiterMessages() {
     if (conversations.length === 0) return;
     setSelectedId(conversations[0].id);
   }, [conversations, selectedId]);
+
+  // Strip ?conversation= from the URL once we've adopted it as the selectedId
+  // so a manual page refresh later doesn't re-force the same selection.
+  useEffect(() => {
+    if (!searchParams.get('conversation')) return;
+    if (selectedId == null) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('conversation');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, selectedId]);
 
   const loadThread = useCallback(
     async (conversationId: number, opts: { silent?: boolean } = {}) => {
@@ -197,6 +224,27 @@ export default function RecruiterMessages() {
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleSendCalendarInvite(invite: CalendarInviteInput) {
+    if (!token || selectedId == null) return;
+    const { message } = await api.recruiterSendCalendarInvite(
+      token,
+      selectedId,
+      invite,
+    );
+    setThread((prev) =>
+      prev && prev.conversation.id === selectedId
+        ? { ...prev, messages: [...prev.messages, message] }
+        : prev,
+    );
+    void loadConversations({ silent: true });
+  }
+
+  function handleClosed() {
+    if (selectedId == null) return;
+    void loadThread(selectedId);
+    void loadConversations({ silent: true });
   }
 
   return (
@@ -336,7 +384,7 @@ export default function RecruiterMessages() {
                       .slice(0, 1)
                       .toUpperCase()}
                   </span>
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={styles.threadName}>
                       {thread.conversation.other_party.username}
                     </div>
@@ -358,7 +406,25 @@ export default function RecruiterMessages() {
                         <span style={styles.closedPill}>Closed</span>
                       )}
                     </div>
+                    <div style={{ ...styles.threadMeta, marginTop: 6 }}>
+                      <TrustScoreBadge
+                        score={thread.conversation.other_party.trust_score}
+                      />
+                      <VerificationLevelBadge
+                        level={thread.conversation.other_party.verification_level}
+                      />
+                    </div>
                   </div>
+                  {thread.conversation.active === 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setCloseOpen(true)}
+                      style={styles.closeChatBtn}
+                      title="Submit trust feedback and close this chat"
+                    >
+                      Close conversation
+                    </button>
+                  )}
                 </div>
               </header>
 
@@ -374,15 +440,21 @@ export default function RecruiterMessages() {
                       <div style={styles.daySeparator}>
                         <span style={styles.dayLabel}>{group.label}</span>
                       </div>
-                      {group.messages.map((m) => (
-                        <MessageBubble
-                          key={m.index}
-                          message={m}
-                          otherName={
-                            thread.conversation.other_party.username
-                          }
-                        />
-                      ))}
+                      {group.messages.map((m) => {
+                        const special = renderSpecialBubble(m, 'recruiter', {
+                          onSendInvite: (slot) => setInviteSlot(slot),
+                        });
+                        if (special) return <div key={m.index}>{special}</div>;
+                        return (
+                          <MessageBubble
+                            key={m.index}
+                            message={m}
+                            otherName={
+                              thread.conversation.other_party.username
+                            }
+                          />
+                        );
+                      })}
                     </div>
                   ))
                 )}
@@ -450,6 +522,28 @@ export default function RecruiterMessages() {
             <div style={styles.threadEmpty}>
               {selectedConversation.other_party.username}
             </div>
+          )}
+
+          {inviteSlot && (
+            <CalendarInviteModal
+              initialSlot={inviteSlot}
+              defaultTitle={
+                thread?.conversation.job_title
+                  ? `${thread.conversation.job_title} — interview`
+                  : 'Interview'
+              }
+              onClose={() => setInviteSlot(null)}
+              onSubmit={handleSendCalendarInvite}
+            />
+          )}
+
+          {closeOpen && thread && (
+            <CloseChatModal
+              conversationId={thread.conversation.id}
+              applicantUsername={thread.conversation.other_party.username}
+              onClose={() => setCloseOpen(false)}
+              onClosed={handleClosed}
+            />
           )}
         </section>
       </section>
@@ -967,5 +1061,18 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 11,
     color: 'var(--text)',
     opacity: 0.7,
+  },
+  closeChatBtn: {
+    appearance: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text)',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: 999,
+    padding: '6px 12px',
+    flexShrink: 0,
   },
 };

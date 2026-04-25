@@ -5,12 +5,21 @@ export const API_BASE_URL = API_BASE;
 export type Role = 'Applicant' | 'Recruiter' | 'Agent';
 export type SignupRole = 'Applicant' | 'Recruiter';
 
+export type VerificationLevel =
+  | 'device'
+  | 'document'
+  | 'passport'
+  | 'orb'
+  | 'iris';
+
 export interface User {
   id: number;
   role: Role;
   email: string;
   username: string;
   created_at?: string;
+  verification_level?: VerificationLevel;
+  trust_score?: number;
 }
 
 export interface AuthResponse {
@@ -404,6 +413,11 @@ export interface ConversationParty {
   id: number;
   username: string;
   role: Role | string;
+  first_name?: string | null;
+  last_name?: string | null;
+  preferred_name?: string | null;
+  verification_level?: VerificationLevel;
+  trust_score?: number;
 }
 
 export interface ConversationSummary {
@@ -423,6 +437,13 @@ export interface ApplicantConversationsResponse {
   conversations: ConversationSummary[];
 }
 
+export type InterviewStatus =
+  | 'none'
+  | 'requested'
+  | 'availability_proposed'
+  | 'scheduled'
+  | 'complete';
+
 export interface ConversationDetail {
   id: number;
   job_posting_id: number | null;
@@ -430,15 +451,80 @@ export interface ConversationDetail {
   job_company: string | null;
   active: 0 | 1;
   created_at: string;
+  interview_status?: InterviewStatus;
+  closed_at?: string | null;
+  closure_responses?: ClosureResponses | null;
   other_party: ConversationParty;
 }
+
+export type MessageKind =
+  | 'text'
+  | 'interview_request'
+  | 'availability_proposal'
+  | 'calendar_invite'
+  | 'system';
+
+export interface AvailabilitySlot {
+  label: string;
+  start_iso: string;
+  end_iso: string;
+}
+
+export interface InterviewRequestMetadata {
+  job_id: number;
+  job_title: string | null;
+  job_company: string | null;
+  suggested_format?: string;
+}
+
+export interface AvailabilityMetadata {
+  slots: AvailabilitySlot[];
+}
+
+export interface CalendarInviteMetadata {
+  title: string;
+  description?: string;
+  location: string;
+  start_iso: string;
+  end_iso: string;
+  slot_label?: string;
+  google_calendar_url: string;
+}
+
+export type MessageMetadata =
+  | InterviewRequestMetadata
+  | AvailabilityMetadata
+  | CalendarInviteMetadata
+  | Record<string, unknown>
+  | null;
 
 export interface ConversationMessage {
   index: number;
   user_id: number;
   content: string;
+  kind?: MessageKind;
+  metadata?: MessageMetadata;
   created_at: string;
   from_me: boolean;
+}
+
+export interface TrustQuestion {
+  id: string;
+  label: string;
+  helper: string;
+}
+
+export interface TrustResponse {
+  question_id: string;
+  score: number;
+  note?: string;
+}
+
+export interface ClosureResponses {
+  responses: TrustResponse[];
+  summary: string;
+  closed_by: number;
+  closed_at: string;
 }
 
 export interface ApplicantConversationMessagesResponse {
@@ -680,27 +766,136 @@ export interface RecruiterJobApplicant {
   application_id: number;
   status: ApplicationStatus;
   notes: string | null;
+  agent_reasoning: string | null;
+  match_score: number | null;
   applied_at: string;
   updated_at: string;
   applicant: {
     id: number;
     username: string;
     email: string;
+    verification_level: VerificationLevel;
+    trust_score: number;
+    first_name: string | null;
+    last_name: string | null;
+    preferred_name: string | null;
+    pronouns: string | null;
     full_name: string | null;
-    headline: string | null;
     city: string | null;
     state: string | null;
-    country: string | null;
-    years_experience: number | null;
     linkedin_url: string | null;
-    github_url: string | null;
-    portfolio_url: string | null;
+    website_portfolio: string | null;
+    github_or_other_portfolio: string | null;
     resume_url: string | null;
   };
 }
 
 export interface RecruiterJobApplicantsResponse {
   applicants: RecruiterJobApplicant[];
+  filter: 'strong' | 'all';
+}
+
+export interface RecruiterApplicantWorkExperience {
+  job_title: string | null;
+  company: string | null;
+  city: string | null;
+  state: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  current_job: 0 | 1;
+  responsibilities: string | null;
+  key_achievements: string | null;
+}
+
+export interface RecruiterApplicantEducation {
+  school: string | null;
+  degree: string | null;
+  major: string | null;
+  graduation_date: string | null;
+  gpa: string | null;
+  honors: string | null;
+}
+
+export interface RecruiterApplicantSkill {
+  skill: string;
+  proficiency: string | null;
+  years: number | null;
+}
+
+export interface RecruiterApplicantLanguage {
+  language: string;
+  proficiency: string | null;
+}
+
+export interface RecruiterApplicantDetailResponse {
+  application: {
+    id: number;
+    status: ApplicationStatus;
+    notes: string | null;
+    agent_reasoning: string | null;
+    match_score: number | null;
+    applied_at: string;
+    updated_at: string;
+    decided_at: string | null;
+    job: { id: number; title: string; company: string | null };
+  };
+  applicant: {
+    id: number;
+    username: string;
+    email: string;
+    verification_level: VerificationLevel;
+    trust_score: number;
+    member_since: string | null;
+    profile: {
+      first_name: string | null;
+      middle_initial: string | null;
+      last_name: string | null;
+      preferred_name: string | null;
+      pronouns: string | null;
+      city: string | null;
+      state: string | null;
+      linkedin_url: string | null;
+      website_portfolio: string | null;
+      github_or_other_portfolio: string | null;
+    } | null;
+    documents: { resume: string | null } | null;
+    work_experience: RecruiterApplicantWorkExperience[];
+    education: RecruiterApplicantEducation[];
+    skills: RecruiterApplicantSkill[];
+    languages: RecruiterApplicantLanguage[];
+  };
+  trust_signals: {
+    profile_edit_approvals: number;
+    profile_edit_rejections: number;
+    closed_conversations: number;
+    recent_feedback: ClosureResponses[];
+  };
+}
+
+export interface ScheduleInterviewResponse {
+  conversation_id: number;
+  created: boolean;
+  message: ConversationMessage;
+}
+
+export interface CalendarInviteInput {
+  start_iso: string;
+  end_iso: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  slot_label?: string;
+}
+
+export interface CloseConversationInput {
+  responses: TrustResponse[];
+  summary?: string;
+}
+
+export interface CloseConversationResponse {
+  ok: true;
+  conversation_id: number;
+  new_trust_score: number | null;
 }
 
 export interface RecruiterJobConversation {
@@ -762,6 +957,7 @@ export interface ApplicationDetail {
   status: ApplicationStatus;
   notes: string | null;
   agent_reasoning: string | null;
+  match_score: number | null;
   created_at: string;
   updated_at: string;
   decided_at: string | null;
@@ -963,10 +1159,80 @@ export const api = {
       token,
     ),
 
-  recruiterJobApplicants: (token: string, id: number) =>
-    request<RecruiterJobApplicantsResponse>(
-      `/api/recruiter/jobs/${id}/applicants`,
+  recruiterJobApplicants: (
+    token: string,
+    id: number,
+    opts: { filter?: 'strong' | 'all' } = {},
+  ) => {
+    const qs = opts.filter === 'strong' ? '?filter=strong' : '';
+    return request<RecruiterJobApplicantsResponse>(
+      `/api/recruiter/jobs/${id}/applicants${qs}`,
       {},
+      token,
+    );
+  },
+
+  recruiterApplicationDetail: (token: string, applicationId: number) =>
+    request<RecruiterApplicantDetailResponse>(
+      `/api/recruiter/applications/${applicationId}/applicant`,
+      {},
+      token,
+    ),
+
+  recruiterScheduleInterview: (
+    token: string,
+    applicationId: number,
+    note?: string,
+  ) =>
+    request<ScheduleInterviewResponse>(
+      `/api/recruiter/applications/${applicationId}/schedule-interview`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ note: note ?? '' }),
+      },
+      token,
+    ),
+
+  recruiterSendCalendarInvite: (
+    token: string,
+    conversationId: number,
+    invite: CalendarInviteInput,
+  ) =>
+    request<{ message: ConversationMessage }>(
+      `/api/recruiter/conversations/${conversationId}/calendar-invite`,
+      {
+        method: 'POST',
+        body: JSON.stringify(invite),
+      },
+      token,
+    ),
+
+  recruiterTrustQuestions: (token: string) =>
+    request<{ questions: TrustQuestion[] }>(
+      '/api/recruiter/trust-questions',
+      {},
+      token,
+    ),
+
+  recruiterCloseConversation: (
+    token: string,
+    conversationId: number,
+    body: CloseConversationInput,
+  ) =>
+    request<CloseConversationResponse>(
+      `/api/recruiter/conversations/${conversationId}/close`,
+      { method: 'POST', body: JSON.stringify(body) },
+      token,
+    ),
+
+  applicantSendAvailability: (
+    token: string,
+    conversationId: number,
+    slots: AvailabilitySlot[],
+  ) =>
+    request<{ message: ConversationMessage }>(
+      `/api/applicant/conversations/${conversationId}/availability`,
+      { method: 'POST', body: JSON.stringify({ slots }) },
       token,
     ),
 
