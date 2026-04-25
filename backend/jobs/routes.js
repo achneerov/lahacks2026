@@ -15,6 +15,14 @@ router.get('/', requireAuth, (req, res) => {
 
     const where = ['jp.is_active = 1'];
     const params = [];
+
+    if (req.user.role === 'Applicant') {
+      where.push(
+        `jp.id NOT IN (SELECT job_posting_id FROM applications WHERE applicant_id = ?)`
+      );
+      params.push(req.user.id);
+    }
+
     if (q && typeof q === 'string' && q.trim() !== '') {
       const like = `%${q.trim()}%`;
       where.push('(jp.title LIKE ? OR jp.company LIKE ? OR jp.description LIKE ?)');

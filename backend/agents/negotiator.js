@@ -315,4 +315,8 @@ function startNegotiation(applicationId) {
   });
 }
 
-module.exports = { startNegotiation };
+function isConfigured() {
+  return !!ai;
+}
+
+module.exports = { startNegotiation, isConfigured };

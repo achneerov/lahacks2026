@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { requireAuth } = require('../auth/jwt');
-const { startNegotiation } = require('../agents/negotiator');
+const { startNegotiation, isConfigured } = require('../agents/negotiator');
 const { subscribe } = require('../agents/bus');
 
 const router = express.Router();
@@ -47,6 +47,13 @@ function canViewApplication(application, user) {
 router.post('/', requireAuth, (req, res) => {
   if (req.user.role !== 'Applicant') {
     return res.status(403).json({ error: 'applicant_only' });
+  }
+
+  if (!isConfigured()) {
+    return res.status(503).json({
+      error: 'service_unavailable',
+      detail: 'AI negotiation service is not configured. Please try again later.',
+    });
   }
 
   const jobIdRaw = req.body?.job_posting_id;

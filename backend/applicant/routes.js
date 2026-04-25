@@ -412,8 +412,13 @@ router.get('/home', requireAuth, requireApplicant, (req, res) => {
       .get(userId, userId, userId);
 
     const { open_jobs } = db
-      .prepare(`SELECT COUNT(*) AS open_jobs FROM job_postings WHERE is_active = 1`)
-      .get();
+      .prepare(
+        `SELECT COUNT(*) AS open_jobs
+           FROM job_postings
+          WHERE is_active = 1
+            AND id NOT IN (SELECT job_posting_id FROM applications WHERE applicant_id = ?)`
+      )
+      .get(userId);
 
     const recentRows = db
       .prepare(
@@ -483,10 +488,11 @@ router.get('/home', requireAuth, requireApplicant, (req, res) => {
          FROM job_postings jp
          JOIN users u ON u.id = jp.poster_id
          WHERE jp.is_active = 1
+           AND jp.id NOT IN (SELECT job_posting_id FROM applications WHERE applicant_id = ?)
          ORDER BY jp.created_at DESC
          LIMIT 5`
       )
-      .all();
+      .all(userId);
 
     return res.json({
       stats: {
@@ -511,6 +517,13 @@ router.get('/jobs', requireAuth, requireApplicant, (req, res) => {
     const offset = Math.max(0, parseInt(rawOffset, 10) || 0);
     const where = ['jp.is_active = 1'];
     const params = [];
+
+    // Filter out jobs the applicant has already applied to
+    where.push(
+      `jp.id NOT IN (SELECT job_posting_id FROM applications WHERE applicant_id = ?)`
+    );
+    params.push(req.user.id);
+
     if (q && typeof q === 'string' && q.trim() !== '') {
       const like = `%${q.trim()}%`;
       where.push('(jp.title LIKE ? OR jp.company LIKE ? OR jp.description LIKE ?)');
