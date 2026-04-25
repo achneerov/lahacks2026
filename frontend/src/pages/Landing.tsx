@@ -1,7 +1,20 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Landing() {
   const nav = useNavigate();
+  const [monthlyApplicants, setMonthlyApplicants] = useState(5000);
+  const [threatCount, setThreatCount] = useState(1204923);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setThreatCount(prev => prev + Math.floor(Math.random() * 5) + 1);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const spamBlocked = Math.round(monthlyApplicants * 0.35); // 35% spam assumption
+  const hoursSaved = Math.round(spamBlocked * 0.15); // 9 min (0.15 hr) to screen a resume
 
   return (
     <div className="landing-page" style={styles.pageContainer}>
@@ -9,6 +22,10 @@ export default function Landing() {
         <div style={styles.navLogo}>
           <div style={styles.logoIcon}></div>
           <span style={styles.logoText}>Aegis</span>
+        </div>
+        <div style={styles.navLiveCounter}>
+          <span style={styles.pulseLight}></span>
+          <span style={styles.counterText}>{threatCount.toLocaleString()} automated threats blocked</span>
         </div>
       </nav>
 
@@ -61,10 +78,97 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* MARQUEE SECTION */}
+        <section style={styles.marqueeContainer}>
+          <p style={styles.marqueeLabel}>INTEGRATES SEAMLESSLY WITH MODERN HIRING STACKS</p>
+          <div style={styles.marqueeOverlay}>
+            <div style={styles.marqueeContent}>
+              <div style={styles.marqueeItem}>Workday</div>
+              <div style={styles.marqueeItem}>Greenhouse</div>
+              <div style={styles.marqueeItem}>Lever</div>
+              <div style={styles.marqueeItem}>Ashby</div>
+              <div style={styles.marqueeItem}>BambooHR</div>
+              {/* Duplicate for infinite scroll */}
+              <div style={styles.marqueeItem}>Workday</div>
+              <div style={styles.marqueeItem}>Greenhouse</div>
+              <div style={styles.marqueeItem}>Lever</div>
+              <div style={styles.marqueeItem}>Ashby</div>
+              <div style={styles.marqueeItem}>BambooHR</div>
+            </div>
+          </div>
+        </section>
+
+        {/* ROI CALCULATOR SECTION (Wealthsimple vibe) */}
+        <section style={styles.roiSection}>
+          <div style={styles.roiWrapper}>
+            <h2 style={styles.roiTitle}>Quantify your wasted effort.</h2>
+            <p style={styles.roiSubtitle}>At scale, automated spam buries top talent. See how much time you save when every application is tied to a verified human.</p>
+            
+            <div style={styles.calculatorCard}>
+              <div style={styles.calcLeft}>
+                <label style={styles.calcLabel}>Monthly Applications</label>
+                <div style={styles.calcValueHero}>{monthlyApplicants.toLocaleString()}</div>
+                <input 
+                  type="range" 
+                  min="500" 
+                  max="50000" 
+                  step="500"
+                  value={monthlyApplicants}
+                  onChange={(e) => setMonthlyApplicants(Number(e.target.value))}
+                  className="wealth-slider"
+                  style={{ marginTop: '24px' }}
+                />
+              </div>
+              <div style={styles.calcRight}>
+                <div style={styles.calcResultBlock}>
+                  <div style={styles.calcResultLabel}>AI/Bot Spam Filtered</div>
+                  <div style={styles.calcResultValue}>{spamBlocked.toLocaleString()}</div>
+                </div>
+                <div style={styles.calcResultDivider}></div>
+                <div style={styles.calcResultBlock}>
+                  <div style={styles.calcResultLabel}>Recruiter Hours Saved</div>
+                  <div style={{...styles.calcResultValue, color: '#0044FF'}}>{hoursSaved.toLocaleString()} hrs</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* HOW IT WORKS (World ID vibe) */}
+        <section style={styles.howItWorksSection}>
+          <div style={styles.hiwContent}>
+            <div style={styles.hiwHeader}>
+              <h2 style={styles.hiwTitle}>Cryptographic Trust, Simplified.</h2>
+              <p style={styles.hiwSubtitle}>We utilize Zero-Knowledge Proofs to verify personhood seamlessly. No biometric data is ever stored on Aegis servers.</p>
+            </div>
+
+            <div style={styles.hiwGrid}>
+              <div style={styles.hiwCard}>
+                <div style={styles.hiwStepNum}>01</div>
+                <h3 style={styles.hiwCardTitle}>Candidate Authenticaton</h3>
+                <p style={styles.hiwCardBody}>Candidates connect using the World App. A unique nullifier ensures they can only verify one application per role.</p>
+                <div style={styles.hiwDecorativeLine}></div>
+              </div>
+              <div style={styles.hiwCard}>
+                <div style={styles.hiwStepNum}>02</div>
+                <h3 style={styles.hiwCardTitle}>Zero-Knowledge Proofs</h3>
+                <p style={styles.hiwCardBody}>The protocol cryptographically proves human uniqueness without revealing the candidate's actual identity or biometrics.</p>
+                <div style={styles.hiwDecorativeLine}></div>
+              </div>
+              <div style={styles.hiwCard}>
+                <div style={styles.hiwStepNum}>03</div>
+                <h3 style={styles.hiwCardTitle}>Pristine Pipeline</h3>
+                <p style={styles.hiwCardBody}>Your ATS receives verified profiles instantly. Filters out 100% of LLM-generated spam and mass-application bots.</p>
+                <div style={styles.hiwDecorativeLine}></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* SECTION 2: STANDARDS */}
         <section style={styles.standardsSection}>
           <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>The World ID Standard</h2>
+            <h2 style={{...styles.sectionTitle, fontFamily: 'Playfair Display, serif'}}>The World ID Standard</h2>
             <p style={styles.sectionSubtitle}>Defining honesty in the digital hiring landscape.</p>
           </div>
 
@@ -145,7 +249,7 @@ export default function Landing() {
       {/* BOTTOM CTA */}
       <section style={styles.bottomCtaSection}>
         <div style={styles.ctaCard}>
-          <h2 style={styles.ctaTitle}>Restore Trust to Your Hiring Process</h2>
+          <h2 style={{...styles.ctaTitle, fontFamily: 'Playfair Display, serif'}}>Restore Trust to Your Hiring Process</h2>
           <p style={styles.ctaSubtitle}>Join the growing network of companies prioritizing human authenticity with World ID.</p>
           <button
             type="button"
@@ -166,7 +270,7 @@ export default function Landing() {
           <span style={styles.footerLink}>Privacy Policy</span>
           <span style={styles.footerLink}>System Status</span>
         </div>
-        <div style={styles.footerCopyright}>© 2024 Aegis Talent Acquisition Systems.</div>
+        <div style={styles.footerCopyright}>© 2026 Aegis Talent Acquisition Systems.</div>
       </footer>
     </div>
   );
@@ -179,7 +283,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     fontFamily: 'Inter, system-ui, sans-serif',
-    backgroundColor: '#FAFAFD', /* slight purple/blue tint white */
+    backgroundColor: '#FAF9F6', /* off-white warm cream for Wealthsimple premium look */
     margin: 0,
     padding: 0,
     overflowX: 'hidden'
@@ -189,6 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '24px 48px',
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     boxSizing: 'border-box'
   },
   navLogo: {
@@ -206,6 +311,28 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     fontSize: '20px',
     letterSpacing: '-0.5px'
+  },
+  navLiveCounter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: '#F3F4F6',
+    padding: '6px 14px',
+    borderRadius: '999px',
+    border: '1px solid #E5E7EB'
+  },
+  pulseLight: {
+    width: '8px',
+    height: '8px',
+    backgroundColor: '#10B981',
+    borderRadius: '50%',
+    boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)'
+  },
+  counterText: {
+    fontSize: '12px',
+    fontFamily: 'ui-monospace, Consolas, monospace',
+    fontWeight: 600,
+    color: '#4B5563'
   },
   main: {
     display: 'flex',
@@ -250,10 +377,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#4B5563'
   },
   heroTitle: {
-    fontSize: '56px',
-    fontWeight: 600,
+    fontFamily: 'Playfair Display, serif',
+    fontSize: '64px',
+    fontWeight: 500,
     lineHeight: 1.1,
-    letterSpacing: '-1.5px',
+    letterSpacing: '-1px',
     color: '#111827',
     margin: 0
   },
@@ -286,7 +414,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   heroImage: {
     width: '100%',
-    height: '500px',
+    height: '600px',
     objectFit: 'cover',
     display: 'block'
   },
@@ -328,10 +456,215 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     color: '#111827'
   },
+  marqueeContainer: {
+    width: '100%',
+    overflow: 'hidden',
+    padding: '64px 0',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    borderBottom: '1px solid #E5E7EB',
+    backgroundColor: 'white'
+  },
+  marqueeLabel: {
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '1px',
+    color: '#9CA3AF',
+    marginBottom: '32px'
+  },
+  marqueeOverlay: {
+    width: '100%',
+    position: 'relative',
+    display: 'flex',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)'
+  },
+  marqueeContent: {
+    display: 'inline-flex',
+    animation: 'scroll 30s linear infinite',
+  },
+  marqueeItem: {
+    fontSize: '28px',
+    fontFamily: 'Playfair Display, serif',
+    fontStyle: 'italic',
+    fontWeight: 600,
+    color: '#D1D5DB',
+    margin: '0 64px'
+  },
+  roiSection: {
+    width: '100%',
+    padding: '120px 24px',
+    display: 'flex',
+    justifyContent: 'center',
+    backgroundColor: '#F5F2EA', /* Even warmer tone for wealth simple vibe */
+    borderBottom: '1px solid #EAE5D9'
+  },
+  roiWrapper: {
+    width: '100%',
+    maxWidth: '1000px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center'
+  },
+  roiTitle: {
+    fontFamily: 'Playfair Display, serif',
+    fontSize: '48px',
+    fontWeight: 500,
+    color: '#111827',
+    margin: '0 0 16px'
+  },
+  roiSubtitle: {
+    fontSize: '18px',
+    color: '#6B7280',
+    maxWidth: '600px',
+    lineHeight: 1.6,
+    margin: '0 0 48px'
+  },
+  calculatorCard: {
+    width: '100%',
+    backgroundColor: 'white',
+    borderRadius: '32px',
+    padding: '48px',
+    display: 'flex',
+    alignItems: 'stretch',
+    gap: '64px',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.04)',
+    boxSizing: 'border-box',
+    border: '1px solid #F3F4F6'
+  },
+  calcLeft: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    textAlign: 'left'
+  },
+  calcLabel: {
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    marginBottom: '16px'
+  },
+  calcValueHero: {
+    fontFamily: 'Playfair Display, serif',
+    fontSize: '64px',
+    fontWeight: 600,
+    color: '#111827',
+    lineHeight: 1
+  },
+  calcRight: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: '32px',
+    backgroundColor: '#FAFAFA',
+    padding: '32px',
+    borderRadius: '16px'
+  },
+  calcResultBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start'
+  },
+  calcResultLabel: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#6B7280',
+    marginBottom: '8px'
+  },
+  calcResultValue: {
+    fontSize: '32px',
+    fontWeight: 600,
+    color: '#111827'
+  },
+  calcResultDivider: {
+    height: '1px',
+    width: '100%',
+    backgroundColor: '#E5E7EB'
+  },
+  howItWorksSection: {
+    width: '100%',
+    padding: '120px 24px',
+    backgroundColor: '#080A0F', /* Absolute deep tech dark */
+    display: 'flex',
+    justifyContent: 'center'
+  },
+  hiwContent: {
+    width: '100%',
+    maxWidth: '1200px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  },
+  hiwHeader: {
+    textAlign: 'center',
+    marginBottom: '80px'
+  },
+  hiwTitle: {
+    fontFamily: 'Playfair Display, serif',
+    fontSize: '48px',
+    fontWeight: 500,
+    color: 'white',
+    margin: '0 0 16px'
+  },
+  hiwSubtitle: {
+    fontSize: '18px',
+    color: '#9CA3AF',
+    maxWidth: '600px',
+    margin: '0 auto',
+    lineHeight: 1.6
+  },
+  hiwGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '32px',
+    width: '100%'
+  },
+  hiwCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '40px',
+    backgroundColor: '#11141D',
+    borderRadius: '24px',
+    border: '1px solid #1F2937',
+    position: 'relative'
+  },
+  hiwStepNum: {
+    fontFamily: 'ui-monospace, Consolas, monospace',
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#0044FF',
+    marginBottom: '24px'
+  },
+  hiwCardTitle: {
+    fontSize: '20px',
+    fontWeight: 600,
+    color: 'white',
+    marginBottom: '16px'
+  },
+  hiwCardBody: {
+    fontSize: '15px',
+    color: '#9CA3AF',
+    lineHeight: 1.6
+  },
+  hiwDecorativeLine: {
+    position: 'absolute',
+    top: '50px',
+    right: '0',
+    width: '40px',
+    height: '1px',
+    backgroundColor: '#1F2937'
+  },
   standardsSection: {
     width: '100%',
     maxWidth: '1600px',
-    padding: '100px 24px',
+    padding: '120px 24px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -342,13 +675,13 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '64px'
   },
   sectionTitle: {
-    fontSize: '32px',
-    fontWeight: 600,
+    fontSize: '48px',
+    fontWeight: 500,
     color: '#111827',
-    margin: '0 0 12px'
+    margin: '0 0 16px'
   },
   sectionSubtitle: {
-    fontSize: '16px',
+    fontSize: '18px',
     color: '#6B7280',
     margin: 0
   },
@@ -480,7 +813,7 @@ const styles: Record<string, React.CSSProperties> = {
   darkSplitSection: {
     width: '100%',
     backgroundColor: '#1E293B',
-    padding: '100px 20px',
+    padding: '120px 24px',
     display: 'flex',
     justifyContent: 'center',
     boxSizing: 'border-box'
@@ -496,17 +829,19 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1
   },
   darkSplitTitle: {
-    fontSize: '40px',
-    fontWeight: 600,
+    fontFamily: 'Playfair Display, serif',
+    fontSize: '48px',
+    fontWeight: 500,
     color: 'white',
     lineHeight: 1.1,
     margin: '0 0 24px'
   },
   darkSplitBody: {
-    fontSize: '16px',
+    fontSize: '18px',
     lineHeight: 1.6,
     color: '#9CA3AF',
-    margin: '0 0 32px'
+    margin: '0 0 40px',
+    maxWidth: '500px'
   },
   checkList: {
     listStyle: 'none',
@@ -514,18 +849,18 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px'
+    gap: '20px'
   },
   checkListItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '16px',
     color: 'white',
-    fontSize: '15px'
+    fontSize: '16px'
   },
   checkIconLightWrapper: {
-    width: '20px',
-    height: '20px',
+    width: '24px',
+    height: '24px',
     borderRadius: '50%',
     backgroundColor: 'white',
     display: 'flex',
@@ -539,11 +874,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     height: 'auto',
     borderRadius: '24px',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
   },
   bottomCtaSection: {
     width: '100%',
-    padding: '100px 20px',
+    padding: '120px 24px',
     display: 'flex',
     justifyContent: 'center',
     boxSizing: 'border-box'
@@ -553,34 +888,34 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: '1200px',
     backgroundColor: '#F3F4F6',
     borderRadius: '32px',
-    padding: '64px 40px',
+    padding: '80px 40px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     textAlign: 'center'
   },
   ctaTitle: {
-    fontSize: '32px',
-    fontWeight: 600,
+    fontSize: '48px',
+    fontWeight: 500,
     color: '#111827',
-    margin: '0 0 16px'
+    margin: '0 0 20px'
   },
   ctaSubtitle: {
-    fontSize: '16px',
+    fontSize: '18px',
     color: '#6B7280',
-    margin: '0 0 32px',
-    maxWidth: '500px'
+    margin: '0 0 40px',
+    maxWidth: '600px'
   },
   ctaFooterText: {
-    marginTop: '24px',
-    fontSize: '10px',
+    marginTop: '32px',
+    fontSize: '11px',
     fontWeight: 700,
     color: '#9CA3AF',
     letterSpacing: '1px'
   },
   footer: {
     width: '100%',
-    padding: '40px 48px',
+    padding: '48px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -597,12 +932,12 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '32px'
   },
   footerLink: {
-    fontSize: '13px',
+    fontSize: '14px',
     color: '#6B7280',
     cursor: 'pointer'
   },
   footerCopyright: {
-    fontSize: '12px',
+    fontSize: '13px',
     color: '#9CA3AF'
   }
 };
