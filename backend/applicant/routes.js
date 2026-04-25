@@ -520,4 +520,263 @@ router.get('/applications', requireAuth, requireApplicant, (req, res) => {
   }
 });
 
+router.get('/conversations', requireAuth, requireApplicant, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { q, active: activeRaw } = req.query;
+
+    const where = ['(c.user_1_id = ? OR c.user_2_id = ?)'];
+    const params = [userId, userId];
+
+    if (activeRaw === '1' || activeRaw === 'true') {
+      where.push('c.active = 1');
+    } else if (activeRaw === '0' || activeRaw === 'false') {
+      where.push('c.active = 0');
+    }
+
+    const whereSql = `WHERE ${where.join(' AND ')}`;
+
+    const rows = db
+      .prepare(
+        `SELECT
+           c.id                                             AS id,
+           c.job_posting_id                                 AS job_posting_id,
+           c.active                                         AS active,
+           c.created_at                                     AS created_at,
+           CASE WHEN c.user_1_id = ? THEN c.user_2_id
+                                     ELSE c.user_1_id END   AS other_user_id,
+           jp.title                                         AS job_title,
+           jp.company                                       AS job_company,
+           (SELECT m.conversation_content
+              FROM messages m
+             WHERE m.conversation_id = c.id
+             ORDER BY m.conversation_index DESC
+             LIMIT 1)                                       AS last_message,
+           (SELECT m.created_at
+              FROM messages m
+             WHERE m.conversation_id = c.id
+             ORDER BY m.conversation_index DESC
+             LIMIT 1)                                       AS last_message_at,
+           (SELECT m.user_id
+              FROM messages m
+             WHERE m.conversation_id = c.id
+             ORDER BY m.conversation_index DESC
+             LIMIT 1)                                       AS last_message_user_id
+         FROM conversations c
+         LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+         ${whereSql}
+         ORDER BY COALESCE(
+           (SELECT m.created_at FROM messages m
+             WHERE m.conversation_id = c.id
+             ORDER BY m.conversation_index DESC LIMIT 1),
+           c.created_at
+         ) DESC`
+      )
+      .all(userId, ...params);
+
+    const otherIds = [...new Set(rows.map((r) => r.other_user_id))];
+    const otherUsers = otherIds.length
+      ? db
+          .prepare(
+            `SELECT id, username, role
+               FROM users
+              WHERE id IN (${otherIds.map(() => '?').join(',')})`
+          )
+          .all(...otherIds)
+      : [];
+    const otherById = new Map(otherUsers.map((u) => [u.id, u]));
+
+    let conversations = rows.map((r) => ({
+      id: r.id,
+      job_posting_id: r.job_posting_id,
+      job_title: r.job_title,
+      job_company: r.job_company,
+      active: r.active,
+      created_at: r.created_at,
+      last_message: r.last_message,
+      last_message_at: r.last_message_at,
+      last_message_from_me:
+        r.last_message_user_id != null
+          ? r.last_message_user_id === userId
+          : null,
+      other_party: otherById.get(r.other_user_id) || {
+        id: r.other_user_id,
+        username: 'unknown',
+        role: 'Unknown',
+      },
+    }));
+
+    if (q && typeof q === 'string' && q.trim() !== '') {
+      const needle = q.trim().toLowerCase();
+      conversations = conversations.filter((c) => {
+        return (
+          c.other_party.username.toLowerCase().includes(needle) ||
+          (c.job_title && c.job_title.toLowerCase().includes(needle)) ||
+          (c.job_company && c.job_company.toLowerCase().includes(needle)) ||
+          (c.last_message && c.last_message.toLowerCase().includes(needle))
+        );
+      });
+    }
+
+    return res.json({ conversations });
+  } catch (e) {
+    console.error('[applicant/conversations]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+function loadConversationForUser(conversationId, userId) {
+  return db
+    .prepare(
+      `SELECT
+         c.id              AS id,
+         c.user_1_id       AS user_1_id,
+         c.user_2_id       AS user_2_id,
+         c.job_posting_id  AS job_posting_id,
+         c.active          AS active,
+         c.created_at      AS created_at,
+         jp.title          AS job_title,
+         jp.company        AS job_company
+       FROM conversations c
+       LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+       WHERE c.id = ? AND (c.user_1_id = ? OR c.user_2_id = ?)`
+    )
+    .get(conversationId, userId, userId);
+}
+
+router.get(
+  '/conversations/:id/messages',
+  requireAuth,
+  requireApplicant,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+
+      const otherUserId =
+        convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
+
+      const otherParty = db
+        .prepare('SELECT id, username, role FROM users WHERE id = ?')
+        .get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
+
+      const messages = db
+        .prepare(
+          `SELECT
+             conversation_index   AS index,
+             user_id              AS user_id,
+             conversation_content AS content,
+             created_at           AS created_at
+           FROM messages
+          WHERE conversation_id = ?
+          ORDER BY conversation_index ASC`
+        )
+        .all(conversationId)
+        .map((m) => ({
+          index: m.index,
+          user_id: m.user_id,
+          content: m.content,
+          created_at: m.created_at,
+          from_me: m.user_id === userId,
+        }));
+
+      return res.json({
+        conversation: {
+          id: convo.id,
+          job_posting_id: convo.job_posting_id,
+          job_title: convo.job_title,
+          job_company: convo.job_company,
+          active: convo.active,
+          created_at: convo.created_at,
+          other_party: otherParty,
+        },
+        messages,
+      });
+    } catch (e) {
+      console.error('[applicant/conversations/messages GET]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+);
+
+router.post(
+  '/conversations/:id/messages',
+  requireAuth,
+  requireApplicant,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+
+    const rawContent = req.body?.content;
+    if (typeof rawContent !== 'string') {
+      return res.status(400).json({ error: 'invalid_content' });
+    }
+    const content = rawContent.trim();
+    if (content === '') {
+      return res.status(400).json({ error: 'empty_content' });
+    }
+    if (content.length > 4000) {
+      return res.status(400).json({ error: 'content_too_long' });
+    }
+
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+      if (convo.active === 0) {
+        return res.status(409).json({ error: 'conversation_closed' });
+      }
+
+      const inserted = db.transaction(() => {
+        const { next_index } = db
+          .prepare(
+            `SELECT COALESCE(MAX(conversation_index) + 1, 0) AS next_index
+               FROM messages
+              WHERE conversation_id = ?`
+          )
+          .get(conversationId);
+
+        db.prepare(
+          `INSERT INTO messages
+             (conversation_id, conversation_index, user_id, conversation_content)
+           VALUES (?, ?, ?, ?)`
+        ).run(conversationId, next_index, userId, content);
+
+        return db
+          .prepare(
+            `SELECT
+               conversation_index   AS index,
+               user_id              AS user_id,
+               conversation_content AS content,
+               created_at           AS created_at
+             FROM messages
+            WHERE conversation_id = ? AND conversation_index = ?`
+          )
+          .get(conversationId, next_index);
+      })();
+
+      return res.status(201).json({
+        message: {
+          index: inserted.index,
+          user_id: inserted.user_id,
+          content: inserted.content,
+          created_at: inserted.created_at,
+          from_me: true,
+        },
+      });
+    } catch (e) {
+      console.error('[applicant/conversations/messages POST]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+);
+
 module.exports = router;

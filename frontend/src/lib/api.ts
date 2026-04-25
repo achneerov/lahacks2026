@@ -226,6 +226,61 @@ export interface ApplicantApplicationsResponse {
   applications: Application[];
 }
 
+export interface ConversationParty {
+  id: number;
+  username: string;
+  role: Role | string;
+}
+
+export interface ConversationSummary {
+  id: number;
+  job_posting_id: number | null;
+  job_title: string | null;
+  job_company: string | null;
+  active: 0 | 1;
+  created_at: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  last_message_from_me: boolean | null;
+  other_party: ConversationParty;
+}
+
+export interface ApplicantConversationsResponse {
+  conversations: ConversationSummary[];
+}
+
+export interface ConversationDetail {
+  id: number;
+  job_posting_id: number | null;
+  job_title: string | null;
+  job_company: string | null;
+  active: 0 | 1;
+  created_at: string;
+  other_party: ConversationParty;
+}
+
+export interface ConversationMessage {
+  index: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+  from_me: boolean;
+}
+
+export interface ApplicantConversationMessagesResponse {
+  conversation: ConversationDetail;
+  messages: ConversationMessage[];
+}
+
+export interface SendMessageResponse {
+  message: ConversationMessage;
+}
+
+export interface ApplicantConversationsQuery {
+  q?: string;
+  active?: boolean;
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
 
@@ -309,4 +364,39 @@ export const api = {
     request<AuthResponse>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
   me: (token: string) => request<{ user: User }>('/api/auth/me', {}, token),
+
+  applicantConversations: (
+    token: string,
+    query: ApplicantConversationsQuery = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (query.q) params.set('q', query.q);
+    if (typeof query.active === 'boolean') {
+      params.set('active', query.active ? '1' : '0');
+    }
+    const qs = params.toString();
+    return request<ApplicantConversationsResponse>(
+      `/api/applicant/conversations${qs ? `?${qs}` : ''}`,
+      {},
+      token,
+    );
+  },
+
+  applicantConversationMessages: (token: string, conversationId: number) =>
+    request<ApplicantConversationMessagesResponse>(
+      `/api/applicant/conversations/${conversationId}/messages`,
+      {},
+      token,
+    ),
+
+  applicantSendMessage: (
+    token: string,
+    conversationId: number,
+    content: string,
+  ) =>
+    request<SendMessageResponse>(
+      `/api/applicant/conversations/${conversationId}/messages`,
+      { method: 'POST', body: JSON.stringify({ content }) },
+      token,
+    ),
 };
