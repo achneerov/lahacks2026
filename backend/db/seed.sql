@@ -3,13 +3,13 @@
 PRAGMA foreign_keys = ON;
 
 -- Users: 3 applicants, 2 recruiters, 1 agent
-INSERT INTO users (id, role, worldu_id, email, username, password_hash) VALUES
-  (1, 'Applicant', 'wu_alice_001',  'alice@example.com',   'alice',   '$2b$10$placeholderhashforalice000000000000'),
-  (2, 'Applicant', 'wu_bob_002',    'bob@example.com',     'bob',     '$2b$10$placeholderhashforbob0000000000000'),
-  (3, 'Applicant', 'wu_carol_003',  'carol@example.com',   'carol',   '$2b$10$placeholderhashforcarol00000000000'),
-  (4, 'Recruiter', 'wu_dana_004',   'dana@acme.com',       'dana_r',  '$2b$10$placeholderhashfordana0000000000000'),
-  (5, 'Recruiter', 'wu_eric_005',   'eric@globex.com',     'eric_r',  '$2b$10$placeholderhashforeric0000000000000'),
-  (6, 'Agent',     'wu_frank_006',  'frank@agentcorp.com', 'frank_a', '$2b$10$placeholderhashforfrank000000000000');
+INSERT INTO users (id, role, worldu_id, email, username, password_hash, verification_level, trust_score) VALUES
+  (1, 'Applicant', 'wu_alice_001',  'alice@example.com',   'alice',   '$2b$10$placeholderhashforalice000000000000', 'orb',    96),
+  (2, 'Applicant', 'wu_bob_002',    'bob@example.com',     'bob',     '$2b$10$placeholderhashforbob0000000000000', 'passport', 88),
+  (3, 'Applicant', 'wu_carol_003',  'carol@example.com',   'carol',   '$2b$10$placeholderhashforcarol00000000000', 'device', 72),
+  (4, 'Recruiter', 'wu_dana_004',   'dana@acme.com',       'dana_r',  '$2b$10$placeholderhashfordana0000000000000', 'orb',    90),
+  (5, 'Recruiter', 'wu_eric_005',   'eric@globex.com',     'eric_r',  '$2b$10$placeholderhashforeric0000000000000', 'orb',    90),
+  (6, 'Agent',     'wu_frank_006',  'frank@agentcorp.com', 'frank_a', '$2b$10$placeholderhashforfrank000000000000', 'device', 85);
 
 -- Profiles (personal info + address)
 INSERT INTO user_profiles
@@ -152,28 +152,33 @@ VALUES
 -- Applications submitted by applicants
 -- Status reasoning is stored in agent_reasoning to mimic a completed negotiation.
 INSERT INTO applications
-  (id, applicant_id, job_posting_id, status, notes, agent_reasoning,
+  (id, applicant_id, job_posting_id, status, notes, agent_reasoning, match_score,
    created_at, updated_at, decided_at)
 VALUES
   (1, 1, 1, 'SentToRecruiter',
    'AI screen passed - strong Node.js + Postgres background.',
    'Candidate explicitly described production Node.js + Postgres ownership, including a TypeScript migration that reduced bugs by 40%. Aligned with recruiter directive on real Postgres expertise.',
+   91,
    datetime('now', '-7 days'), datetime('now', '-6 days'), datetime('now', '-6 days')),
   (3, 1, 4, 'Declined',
    'Looking for more senior ML infra experience.',
    'Candidate has no ML infra background — primary experience is full-stack web. Fails the staff-level Ray/PyTorch requirement.',
+   18,
    datetime('now', '-10 days'), datetime('now', '-8 days'), datetime('now', '-8 days')),
   (4, 2, 4, 'SentToRecruiter',
    'Distributed systems experience matches role well.',
    'Strong distributed systems background scaling 100->10k RPS, plus k8s. Lacks explicit Ray, but recruiter accepted equivalent infra depth.',
+   78,
    datetime('now', '-5 days'), datetime('now', '-4 days'), datetime('now', '-4 days')),
   (6, 3, 2, 'SentToRecruiter',
    'Portfolio shows strong design-engineering chops.',
    'Built a component library used across 5 products; led a design system initiative. Solid match for the senior React + design-system bar.',
+   83,
    datetime('now', '-3 days'), datetime('now', '-2 days'), datetime('now', '-2 days')),
   (7, 3, 3, 'Declined',
    'Internship requires current student status.',
    'Candidate already graduated UCLA in 2021 and is employed full-time. Fails the mandatory current-undergraduate-enrollment requirement.',
+   12,
    datetime('now', '-12 days'), datetime('now', '-11 days'), datetime('now', '-11 days'));
 
 -- Conversations

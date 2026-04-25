@@ -175,8 +175,9 @@ router.post('/signup/check-world-id', async (req, res) => {
   }
 
   let nullifier_hash;
+  let verification_level;
   try {
-    ({ nullifier_hash } = await verifyWorldId(world_id_result));
+    ({ nullifier_hash, verification_level } = await verifyWorldId(world_id_result));
   } catch (e) {
     return res.status(e.status || 400).json({ error: 'world_id_failed', detail: e.message });
   }
@@ -188,7 +189,7 @@ router.post('/signup/check-world-id', async (req, res) => {
     return res.status(409).json({ error: 'world_id_already_used' });
   }
 
-  return res.json({ ok: true });
+  return res.json({ ok: true, verification_level });
 });
 
 router.post('/register', async (req, res) => {
@@ -214,8 +215,9 @@ router.post('/register', async (req, res) => {
   }
 
   let nullifier_hash;
+  let verification_level;
   try {
-    ({ nullifier_hash } = await verifyWorldId(world_id_result));
+    ({ nullifier_hash, verification_level } = await verifyWorldId(world_id_result));
   } catch (e) {
     return res.status(e.status || 400).json({ error: 'world_id_failed', detail: e.message });
   }
@@ -226,10 +228,10 @@ router.post('/register', async (req, res) => {
     const txn = db.transaction(() => {
       const info = db
         .prepare(
-          `INSERT INTO users (role, worldu_id, email, username, password_hash)
-           VALUES (?, ?, ?, ?, ?)`
+          `INSERT INTO users (role, worldu_id, email, username, password_hash, verification_level)
+           VALUES (?, ?, ?, ?, ?, ?)`
         )
-        .run(role, nullifier_hash, email, username, password_hash);
+        .run(role, nullifier_hash, email, username, password_hash, verification_level);
 
       const userId = info.lastInsertRowid;
 
@@ -376,7 +378,7 @@ router.post('/register', async (req, res) => {
     const userId = txn();
 
     const user = db
-      .prepare('SELECT id, role, email, username FROM users WHERE id = ?')
+      .prepare('SELECT id, role, email, username, verification_level, trust_score FROM users WHERE id = ?')
       .get(userId);
     const token = signToken(user);
     return res.status(201).json({ token, user });
@@ -409,13 +411,20 @@ router.post('/login', async (req, res) => {
   const token = signToken(user);
   return res.json({
     token,
-    user: { id: user.id, role: user.role, email: user.email, username: user.username },
+    user: {
+      id: user.id,
+      role: user.role,
+      email: user.email,
+      username: user.username,
+      verification_level: user.verification_level,
+      trust_score: user.trust_score,
+    },
   });
 });
 
 router.get('/me', requireAuth, (req, res) => {
   const user = db
-    .prepare('SELECT id, role, email, username, created_at FROM users WHERE id = ?')
+    .prepare('SELECT id, role, email, username, created_at, verification_level, trust_score FROM users WHERE id = ?')
     .get(req.user.id);
   if (!user) return res.status(401).json({ error: 'user_not_found' });
   return res.json({ user });

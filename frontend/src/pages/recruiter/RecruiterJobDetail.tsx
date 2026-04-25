@@ -4,19 +4,25 @@ import {
   useState,
   type CSSProperties,
 } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   api,
   ApiError,
   type ApplicationStatus,
   type EmploymentType,
   type RecruiterAgentConversationResponse,
+  type RecruiterApplicantDetailResponse,
   type RecruiterJob,
   type RecruiterJobApplicant,
   type RecruiterJobConversation,
   type RecruiterJobDetailStats,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
+import {
+  MatchScoreBadge,
+  TrustScoreBadge,
+  VerificationLevelBadge,
+} from '../../components/Badges';
 
 type Tab = 'overview' | 'applicants' | 'messages';
 
@@ -69,6 +75,7 @@ export default function RecruiterJobDetail() {
 
   const [applicants, setApplicants] = useState<RecruiterJobApplicant[] | null>(null);
   const [applicantsLoading, setApplicantsLoading] = useState(false);
+  const [applicantFilter, setApplicantFilter] = useState<'strong' | 'all'>('strong');
 
   const [conversations, setConversations] = useState<RecruiterJobConversation[] | null>(null);
   const [conversationsLoading, setConversationsLoading] = useState(false);
@@ -98,11 +105,11 @@ export default function RecruiterJobDetail() {
   useEffect(loadJob, [loadJob]);
 
   useEffect(() => {
-    if (tab !== 'applicants' || applicants !== null) return;
+    if (tab !== 'applicants') return;
     if (!token || !jobId) return;
     setApplicantsLoading(true);
     api
-      .recruiterJobApplicants(token, jobId)
+      .recruiterJobApplicants(token, jobId, { filter: applicantFilter })
       .then((d) => setApplicants(d.applicants))
       .catch((err) => {
         const msg =
@@ -110,7 +117,7 @@ export default function RecruiterJobDetail() {
         setError(msg);
       })
       .finally(() => setApplicantsLoading(false));
-  }, [tab, applicants, token, jobId]);
+  }, [tab, applicantFilter, token, jobId]);
 
   useEffect(() => {
     if (tab !== 'messages' || conversations !== null) return;
@@ -260,12 +267,42 @@ export default function RecruiterJobDetail() {
       )}
 
       {tab === 'applicants' && (
-        <section>
+        <section style={styles.cardCol}>
+          <div style={styles.filterBar}>
+            <span style={styles.filterLabel}>Show:</span>
+            <button
+              type="button"
+              onClick={() => setApplicantFilter('strong')}
+              style={{
+                ...styles.filterChip,
+                ...(applicantFilter === 'strong' ? styles.filterChipActive : null),
+              }}
+            >
+              Strong matches
+            </button>
+            <button
+              type="button"
+              onClick={() => setApplicantFilter('all')}
+              style={{
+                ...styles.filterChip,
+                ...(applicantFilter === 'all' ? styles.filterChipActive : null),
+              }}
+            >
+              All applicants
+            </button>
+            <span style={styles.filterHint}>
+              {applicantFilter === 'strong'
+                ? 'AI screen recommended · match score ≥ 70'
+                : 'Including pending and declined'}
+            </span>
+          </div>
           {applicantsLoading && !applicants ? (
             <div style={styles.empty}>Loading applicants…</div>
           ) : !applicants || applicants.length === 0 ? (
             <div style={styles.empty}>
-              Nobody has applied to this posting yet.
+              {applicantFilter === 'strong'
+                ? 'No strong matches yet. Switch to All applicants to see everyone.'
+                : 'Nobody has applied to this posting yet.'}
             </div>
           ) : (
             <ul style={styles.list}>
@@ -362,6 +399,7 @@ function ApplicantRow({
 }) {
   const tone = STATUS_TONE[a.status];
   const p = a.applicant;
+  const location = [p.city, p.state].filter(Boolean).join(', ');
   return (
     <li style={styles.row}>
       <button type="button" onClick={onOpen} style={styles.rowMainBtn}>
@@ -380,28 +418,22 @@ function ApplicantRow({
             {STATUS_LABELS[a.status]}
           </span>
         </div>
+        <div style={styles.badgeRow}>
+          <MatchScoreBadge score={a.match_score} />
+          <TrustScoreBadge score={p.trust_score} />
+          <VerificationLevelBadge level={p.verification_level} />
+        </div>
         <div style={styles.rowMeta}>
           <span style={styles.metaMuted}>@{p.username}</span>
-          {p.headline && <span style={styles.metaStrong}>· {p.headline}</span>}
-          {(p.city || p.state || p.country) && (
-            <span style={styles.metaMuted}>
-              · {[p.city, p.state, p.country].filter(Boolean).join(', ')}
-            </span>
-          )}
-          {p.years_experience != null && (
-            <span style={styles.metaMuted}>
-              · {p.years_experience} yr{p.years_experience === 1 ? '' : 's'}
-            </span>
-          )}
+          {location && <span style={styles.metaMuted}>· {location}</span>}
+          <span style={styles.metaMuted}>· Applied {formatRelative(a.applied_at)}</span>
         </div>
-        <div style={styles.rowMeta}>
-          <span style={styles.metaMuted}>
-            Applied {formatRelative(a.applied_at)}
-          </span>
-          {a.notes && (
-            <span style={styles.metaMuted}>· "{truncate(a.notes, 80)}"</span>
-          )}
-        </div>
+        {a.agent_reasoning && (
+          <p style={styles.reasoningPreview}>
+            <span style={styles.reasoningLabel}>AI screen ·</span>{' '}
+            {truncate(a.agent_reasoning, 220)}
+          </p>
+        )}
       </button>
     </li>
   );
@@ -465,10 +497,33 @@ function ApplicantModal({
   onClose: () => void;
 }) {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [showAgent, setShowAgent] = useState(false);
   const [agentData, setAgentData] = useState<RecruiterAgentConversationResponse | null>(null);
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [detail, setDetail] = useState<RecruiterApplicantDetailResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    setDetailLoading(true);
+    setDetailError(null);
+    api
+      .recruiterApplicationDetail(token, a.application_id)
+      .then((d) => setDetail(d))
+      .catch((err) => {
+        const msg =
+          err instanceof ApiError
+            ? err.detail || err.code
+            : 'Could not load applicant details.';
+        setDetailError(msg);
+      })
+      .finally(() => setDetailLoading(false));
+  }, [token, a.application_id]);
 
   useEffect(() => {
     if (!showAgent || agentData || !token) return;
@@ -487,8 +542,34 @@ function ApplicantModal({
       .finally(() => setAgentLoading(false));
   }, [showAgent, agentData, token, a.applicant.id, jobId]);
 
+  async function handleScheduleInterview() {
+    if (!token) return;
+    setScheduling(true);
+    setScheduleError(null);
+    try {
+      const { conversation_id } = await api.recruiterScheduleInterview(
+        token,
+        a.application_id,
+      );
+      navigate(`/recruiter/messages?conversation=${conversation_id}`);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.detail || err.code
+          : 'Could not start the interview chat.';
+      setScheduleError(msg);
+    } finally {
+      setScheduling(false);
+    }
+  }
+
   const tone = STATUS_TONE[a.status];
   const p = a.applicant;
+  const location = [p.city, p.state].filter(Boolean).join(', ');
+  const trustSignals = detail?.trust_signals;
+  const work = detail?.applicant.work_experience ?? [];
+  const education = detail?.applicant.education ?? [];
+  const skills = detail?.applicant.skills ?? [];
 
   return (
     <div
@@ -509,17 +590,21 @@ function ApplicantModal({
             <h2 id="applicant-modal-title" style={styles.modalTitle}>
               {p.full_name || `@${p.username}`}
             </h2>
-            <span
-              style={{
-                ...styles.statusBadge,
-                color: tone.color,
-                background: tone.bg,
-                borderColor: tone.border,
-                marginTop: 8,
-              }}
-            >
-              {STATUS_LABELS[a.status]}
-            </span>
+            <div style={styles.modalBadgeRow}>
+              <span
+                style={{
+                  ...styles.statusBadge,
+                  color: tone.color,
+                  background: tone.bg,
+                  borderColor: tone.border,
+                }}
+              >
+                {STATUS_LABELS[a.status]}
+              </span>
+              <MatchScoreBadge score={a.match_score} size="md" />
+              <TrustScoreBadge score={p.trust_score} size="md" />
+              <VerificationLevelBadge level={p.verification_level} size="md" />
+            </div>
           </div>
           <button
             type="button"
@@ -532,27 +617,93 @@ function ApplicantModal({
         </header>
 
         <div style={styles.modalBody}>
+          {scheduleError && (
+            <div role="alert" style={styles.errorBanner}>
+              {scheduleError}
+            </div>
+          )}
+
+          <div style={styles.actionRow}>
+            <button
+              type="button"
+              onClick={handleScheduleInterview}
+              disabled={scheduling}
+              style={{
+                ...styles.primaryActionBtn,
+                ...(scheduling ? styles.primaryActionBtnDisabled : null),
+              }}
+            >
+              {scheduling ? 'Opening chat…' : '📅 Schedule interview'}
+            </button>
+            {detail?.application.id && (
+              <Link
+                to={`/applications/${detail.application.id}`}
+                style={styles.secondaryActionBtn}
+              >
+                View AI screen →
+              </Link>
+            )}
+          </div>
+
+          <section style={styles.modalSection}>
+            <h3 style={styles.modalSectionTitle}>Trust score view</h3>
+            {detailLoading ? (
+              <p style={styles.empty}>Loading trust signals…</p>
+            ) : detailError ? (
+              <p style={{ ...styles.empty, color: '#9a1a1a' }}>{detailError}</p>
+            ) : (
+              <div style={styles.trustGrid}>
+                <TrustStat
+                  label="Trust score"
+                  value={`${Math.round(p.trust_score ?? 0)} / 100`}
+                  hint="Updated by past recruiter feedback"
+                />
+                <TrustStat
+                  label="Verification"
+                  value={verificationLabel(p.verification_level)}
+                  hint="World ID credential strength"
+                />
+                <TrustStat
+                  label="AI match"
+                  value={
+                    a.match_score == null
+                      ? 'Pending'
+                      : `${Math.round(a.match_score)} / 100`
+                  }
+                  hint="Applicant↔recruiter agent screen"
+                />
+                <TrustStat
+                  label="Profile edits"
+                  value={`${trustSignals?.profile_edit_approvals ?? 0} approved · ${trustSignals?.profile_edit_rejections ?? 0} rejected`}
+                  hint="Credibility agent history"
+                />
+                <TrustStat
+                  label="Past interviews"
+                  value={`${trustSignals?.closed_conversations ?? 0} completed`}
+                  hint="Closed conversations on Verified"
+                />
+              </div>
+            )}
+            {a.agent_reasoning && (
+              <p style={styles.notes}>
+                <strong>AI screen verdict:</strong> {a.agent_reasoning}
+              </p>
+            )}
+          </section>
+
           <section style={styles.modalSection}>
             <h3 style={styles.modalSectionTitle}>Profile</h3>
             <dl style={styles.dl}>
               <Detail label="Username" value={`@${p.username}`} />
               <Detail label="Email" value={p.email} />
-              {p.headline && <Detail label="Headline" value={p.headline} />}
-              {(p.city || p.state || p.country) && (
-                <Detail
-                  label="Location"
-                  value={[p.city, p.state, p.country].filter(Boolean).join(', ')}
-                />
-              )}
-              {p.years_experience != null && (
-                <Detail
-                  label="Experience"
-                  value={`${p.years_experience} year${p.years_experience === 1 ? '' : 's'}`}
-                />
-              )}
+              {p.pronouns && <Detail label="Pronouns" value={p.pronouns} />}
+              {location && <Detail label="Location" value={location} />}
             </dl>
 
-            {(p.resume_url || p.linkedin_url || p.github_url || p.portfolio_url) && (
+            {(p.resume_url ||
+              p.linkedin_url ||
+              p.github_or_other_portfolio ||
+              p.website_portfolio) && (
               <div style={styles.linkRow}>
                 {p.resume_url && (
                   <a href={p.resume_url} target="_blank" rel="noreferrer" style={styles.extLink}>
@@ -564,19 +715,100 @@ function ApplicantModal({
                     LinkedIn ↗
                   </a>
                 )}
-                {p.github_url && (
-                  <a href={p.github_url} target="_blank" rel="noreferrer" style={styles.extLink}>
+                {p.github_or_other_portfolio && (
+                  <a
+                    href={p.github_or_other_portfolio}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={styles.extLink}
+                  >
                     GitHub ↗
                   </a>
                 )}
-                {p.portfolio_url && (
-                  <a href={p.portfolio_url} target="_blank" rel="noreferrer" style={styles.extLink}>
+                {p.website_portfolio && (
+                  <a
+                    href={p.website_portfolio}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={styles.extLink}
+                  >
                     Portfolio ↗
                   </a>
                 )}
               </div>
             )}
           </section>
+
+          {work.length > 0 && (
+            <section style={styles.modalSection}>
+              <h3 style={styles.modalSectionTitle}>Work experience</h3>
+              <ul style={styles.timeline}>
+                {work.map((w, i) => (
+                  <li key={`${w.company}-${i}`} style={styles.timelineItem}>
+                    <div style={styles.timelineHead}>
+                      <span style={styles.timelineRole}>{w.job_title || 'Role'}</span>
+                      {w.company && (
+                        <span style={styles.timelineCompany}>· {w.company}</span>
+                      )}
+                    </div>
+                    <span style={styles.timelineDates}>
+                      {w.start_date || ''}
+                      {w.start_date || w.end_date ? ' – ' : ''}
+                      {w.current_job ? 'Present' : w.end_date || ''}
+                    </span>
+                    {w.responsibilities && (
+                      <p style={styles.timelineBody}>{w.responsibilities}</p>
+                    )}
+                    {w.key_achievements && (
+                      <p style={{ ...styles.timelineBody, fontStyle: 'italic' }}>
+                        {w.key_achievements}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {education.length > 0 && (
+            <section style={styles.modalSection}>
+              <h3 style={styles.modalSectionTitle}>Education</h3>
+              <ul style={styles.timeline}>
+                {education.map((e, i) => (
+                  <li key={`${e.school}-${i}`} style={styles.timelineItem}>
+                    <div style={styles.timelineHead}>
+                      <span style={styles.timelineRole}>
+                        {e.degree || 'Degree'}
+                        {e.major ? `, ${e.major}` : ''}
+                      </span>
+                      {e.school && (
+                        <span style={styles.timelineCompany}>· {e.school}</span>
+                      )}
+                    </div>
+                    <span style={styles.timelineDates}>
+                      {e.graduation_date || ''}
+                      {e.gpa ? ` · GPA ${e.gpa}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {skills.length > 0 && (
+            <section style={styles.modalSection}>
+              <h3 style={styles.modalSectionTitle}>Skills</h3>
+              <div style={styles.skillRow}>
+                {skills.map((s, i) => (
+                  <span key={`${s.skill}-${i}`} style={styles.skillChip}>
+                    {s.skill}
+                    {s.proficiency ? ` · ${s.proficiency}` : ''}
+                    {s.years != null ? ` · ${s.years}y` : ''}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section style={styles.modalSection}>
             <h3 style={styles.modalSectionTitle}>Application</h3>
@@ -585,9 +817,7 @@ function ApplicantModal({
               <Detail label="Applied" value={new Date(a.applied_at).toLocaleString()} />
               <Detail label="Updated" value={new Date(a.updated_at).toLocaleString()} />
             </dl>
-            {a.notes && (
-              <p style={styles.notes}>"{a.notes}"</p>
-            )}
+            {a.notes && <p style={styles.notes}>"{a.notes}"</p>}
           </section>
 
           <section style={styles.modalSection}>
@@ -645,6 +875,39 @@ function ApplicantModal({
       </div>
     </div>
   );
+}
+
+function TrustStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div style={styles.trustStat}>
+      <span style={styles.trustStatLabel}>{label}</span>
+      <span style={styles.trustStatValue}>{value}</span>
+      {hint && <span style={styles.trustStatHint}>{hint}</span>}
+    </div>
+  );
+}
+
+function verificationLabel(level: string | null | undefined): string {
+  switch (level) {
+    case 'orb':
+      return 'Orb (in-person biometric)';
+    case 'iris':
+      return 'Iris-verified';
+    case 'passport':
+      return 'Passport-verified';
+    case 'document':
+      return 'Document-verified';
+    default:
+      return 'Device-only';
+  }
 }
 
 function truncate(s: string, n: number): string {
@@ -1106,4 +1369,188 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: 'pre-wrap',
   },
   transcriptTime: { fontSize: 11, color: 'var(--text)' },
+  filterBar: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    padding: '12px 16px',
+    border: '1px solid var(--border)',
+    borderRadius: 12,
+    background: 'var(--bg)',
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: 'var(--text)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginRight: 4,
+  },
+  filterChip: {
+    padding: '6px 12px',
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text)',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: 999,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
+  filterChipActive: {
+    color: 'var(--accent)',
+    background: 'var(--accent-bg)',
+    border: '1px solid var(--accent-border)',
+    fontWeight: 600,
+  },
+  filterHint: {
+    fontSize: 12,
+    color: 'var(--text)',
+    marginLeft: 'auto',
+  },
+  badgeRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  reasoningPreview: {
+    margin: 0,
+    fontSize: 13,
+    color: 'var(--text-h)',
+    lineHeight: 1.5,
+    paddingLeft: 12,
+    borderLeft: '2px solid var(--accent-border)',
+  },
+  reasoningLabel: {
+    fontWeight: 600,
+    color: 'var(--accent)',
+    textTransform: 'uppercase',
+    fontSize: 11,
+    letterSpacing: 0.4,
+  },
+  modalBadgeRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 12,
+  },
+  actionRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 12,
+    alignItems: 'center',
+  },
+  primaryActionBtn: {
+    appearance: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#fff',
+    background: 'var(--accent)',
+    border: '1px solid var(--accent)',
+    borderRadius: 10,
+    padding: '10px 18px',
+  },
+  primaryActionBtnDisabled: {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+  },
+  secondaryActionBtn: {
+    fontSize: 14,
+    fontWeight: 500,
+    color: 'var(--accent)',
+    textDecoration: 'none',
+    padding: '10px 16px',
+    border: '1px solid var(--accent-border)',
+    background: 'var(--accent-bg)',
+    borderRadius: 10,
+  },
+  trustGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: 10,
+  },
+  trustStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: '12px 14px',
+    border: '1px solid var(--border)',
+    borderRadius: 12,
+    background: 'var(--bg)',
+  },
+  trustStatLabel: {
+    fontSize: 11,
+    fontWeight: 500,
+    color: 'var(--text)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  trustStatValue: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: 'var(--text-h)',
+  },
+  trustStatHint: {
+    fontSize: 11,
+    color: 'var(--text)',
+    opacity: 0.85,
+  },
+  timeline: {
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  timelineItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    paddingLeft: 12,
+    borderLeft: '2px solid var(--border)',
+  },
+  timelineHead: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  timelineRole: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: 'var(--text-h)',
+  },
+  timelineCompany: {
+    fontSize: 14,
+    color: 'var(--text)',
+  },
+  timelineDates: {
+    fontSize: 12,
+    color: 'var(--text)',
+    opacity: 0.85,
+  },
+  timelineBody: {
+    margin: 0,
+    fontSize: 13,
+    color: 'var(--text-h)',
+    lineHeight: 1.5,
+  },
+  skillRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  skillChip: {
+    fontSize: 12,
+    fontWeight: 500,
+    padding: '4px 10px',
+    borderRadius: 999,
+    border: '1px solid var(--accent-border)',
+    background: 'var(--accent-bg)',
+    color: 'var(--accent)',
+  },
 };

@@ -2,6 +2,14 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../auth/jwt');
 const { reviewJobPosting } = require('./jobReview');
+const {
+  insertMessage,
+  findOrCreateConversation,
+  setInterviewStatus,
+  googleCalendarUrl,
+  recomputeTrustScore,
+} = require('../messaging');
+const { TRUST_QUESTIONS } = require('../messaging/trustQuestions');
 
 const router = express.Router();
 
@@ -586,9 +594,23 @@ router.get('/jobs/:id/applicants', requireAuth, requireRecruiter, (req, res) => 
   if (!Number.isInteger(jobId) || jobId <= 0) {
     return res.status(400).json({ error: 'invalid_job_id' });
   }
+
+  // Optional filter: ?filter=strong limits results to recommended applications
+  // with match_score >= 70 (the dashboard's "Strong matches" default view).
+  const rawFilter = typeof req.query.filter === 'string' ? req.query.filter : '';
+  const strongOnly = rawFilter === 'strong';
+
   try {
     const job = loadJobForRecruiter(jobId, userId);
     if (!job) return res.status(404).json({ error: 'not_found' });
+
+    const where = ['a.job_posting_id = ?'];
+    const params = [jobId];
+    if (strongOnly) {
+      where.push("a.status = 'SentToRecruiter'");
+      where.push('a.match_score IS NOT NULL');
+      where.push('a.match_score >= 70');
+    }
 
     const applicants = db
       .prepare(
@@ -596,46 +618,218 @@ router.get('/jobs/:id/applicants', requireAuth, requireRecruiter, (req, res) => 
            a.id              AS application_id,
            a.status          AS status,
            a.notes           AS notes,
+           a.agent_reasoning AS agent_reasoning,
+           a.match_score     AS match_score,
            a.created_at      AS applied_at,
            a.updated_at      AS updated_at,
            u.id              AS applicant_id,
            u.username        AS username,
            u.email           AS email,
-           (up.first_name || ' ' || up.last_name) AS full_name,
+           u.verification_level AS verification_level,
+           u.trust_score     AS trust_score,
+           up.first_name     AS first_name,
+           up.last_name      AS last_name,
+           up.preferred_name AS preferred_name,
+           up.pronouns       AS pronouns,
            up.city           AS city,
            up.state          AS state,
            up.linkedin_url   AS linkedin_url,
-           up.github_or_other_portfolio AS github_url,
-           up.website_portfolio AS portfolio_url
+           up.website_portfolio AS website_portfolio,
+           up.github_or_other_portfolio AS github_or_other_portfolio,
+           ud.resume         AS resume_url
          FROM applications a
          JOIN users u                ON u.id  = a.applicant_id
          LEFT JOIN user_profiles up  ON up.user_id = u.id
-        WHERE a.job_posting_id = ?
-        ORDER BY a.updated_at DESC, a.id DESC`
+         LEFT JOIN user_documents ud ON ud.user_id = u.id
+        WHERE ${where.join(' AND ')}
+        ORDER BY
+          CASE WHEN a.match_score IS NULL THEN 1 ELSE 0 END,
+          a.match_score DESC,
+          a.updated_at DESC,
+          a.id DESC`
       )
-      .all(jobId)
+      .all(...params)
       .map((r) => ({
         application_id: r.application_id,
         status: r.status,
         notes: r.notes,
+        agent_reasoning: r.agent_reasoning,
+        match_score: r.match_score,
         applied_at: r.applied_at,
         updated_at: r.updated_at,
         applicant: {
           id: r.applicant_id,
           username: r.username,
           email: r.email,
-          full_name: r.full_name,
+          verification_level: r.verification_level,
+          trust_score: r.trust_score,
+          first_name: r.first_name,
+          last_name: r.last_name,
+          preferred_name: r.preferred_name,
+          pronouns: r.pronouns,
+          full_name:
+            [r.preferred_name || r.first_name, r.last_name]
+              .filter(Boolean)
+              .join(' ') || null,
           city: r.city,
           state: r.state,
           linkedin_url: r.linkedin_url,
-          github_url: r.github_url,
-          portfolio_url: r.portfolio_url,
+          website_portfolio: r.website_portfolio,
+          github_or_other_portfolio: r.github_or_other_portfolio,
+          resume_url: r.resume_url,
         },
       }));
 
-    return res.json({ applicants });
+    return res.json({ applicants, filter: strongOnly ? 'strong' : 'all' });
   } catch (e) {
     console.error('[recruiter/jobs/:id/applicants]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// Detailed applicant view for an application — used by the recruiter
+// "trust score view" drawer. Includes work experience, education, skills, and
+// trust-history feedback so the recruiter can read the candidate end-to-end.
+router.get('/applications/:id/applicant', requireAuth, requireRecruiter, (req, res) => {
+  const userId = req.user.id;
+  const applicationId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(applicationId) || applicationId <= 0) {
+    return res.status(400).json({ error: 'invalid_application_id' });
+  }
+
+  try {
+    const application = db
+      .prepare(
+        `SELECT a.id, a.status, a.notes, a.agent_reasoning, a.match_score,
+                a.created_at AS applied_at, a.updated_at, a.decided_at,
+                a.applicant_id, a.job_posting_id,
+                jp.title AS job_title, jp.company AS job_company, jp.poster_id
+           FROM applications a
+           JOIN job_postings jp ON jp.id = a.job_posting_id
+          WHERE a.id = ?`
+      )
+      .get(applicationId);
+    if (!application) return res.status(404).json({ error: 'not_found' });
+    if (application.poster_id !== userId) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    const applicantId = application.applicant_id;
+    const user = db
+      .prepare(
+        `SELECT id, username, email, verification_level, trust_score, created_at
+           FROM users WHERE id = ?`
+      )
+      .get(applicantId);
+    if (!user) return res.status(404).json({ error: 'applicant_not_found' });
+
+    const profile = db
+      .prepare(
+        `SELECT first_name, middle_initial, last_name, preferred_name, pronouns,
+                city, state, linkedin_url, website_portfolio, github_or_other_portfolio
+           FROM user_profiles WHERE user_id = ?`
+      )
+      .get(applicantId) || null;
+
+    const documents = db
+      .prepare('SELECT resume FROM user_documents WHERE user_id = ?')
+      .get(applicantId) || null;
+
+    const work_experience = db
+      .prepare(
+        `SELECT job_title, company, city, state, start_date, end_date, current_job,
+                responsibilities, key_achievements
+           FROM user_work_experience WHERE user_id = ? ORDER BY id DESC`
+      )
+      .all(applicantId);
+
+    const education = db
+      .prepare(
+        `SELECT school, degree, major, graduation_date, gpa, honors
+           FROM user_education WHERE user_id = ? ORDER BY id DESC`
+      )
+      .all(applicantId);
+
+    const skills = db
+      .prepare(
+        `SELECT skill, proficiency, years FROM user_skills
+           WHERE user_id = ? ORDER BY id`
+      )
+      .all(applicantId);
+
+    const languages = db
+      .prepare(
+        `SELECT language, proficiency FROM user_languages
+           WHERE user_id = ? ORDER BY id`
+      )
+      .all(applicantId);
+
+    // Trust signals: count of credibility approvals + declines in this user's
+    // profile_change_log, plus closed conversations that recorded feedback.
+    const credibility = db
+      .prepare(
+        `SELECT
+           SUM(CASE WHEN agent_decision = 'approve' THEN 1 ELSE 0 END) AS approvals,
+           SUM(CASE WHEN agent_decision = 'decline' THEN 1 ELSE 0 END) AS rejections
+           FROM profile_change_log WHERE user_id = ?`
+      )
+      .get(applicantId) || { approvals: 0, rejections: 0 };
+
+    const closedConvos = db
+      .prepare(
+        `SELECT closure_responses FROM conversations
+           WHERE active = 0 AND closure_responses IS NOT NULL
+             AND (user_1_id = ? OR user_2_id = ?)`
+      )
+      .all(applicantId, applicantId)
+      .map((r) => {
+        try {
+          return JSON.parse(r.closure_responses);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    return res.json({
+      application: {
+        id: application.id,
+        status: application.status,
+        notes: application.notes,
+        agent_reasoning: application.agent_reasoning,
+        match_score: application.match_score,
+        applied_at: application.applied_at,
+        updated_at: application.updated_at,
+        decided_at: application.decided_at,
+        job: {
+          id: application.job_posting_id,
+          title: application.job_title,
+          company: application.job_company,
+        },
+      },
+      applicant: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        verification_level: user.verification_level,
+        trust_score: user.trust_score,
+        member_since: user.created_at,
+        profile,
+        documents,
+        work_experience,
+        education,
+        skills,
+        languages,
+      },
+      trust_signals: {
+        profile_edit_approvals: credibility.approvals || 0,
+        profile_edit_rejections: credibility.rejections || 0,
+        closed_conversations: closedConvos.length,
+        recent_feedback: closedConvos.slice(-3),
+      },
+    });
+  } catch (e) {
+    console.error('[recruiter/applications/:id/applicant]', e);
     return res.status(500).json({ error: 'server_error' });
   }
 });
@@ -693,12 +887,25 @@ router.get('/jobs/:id/conversations', requireAuth, requireRecruiter, (req, res) 
     const others = otherIds.length
       ? db
           .prepare(
-            `SELECT u.id, u.username, u.role, (up.first_name || ' ' || up.last_name) AS full_name
+            `SELECT u.id, u.username, u.role, u.verification_level, u.trust_score,
+                    up.first_name, up.last_name, up.preferred_name
                FROM users u
                LEFT JOIN user_profiles up ON up.user_id = u.id
               WHERE u.id IN (${otherIds.map(() => '?').join(',')})`
           )
           .all(...otherIds)
+          .map((u) => ({
+            id: u.id,
+            username: u.username,
+            role: u.role,
+            verification_level: u.verification_level,
+            trust_score: u.trust_score,
+            full_name:
+              [u.preferred_name || u.first_name, u.last_name]
+                .filter(Boolean)
+                .join(' ') || null,
+            headline: null,
+          }))
       : [];
     const otherById = new Map(others.map((u) => [u.id, u]));
 
@@ -989,14 +1196,29 @@ router.get(
     }
 
     try {
-      const convo = loadConversationForUser(conversationId, userId);
+      const convo = db
+        .prepare(
+          `SELECT c.id, c.user_1_id, c.user_2_id, c.job_posting_id, c.active,
+                  c.interview_status, c.closed_at, c.closure_responses, c.created_at,
+                  jp.title AS job_title, jp.company AS job_company
+             FROM conversations c
+             LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+            WHERE c.id = ? AND (c.user_1_id = ? OR c.user_2_id = ?)`
+        )
+        .get(conversationId, userId, userId);
       if (!convo) return res.status(404).json({ error: 'not_found' });
 
       const otherUserId =
         convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
 
       const otherParty = db
-        .prepare('SELECT id, username, role FROM users WHERE id = ?')
+        .prepare(
+          `SELECT u.id, u.username, u.role, u.verification_level, u.trust_score,
+                  up.first_name, up.last_name, up.preferred_name
+             FROM users u
+             LEFT JOIN user_profiles up ON up.user_id = u.id
+            WHERE u.id = ?`
+        )
         .get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
 
       const messages = db
@@ -1005,6 +1227,8 @@ router.get(
              conversation_index   AS msg_index,
              user_id              AS user_id,
              conversation_content AS content,
+             kind                 AS kind,
+             metadata             AS metadata,
              created_at           AS created_at
            FROM messages
           WHERE conversation_id = ?
@@ -1015,9 +1239,18 @@ router.get(
           index: m.msg_index,
           user_id: m.user_id,
           content: m.content,
+          kind: m.kind || 'text',
+          metadata: parseJsonOrNull(m.metadata),
           created_at: m.created_at,
           from_me: m.user_id === userId,
         }));
+
+      let closureResponses = null;
+      try {
+        closureResponses = convo.closure_responses ? JSON.parse(convo.closure_responses) : null;
+      } catch {
+        closureResponses = null;
+      }
 
       return res.json({
         conversation: {
@@ -1026,6 +1259,9 @@ router.get(
           job_title: convo.job_title,
           job_company: convo.job_company,
           active: convo.active,
+          interview_status: convo.interview_status || 'none',
+          closed_at: convo.closed_at,
+          closure_responses: closureResponses,
           created_at: convo.created_at,
           other_party: otherParty,
         },
@@ -1037,6 +1273,15 @@ router.get(
     }
   }
 );
+
+function parseJsonOrNull(raw) {
+  if (raw == null) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 router.post(
   '/conversations/:id/messages',
@@ -1068,45 +1313,268 @@ router.post(
         return res.status(409).json({ error: 'conversation_closed' });
       }
 
-      const inserted = db.transaction(() => {
-        const { next_index } = db
-          .prepare(
-            `SELECT COALESCE(MAX(conversation_index) + 1, 0) AS next_index
-               FROM messages
-              WHERE conversation_id = ?`
-          )
-          .get(conversationId);
-
-        db.prepare(
-          `INSERT INTO messages
-             (conversation_id, conversation_index, user_id, conversation_content)
-           VALUES (?, ?, ?, ?)`
-        ).run(conversationId, next_index, userId, content);
-
-        return db
-          .prepare(
-            `SELECT
-               conversation_index   AS msg_index,
-               user_id              AS user_id,
-               conversation_content AS content,
-               created_at           AS created_at
-             FROM messages
-            WHERE conversation_id = ? AND conversation_index = ?`
-          )
-          .get(conversationId, next_index);
-      })();
+      const inserted = insertMessage({
+        conversationId,
+        userId,
+        content,
+        kind: 'text',
+      });
 
       return res.status(201).json({
         message: {
           index: inserted.msg_index,
           user_id: inserted.user_id,
           content: inserted.content,
+          kind: inserted.kind || 'text',
+          metadata: parseJsonOrNull(inserted.metadata),
           created_at: inserted.created_at,
           from_me: true,
         },
       });
     } catch (e) {
       console.error('[recruiter/conversations/messages POST]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+);
+
+// Kick off an interview: create-or-reuse the conversation between recruiter
+// and applicant, mark it as 'requested', and post an interview_request card
+// the applicant's chat will render as a "Send your availability" prompt.
+router.post(
+  '/applications/:id/schedule-interview',
+  requireAuth,
+  requireRecruiter,
+  (req, res) => {
+    const userId = req.user.id;
+    const applicationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(applicationId) || applicationId <= 0) {
+      return res.status(400).json({ error: 'invalid_application_id' });
+    }
+
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim() : '';
+
+    try {
+      const app = db
+        .prepare(
+          `SELECT a.id, a.applicant_id, a.job_posting_id,
+                  jp.title AS job_title, jp.company AS job_company, jp.poster_id
+             FROM applications a
+             JOIN job_postings jp ON jp.id = a.job_posting_id
+            WHERE a.id = ?`
+        )
+        .get(applicationId);
+      if (!app) return res.status(404).json({ error: 'not_found' });
+      if (app.poster_id !== userId) {
+        return res.status(403).json({ error: 'forbidden' });
+      }
+
+      const { id: conversationId, created } = findOrCreateConversation({
+        recruiterId: userId,
+        applicantId: app.applicant_id,
+        jobPostingId: app.job_posting_id,
+      });
+
+      // Default body the applicant sees in the card; recruiter can override
+      // via `note` in the request.
+      const prompt =
+        note ||
+        `Hi! I'd like to schedule an interview with you for the ${app.job_title}${app.job_company ? ` role at ${app.job_company}` : ''}. Could you share a few times that work this week?`;
+
+      const inserted = insertMessage({
+        conversationId,
+        userId,
+        content: prompt,
+        kind: 'interview_request',
+        metadata: {
+          job_id: app.job_posting_id,
+          job_title: app.job_title,
+          job_company: app.job_company,
+          suggested_format: '30-min video call',
+        },
+      });
+      setInterviewStatus(conversationId, 'requested');
+
+      return res.status(201).json({
+        conversation_id: conversationId,
+        created,
+        message: {
+          index: inserted.msg_index,
+          user_id: inserted.user_id,
+          content: inserted.content,
+          kind: inserted.kind || 'interview_request',
+          metadata: parseJsonOrNull(inserted.metadata),
+          created_at: inserted.created_at,
+          from_me: true,
+        },
+      });
+    } catch (e) {
+      console.error('[recruiter/applications/:id/schedule-interview]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+);
+
+// Recruiter sends a Google Calendar invite for a chosen slot. We don't OAuth
+// into Google — we generate the standard Calendar deep link the applicant
+// can click to add the event to their own calendar.
+router.post(
+  '/conversations/:id/calendar-invite',
+  requireAuth,
+  requireRecruiter,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+
+    const body = req.body || {};
+    const startIso = typeof body.start_iso === 'string' ? body.start_iso : null;
+    const endIso = typeof body.end_iso === 'string' ? body.end_iso : null;
+    const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : 'Interview';
+    const description = typeof body.description === 'string' ? body.description.trim() : '';
+    const location = typeof body.location === 'string' ? body.location.trim() : 'Video call';
+    const slotLabel = typeof body.slot_label === 'string' ? body.slot_label.trim() : '';
+
+    if (!startIso || !endIso || Number.isNaN(Date.parse(startIso)) || Number.isNaN(Date.parse(endIso))) {
+      return res.status(400).json({ error: 'invalid_time' });
+    }
+    if (Date.parse(endIso) <= Date.parse(startIso)) {
+      return res.status(400).json({ error: 'invalid_time_range' });
+    }
+
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+      if (convo.active === 0) return res.status(409).json({ error: 'conversation_closed' });
+
+      const url = googleCalendarUrl({
+        title,
+        description,
+        startIso,
+        endIso,
+        location,
+      });
+
+      const inserted = insertMessage({
+        conversationId,
+        userId,
+        content: `Calendar invite sent · ${slotLabel || new Date(startIso).toLocaleString()}`,
+        kind: 'calendar_invite',
+        metadata: {
+          title,
+          description,
+          location,
+          start_iso: startIso,
+          end_iso: endIso,
+          slot_label: slotLabel,
+          google_calendar_url: url,
+        },
+      });
+      setInterviewStatus(conversationId, 'scheduled');
+
+      return res.status(201).json({
+        message: {
+          index: inserted.msg_index,
+          user_id: inserted.user_id,
+          content: inserted.content,
+          kind: inserted.kind || 'calendar_invite',
+          metadata: parseJsonOrNull(inserted.metadata),
+          created_at: inserted.created_at,
+          from_me: true,
+        },
+      });
+    } catch (e) {
+      console.error('[recruiter/conversations/:id/calendar-invite]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+);
+
+router.get('/trust-questions', requireAuth, requireRecruiter, (_req, res) => {
+  return res.json({ questions: TRUST_QUESTIONS });
+});
+
+// Close a conversation by submitting the trust questionnaire. Records the
+// answers verbatim and recomputes the applicant's trust_score from the
+// rolling history of all closures.
+router.post(
+  '/conversations/:id/close',
+  requireAuth,
+  requireRecruiter,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+
+    const responses = Array.isArray(req.body?.responses) ? req.body.responses : null;
+    if (!responses || responses.length === 0) {
+      return res.status(400).json({ error: 'missing_responses' });
+    }
+
+    const validIds = new Set(TRUST_QUESTIONS.map((q) => q.id));
+    const cleaned = [];
+    for (const r of responses) {
+      if (!r || typeof r !== 'object') continue;
+      if (!validIds.has(r.question_id)) continue;
+      const score = Number(r.score);
+      if (!Number.isFinite(score) || score < 1 || score > 5) continue;
+      cleaned.push({
+        question_id: r.question_id,
+        score,
+        note: typeof r.note === 'string' ? r.note.slice(0, 500) : '',
+      });
+    }
+    if (cleaned.length === 0) {
+      return res.status(400).json({ error: 'invalid_responses' });
+    }
+
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+
+      const otherUserId =
+        convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
+
+      const summary = typeof req.body?.summary === 'string' ? req.body.summary.slice(0, 1000) : '';
+      const payload = {
+        responses: cleaned,
+        summary,
+        closed_by: userId,
+        closed_at: new Date().toISOString(),
+      };
+
+      db.prepare(
+        `UPDATE conversations
+            SET active = 0,
+                closed_at = datetime('now'),
+                interview_status = 'complete',
+                closure_responses = ?
+          WHERE id = ?`
+      ).run(JSON.stringify(payload), conversationId);
+
+      // Drop a system message into the thread so the applicant sees that the
+      // conversation has been closed (without exposing the trust scores).
+      insertMessage({
+        conversationId,
+        userId,
+        content: 'Conversation closed by recruiter. Thanks for your time!',
+        kind: 'system',
+        metadata: { closed: true },
+      });
+
+      const newScore = recomputeTrustScore(otherUserId);
+
+      return res.json({
+        ok: true,
+        conversation_id: conversationId,
+        new_trust_score: newScore,
+      });
+    } catch (e) {
+      console.error('[recruiter/conversations/:id/close]', e);
       return res.status(500).json({ error: 'server_error' });
     }
   }

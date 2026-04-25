@@ -1,5 +1,13 @@
 const RP_ID = process.env.WORLD_ID_RP_ID;
 
+const ALLOWED_LEVELS = ['device', 'document', 'passport', 'orb', 'iris'];
+
+function normalizeLevel(raw) {
+  if (typeof raw !== 'string') return 'device';
+  const s = raw.toLowerCase();
+  return ALLOWED_LEVELS.includes(s) ? s : 'device';
+}
+
 async function verifyWorldId(idkitResult) {
   if (!RP_ID) throw new Error('WORLD_ID_RP_ID not set');
 
@@ -25,7 +33,13 @@ async function verifyWorldId(idkitResult) {
   const nullifier_hash = data.nullifier || idkitResult.responses?.[0]?.nullifier;
   if (!nullifier_hash) throw new Error('No nullifier found in proof or verify response');
 
-  return { nullifier_hash };
+  const verification_level = normalizeLevel(
+    data.verification_level ||
+      idkitResult.responses?.[0]?.verification_level ||
+      idkitResult.verification_level
+  );
+
+  return { nullifier_hash, verification_level };
 }
 
 module.exports = { verifyWorldId };

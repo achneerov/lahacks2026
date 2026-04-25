@@ -31,6 +31,15 @@ CREATE TABLE users (
   username             TEXT    NOT NULL UNIQUE,
   password_hash        TEXT    NOT NULL,
   created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+  -- World ID credential strength as reported by the verify response.
+  -- 'device' = phone-bound proof, 'orb' = in-person biometric, 'document' /
+  -- 'passport' / 'iris' = enhanced credentials the demo surfaces in the UI.
+  verification_level   TEXT    NOT NULL DEFAULT 'device'
+                          CHECK (verification_level IN ('device','document','passport','orb','iris')),
+  -- 0..100 trust score. Starts at 85 on signup; recruiter feedback after
+  -- interviews can move it up or down. Surfaced to recruiters when ranking
+  -- candidates so they can weigh past-interview honesty.
+  trust_score          REAL    NOT NULL DEFAULT 85 CHECK (trust_score >= 0 AND trust_score <= 100),
   -- Set to 1 when the credibility agent rejects a critical-field change.
   -- While locked, further critical-field saves are refused at the API layer.
   -- Non-critical fields (name, address, about_me, etc.) remain editable.
@@ -302,6 +311,9 @@ CREATE TABLE applications (
                     CHECK (status IN ('Pending', 'Declined', 'SentToRecruiter')),
   notes           TEXT,
   agent_reasoning TEXT,
+  -- 0..100 fit score emitted by the verdict pass after the agent negotiation.
+  -- Recruiter UI sorts on this; the "Strong matches" filter is match_score >= 70.
+  match_score     REAL    CHECK (match_score IS NULL OR (match_score >= 0 AND match_score <= 100)),
   created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
   decided_at      TEXT,
@@ -313,6 +325,7 @@ CREATE TABLE applications (
 CREATE INDEX idx_applications_applicant ON applications(applicant_id);
 CREATE INDEX idx_applications_job       ON applications(job_posting_id);
 CREATE INDEX idx_applications_status    ON applications(status);
+CREATE INDEX idx_applications_match     ON applications(job_posting_id, match_score DESC);
 
 -- Append-only transcript for the applicant_agent <-> recruiter_agent negotiation.
 -- One row per turn (turn_index 0..13, applicant on even, recruiter on odd).
@@ -334,6 +347,15 @@ CREATE TABLE conversations (
   user_2_id       INTEGER NOT NULL,
   job_posting_id  INTEGER,
   active          INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+  -- Lightweight state machine for the interview-scheduling flow on top of a
+  -- normal chat. 'none' = nothing scheduled yet; 'requested' = recruiter
+  -- pressed Schedule Interview; 'availability_proposed' = applicant sent
+  -- timeslots; 'scheduled' = calendar invite sent; 'complete' = closed.
+  interview_status TEXT NOT NULL DEFAULT 'none'
+    CHECK (interview_status IN ('none','requested','availability_proposed','scheduled','complete')),
+  closed_at       TEXT,
+  -- JSON: { responses: [{question_id, label, score, note}], trust_delta, summary }
+  closure_responses TEXT,
   created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_1_id)      REFERENCES users(id)        ON DELETE CASCADE,
   FOREIGN KEY (user_2_id)      REFERENCES users(id)        ON DELETE CASCADE,
@@ -351,6 +373,16 @@ CREATE TABLE messages (
   conversation_index  INTEGER NOT NULL,
   user_id             INTEGER NOT NULL,
   conversation_content TEXT   NOT NULL,
+  -- 'text' = plain message; the rest are interactive cards rendered by the
+  -- chat UI. 'system' is a non-author note (e.g. "Conversation closed").
+  kind                TEXT    NOT NULL DEFAULT 'text'
+    CHECK (kind IN ('text','interview_request','availability_proposal','calendar_invite','system')),
+  -- JSON payload, kind-specific:
+  --   interview_request:     { prompt, suggested_format }
+  --   availability_proposal: { slots: [{label, start_iso, end_iso}] }
+  --   calendar_invite:       { title, location, start_iso, end_iso, google_calendar_url, slot_label }
+  --   system:                free-form
+  metadata            TEXT,
   created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (conversation_id, conversation_index),
   FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,

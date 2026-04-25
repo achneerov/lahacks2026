@@ -1,13 +1,19 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import type { Role } from '../lib/api';
+import { api, type Role } from '../lib/api';
 
-type NavItem = { to: string; label: string; icon: ReactNode; end?: boolean };
+type NavItem = {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  end?: boolean;
+  badgeKey?: 'unreadMessages';
+};
 
 const APPLICANT_NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: <HomeIcon />, end: true },
-  { to: '/applicant/messages', label: 'Messages', icon: <ChatIcon /> },
+  { to: '/applicant/messages', label: 'Messages', icon: <ChatIcon />, badgeKey: 'unreadMessages' },
   { to: '/applicant/jobs', label: 'Job postings', icon: <BriefcaseIcon /> },
   { to: '/applicant/applications', label: 'Applications', icon: <ListIcon /> },
   { to: '/applicant/profile', label: 'Edit profile', icon: <UserIcon /> },
@@ -16,7 +22,7 @@ const APPLICANT_NAV: NavItem[] = [
 const RECRUITER_NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: <HomeIcon />, end: true },
   { to: '/recruiter/jobs', label: 'Job postings', icon: <BriefcaseIcon /> },
-  { to: '/recruiter/messages', label: 'Messages', icon: <ChatIcon /> },
+  { to: '/recruiter/messages', label: 'Messages', icon: <ChatIcon />, badgeKey: 'unreadMessages' },
 ];
 
 function navForRole(role: Role | string): NavItem[] {
@@ -25,11 +31,59 @@ function navForRole(role: Role | string): NavItem[] {
   return [{ to: '/', label: 'Home', icon: <HomeIcon />, end: true }];
 }
 
+const POLL_INTERVAL_MS = 15000;
+
+function useUnreadCount(role: Role | string | undefined, token: string | null) {
+  const [count, setCount] = useState(0);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!token || !role) {
+      setCount(0);
+      return;
+    }
+    let cancelled = false;
+    const fetcher =
+      role === 'Recruiter'
+        ? () => api.recruiterConversations(token)
+        : role === 'Applicant'
+          ? () => api.applicantConversations(token)
+          : null;
+    if (!fetcher) {
+      setCount(0);
+      return;
+    }
+
+    const refresh = async () => {
+      try {
+        const { conversations } = await fetcher();
+        if (cancelled) return;
+        const unread = conversations.filter(
+          (c) => c.active === 1 && c.last_message_from_me === false,
+        ).length;
+        setCount(unread);
+      } catch {
+        // Silent — badge isn't critical and shouldn't surface auth errors.
+      }
+    };
+
+    void refresh();
+    const id = setInterval(refresh, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [role, token, location.pathname]);
+
+  return count;
+}
+
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const nav = useNavigate();
 
   const items = user ? navForRole(user.role) : [];
+  const unread = useUnreadCount(user?.role, token);
 
   return (
     <aside className="app-sidebar" style={styles.aside}>
@@ -41,22 +95,31 @@ export default function Sidebar() {
       </div>
 
       <nav style={styles.nav} aria-label="Primary">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            style={({ isActive }) => ({
-              ...styles.navItem,
-              ...(isActive ? styles.navItemActive : null),
-            })}
-          >
-            <span style={styles.navIcon} aria-hidden="true">
-              {item.icon}
-            </span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        {items.map((item) => {
+          const badge =
+            item.badgeKey === 'unreadMessages' && unread > 0 ? unread : 0;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              style={({ isActive }) => ({
+                ...styles.navItem,
+                ...(isActive ? styles.navItemActive : null),
+              })}
+            >
+              <span style={styles.navIcon} aria-hidden="true">
+                {item.icon}
+              </span>
+              <span style={styles.navLabel}>{item.label}</span>
+              {badge > 0 && (
+                <span style={styles.badge} aria-label={`${badge} unread`}>
+                  {badge > 9 ? '9+' : badge}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {user && (
@@ -221,6 +284,21 @@ const styles: Record<string, CSSProperties> = {
     color: 'var(--text)',
     textDecoration: 'none',
     transition: 'background 120ms ease, color 120ms ease',
+  },
+  navLabel: { flex: 1 },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    padding: '0 6px',
+    borderRadius: 999,
+    background: 'var(--accent)',
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 700,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    letterSpacing: 0,
   },
   navItemActive: {
     background: 'var(--accent-bg)',
