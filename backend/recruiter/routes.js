@@ -601,16 +601,12 @@ router.get('/jobs/:id/applicants', requireAuth, requireRecruiter, (req, res) => 
            u.id              AS applicant_id,
            u.username        AS username,
            u.email           AS email,
-           up.full_name      AS full_name,
-           up.headline       AS headline,
+           (up.first_name || ' ' || up.last_name) AS full_name,
            up.city           AS city,
            up.state          AS state,
-           up.country        AS country,
-           up.years_experience AS years_experience,
            up.linkedin_url   AS linkedin_url,
-           up.github_url     AS github_url,
-           up.portfolio_url  AS portfolio_url,
-           up.resume_url     AS resume_url
+           up.github_or_other_portfolio AS github_url,
+           up.website_portfolio AS portfolio_url
          FROM applications a
          JOIN users u                ON u.id  = a.applicant_id
          LEFT JOIN user_profiles up  ON up.user_id = u.id
@@ -629,15 +625,11 @@ router.get('/jobs/:id/applicants', requireAuth, requireRecruiter, (req, res) => 
           username: r.username,
           email: r.email,
           full_name: r.full_name,
-          headline: r.headline,
           city: r.city,
           state: r.state,
-          country: r.country,
-          years_experience: r.years_experience,
           linkedin_url: r.linkedin_url,
           github_url: r.github_url,
           portfolio_url: r.portfolio_url,
-          resume_url: r.resume_url,
         },
       }));
 
@@ -701,7 +693,7 @@ router.get('/jobs/:id/conversations', requireAuth, requireRecruiter, (req, res) 
     const others = otherIds.length
       ? db
           .prepare(
-            `SELECT u.id, u.username, u.role, up.full_name, up.headline
+            `SELECT u.id, u.username, u.role, (up.first_name || ' ' || up.last_name) AS full_name
                FROM users u
                LEFT JOIN user_profiles up ON up.user_id = u.id
               WHERE u.id IN (${otherIds.map(() => '?').join(',')})`
@@ -724,7 +716,6 @@ router.get('/jobs/:id/conversations', requireAuth, requireRecruiter, (req, res) 
         username: 'unknown',
         role: 'Unknown',
         full_name: null,
-        headline: null,
       },
     }));
 
