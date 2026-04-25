@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   api,
   ApiError,
@@ -31,6 +32,7 @@ const PAGE_SIZE = 20;
 
 export default function ApplicantJobs() {
   const { token } = useAuth();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -44,6 +46,27 @@ export default function ApplicantJobs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
+  const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
+
+  async function handleApply(job: JobPosting) {
+    if (!token || applyingJobId != null) return;
+    setApplyingJobId(job.id);
+    setApplyError(null);
+    try {
+      const { application } = await api.apply(token, job.id);
+      navigate(`/applications/${application.id}`);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.code === 'already_applied'
+            ? 'You already applied to this role.'
+            : err.detail || err.code
+          : 'Could not submit your application.';
+      setApplyError(msg);
+      setApplyingJobId(null);
+    }
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -282,7 +305,12 @@ export default function ApplicantJobs() {
 
         <aside style={styles.detail} aria-label="Job details">
           {selectedJob ? (
-            <JobDetail job={selectedJob} />
+            <JobDetail
+              job={selectedJob}
+              onApply={handleApply}
+              applying={applyingJobId === selectedJob.id}
+              applyError={applyingJobId == null ? applyError : null}
+            />
           ) : (
             <div style={styles.detailEmpty}>
               <h2 style={styles.detailEmptyTitle}>Select a job</h2>
@@ -298,7 +326,21 @@ export default function ApplicantJobs() {
   );
 }
 
-function JobDetail({ job }: { job: JobPosting }) {
+function JobDetail({
+  job,
+  onApply,
+  applying,
+  applyError,
+}: {
+  job: JobPosting;
+  onApply: (job: JobPosting) => void;
+  applying: boolean;
+  applyError: string | null;
+}) {
+  const primaryStyle = applying
+    ? { ...styles.primaryBtn, cursor: 'progress', opacity: 0.7 }
+    : { ...styles.primaryBtn, cursor: 'pointer', opacity: 1 };
+
   return (
     <div style={styles.detailInner}>
       <header style={styles.detailHeader}>
@@ -336,11 +378,26 @@ function JobDetail({ job }: { job: JobPosting }) {
         </p>
       </div>
 
+      {applyError && (
+        <div role="alert" style={styles.errorBanner}>
+          {applyError}
+        </div>
+      )}
+
       <div style={styles.detailActions}>
-        <button type="button" style={styles.primaryBtn} disabled>
-          Apply (coming soon)
+        <button
+          type="button"
+          style={primaryStyle}
+          disabled={applying}
+          onClick={() => onApply(job)}
+        >
+          {applying ? 'Starting agent screen…' : 'Apply'}
         </button>
-        <button type="button" style={styles.secondaryBtn} disabled>
+        <button
+          type="button"
+          style={{ ...styles.secondaryBtn, cursor: 'not-allowed' }}
+          disabled
+        >
           Message recruiter
         </button>
       </div>

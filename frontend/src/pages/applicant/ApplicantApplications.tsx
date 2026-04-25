@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
 import {
   api,
   ApiError,
@@ -300,6 +301,7 @@ export default function ApplicantApplications() {
 function ApplicationRow({ application }: { application: Application }) {
   const tone = STATUS_TONE[application.status];
   const job = application.job;
+  const isPending = application.status === 'Pending';
   return (
     <li style={styles.row}>
       <div style={styles.rowMain}>
@@ -341,6 +343,22 @@ function ApplicationRow({ application }: { application: Application }) {
         {application.notes && (
           <p style={styles.notes}>“{application.notes}”</p>
         )}
+        <div style={styles.rowActions}>
+          <Link
+            to={`/applications/${application.id}`}
+            style={isPending ? styles.viewChatBtnPrimary : styles.viewChatBtn}
+            aria-label={
+              isPending
+                ? `Watch the AI negotiation in progress for ${job.title}`
+                : `View the AI negotiation transcript for ${job.title}`
+            }
+          >
+            {isPending ? 'Watch AI chat live' : 'View AI chat'}
+            <span aria-hidden="true" style={styles.viewChatArrow}>
+              →
+            </span>
+          </Link>
+        </div>
       </div>
     </li>
   );
@@ -671,6 +689,43 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.5,
     paddingLeft: 12,
     borderLeft: '2px solid var(--border)',
+  },
+  rowActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+  },
+  viewChatBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 12px',
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text-h)',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    borderRadius: 999,
+    textDecoration: 'none',
+    fontFamily: 'inherit',
+  },
+  viewChatBtnPrimary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 12px',
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--accent)',
+    background: 'var(--accent-bg)',
+    border: '1px solid var(--accent-border)',
+    borderRadius: 999,
+    textDecoration: 'none',
+    fontFamily: 'inherit',
+  },
+  viewChatArrow: {
+    fontSize: 14,
+    lineHeight: 1,
   },
   empty: {
     padding: 32,

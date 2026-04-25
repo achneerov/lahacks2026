@@ -16,6 +16,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^1.50.1",
     "@worldcoin/idkit-server": "^1.1.1",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.9.0",
