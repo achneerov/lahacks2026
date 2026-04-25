@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../auth/jwt');
+const { reviewProfileChanges } = require('./profileReview');
 
 const router = express.Router();
 
@@ -8,6 +9,7 @@ const PROFILE_FIELDS = [
   'full_name',
   'phone',
   'address_line1',
+  'address_line2',
   'city',
   'state',
   'postal_code',
@@ -20,6 +22,105 @@ const PROFILE_FIELDS = [
   'portfolio_url',
   'years_experience',
 ];
+
+const PROFILE_TEXT_FIELDS = [
+  'full_name',
+  'phone',
+  'address_line1',
+  'address_line2',
+  'city',
+  'state',
+  'postal_code',
+  'country',
+  'headline',
+  'bio',
+];
+
+const PROFILE_URL_FIELDS = ['resume_url', 'linkedin_url', 'github_url', 'portfolio_url'];
+
+const URL_RE = /^https?:\/\/[^\s]+$/i;
+
+function sanitizeProfileUpdate(raw) {
+  if (!raw || typeof raw !== 'object') {
+    const err = new Error('profile body must be an object');
+    err.code = 'invalid_profile';
+    throw err;
+  }
+
+  const out = {};
+
+  for (const key of PROFILE_TEXT_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === null || v === undefined) {
+      out[key] = null;
+      continue;
+    }
+    if (typeof v !== 'string') {
+      const err = new Error(`profile.${key} must be a string`);
+      err.code = 'invalid_profile';
+      throw err;
+    }
+    const trimmed = v.trim();
+    out[key] = trimmed === '' ? null : trimmed;
+  }
+
+  for (const key of PROFILE_URL_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    const v = raw[key];
+    if (v === null || v === undefined) {
+      out[key] = null;
+      continue;
+    }
+    if (typeof v !== 'string') {
+      const err = new Error(`profile.${key} must be a string`);
+      err.code = 'invalid_profile';
+      throw err;
+    }
+    const trimmed = v.trim();
+    if (trimmed === '') {
+      out[key] = null;
+      continue;
+    }
+    if (!URL_RE.test(trimmed)) {
+      const err = new Error(`profile.${key} must be an http(s) URL`);
+      err.code = 'invalid_profile_url';
+      throw err;
+    }
+    out[key] = trimmed;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(raw, 'years_experience')) {
+    const v = raw.years_experience;
+    if (v === null || v === undefined || v === '') {
+      out.years_experience = null;
+    } else {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 0 || n > 80) {
+        const err = new Error('profile.years_experience must be an integer between 0 and 80');
+        err.code = 'invalid_profile_years';
+        throw err;
+      }
+      out.years_experience = n;
+    }
+  }
+
+  return out;
+}
+
+function loadProfileRow(userId) {
+  return db
+    .prepare(`SELECT ${PROFILE_FIELDS.join(', ')}, updated_at FROM user_profiles WHERE user_id = ?`)
+    .get(userId);
+}
+
+function ensureProfileRow(userId) {
+  const existing = db
+    .prepare('SELECT 1 FROM user_profiles WHERE user_id = ?')
+    .get(userId);
+  if (existing) return;
+  db.prepare('INSERT INTO user_profiles (user_id) VALUES (?)').run(userId);
+}
 
 function requireApplicant(req, res, next) {
   if (!req.user || req.user.role !== 'Applicant') {
@@ -37,6 +138,71 @@ function computeProfileCompleteness(profile) {
   }
   return Math.round((filled / PROFILE_FIELDS.length) * 100);
 }
+
+router.get('/profile', requireAuth, requireApplicant, (req, res) => {
+  const userId = req.user.id;
+  try {
+    const profile = loadProfileRow(userId);
+    if (!profile) {
+      const empty = Object.fromEntries(PROFILE_FIELDS.map((f) => [f, null]));
+      return res.json({ profile: { ...empty, updated_at: null } });
+    }
+    return res.json({ profile });
+  } catch (e) {
+    console.error('[applicant/profile GET]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+router.post('/profile/review', requireAuth, requireApplicant, async (req, res) => {
+  const userId = req.user.id;
+  let clean;
+  try {
+    clean = sanitizeProfileUpdate(req.body?.profile);
+  } catch (e) {
+    return res.status(400).json({ error: e.code || 'invalid_profile', detail: e.message });
+  }
+  try {
+    const current = loadProfileRow(userId) || {};
+    const result = await reviewProfileChanges(current, clean);
+    return res.json(result);
+  } catch (e) {
+    console.error('[applicant/profile/review]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+router.patch('/profile', requireAuth, requireApplicant, (req, res) => {
+  const userId = req.user.id;
+  let clean;
+  try {
+    clean = sanitizeProfileUpdate(req.body?.profile);
+  } catch (e) {
+    return res.status(400).json({ error: e.code || 'invalid_profile', detail: e.message });
+  }
+
+  const keys = Object.keys(clean);
+  if (keys.length === 0) {
+    const profile = loadProfileRow(userId);
+    return res.json({ profile });
+  }
+
+  try {
+    ensureProfileRow(userId);
+    const setSql = keys.map((k) => `${k} = @${k}`).join(', ');
+    db.prepare(
+      `UPDATE user_profiles
+          SET ${setSql}, updated_at = datetime('now')
+        WHERE user_id = @user_id`
+    ).run({ ...clean, user_id: userId });
+
+    const profile = loadProfileRow(userId);
+    return res.json({ profile });
+  } catch (e) {
+    console.error('[applicant/profile PATCH]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
 
 router.get('/home', requireAuth, requireApplicant, (req, res) => {
   const userId = req.user.id;

@@ -83,6 +83,34 @@ export interface ApplicantProfileInput {
   years_experience?: number | null;
 }
 
+export interface ApplicantProfile {
+  full_name: string | null;
+  phone: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string | null;
+  headline: string | null;
+  bio: string | null;
+  resume_url: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  portfolio_url: string | null;
+  years_experience: number | null;
+  updated_at: string | null;
+}
+
+export interface ApplicantProfileResponse {
+  profile: ApplicantProfile;
+}
+
+export interface ApplicantProfileReviewResponse {
+  warnings: Partial<Record<keyof ApplicantProfileInput, string>>;
+  source: 'llm' | 'heuristic';
+}
+
 export interface ApplicantHomeStats {
   profile_completeness: number;
   active_conversations: number;
@@ -203,6 +231,23 @@ export const api = {
 
   applicantHome: (token: string) =>
     request<ApplicantHomeResponse>('/api/applicant/home', {}, token),
+
+  applicantGetProfile: (token: string) =>
+    request<ApplicantProfileResponse>('/api/applicant/profile', {}, token),
+
+  applicantUpdateProfile: (token: string, profile: ApplicantProfileInput) =>
+    request<ApplicantProfileResponse>(
+      '/api/applicant/profile',
+      { method: 'PATCH', body: JSON.stringify({ profile }) },
+      token,
+    ),
+
+  applicantReviewProfile: (token: string, profile: ApplicantProfileInput) =>
+    request<ApplicantProfileReviewResponse>(
+      '/api/applicant/profile/review',
+      { method: 'POST', body: JSON.stringify({ profile }) },
+      token,
+    ),
 
   applicantApplications: (
     token: string,
