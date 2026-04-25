@@ -14,6 +14,8 @@ import ApplicantJobs from './pages/applicant/ApplicantJobs';
 import ApplicantApplications from './pages/applicant/ApplicantApplications';
 import ApplicantProfile from './pages/applicant/ApplicantProfile';
 import RecruiterJobs from './pages/recruiter/RecruiterJobs';
+import RecruiterJobForm from './pages/recruiter/RecruiterJobForm';
+import RecruiterJobDetail from './pages/recruiter/RecruiterJobDetail';
 import RecruiterMessages from './pages/recruiter/RecruiterMessages';
 
 function App() {
@@ -76,6 +78,36 @@ function App() {
                 <RequireRole role="Recruiter">
                   <AppShell>
                     <RecruiterJobs />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/recruiter/jobs/new"
+              element={
+                <RequireRole role="Recruiter">
+                  <AppShell>
+                    <RecruiterJobForm mode="create" />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/recruiter/jobs/:id"
+              element={
+                <RequireRole role="Recruiter">
+                  <AppShell>
+                    <RecruiterJobDetail />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/recruiter/jobs/:id/edit"
+              element={
+                <RequireRole role="Recruiter">
+                  <AppShell>
+                    <RecruiterJobForm mode="edit" />
                   </AppShell>
                 </RequireRole>
               }

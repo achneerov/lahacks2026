@@ -339,6 +339,155 @@ export interface ApplicantConversationsQuery {
   active?: boolean;
 }
 
+export interface RecruiterJob {
+  id: number;
+  title: string;
+  company: string | null;
+  description: string | null;
+  location: string | null;
+  remote: 0 | 1;
+  employment_type: EmploymentType | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  is_active: 0 | 1;
+  created_at: string;
+}
+
+export interface RecruiterJobListItem extends RecruiterJob {
+  applicant_count: number;
+  pending_count: number;
+  sent_count: number;
+  new_applicants_7d: number;
+}
+
+export interface RecruiterJobsResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  counts: { active: number; closed: number; total: number };
+  jobs: RecruiterJobListItem[];
+}
+
+export interface RecruiterJobInput {
+  title?: string;
+  company?: string | null;
+  description?: string | null;
+  location?: string | null;
+  remote?: boolean;
+  employment_type?: EmploymentType | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  salary_currency?: string | null;
+  is_active?: boolean;
+}
+
+export interface RecruiterJobDetailStats {
+  applicant_count: number;
+  pending_count: number;
+  sent_count: number;
+  declined_count: number;
+  new_applicants_7d: number;
+}
+
+export interface RecruiterJobDetailResponse {
+  job: RecruiterJob;
+  stats: RecruiterJobDetailStats;
+}
+
+export interface RecruiterJobMutateResponse {
+  job: RecruiterJob;
+}
+
+export type JobReviewSeverity = 'info' | 'warning' | 'error';
+
+export interface JobReviewIssue {
+  field:
+    | 'title'
+    | 'company'
+    | 'description'
+    | 'location'
+    | 'employment_type'
+    | 'salary_min'
+    | 'salary_max'
+    | 'salary_currency';
+  severity: JobReviewSeverity;
+  message: string;
+}
+
+export interface JobReviewResponse {
+  issues: JobReviewIssue[];
+  source: 'llm' | 'heuristic';
+}
+
+export interface RecruiterJobApplicant {
+  application_id: number;
+  status: ApplicationStatus;
+  notes: string | null;
+  applied_at: string;
+  updated_at: string;
+  applicant: {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string | null;
+    headline: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    years_experience: number | null;
+    linkedin_url: string | null;
+    github_url: string | null;
+    portfolio_url: string | null;
+    resume_url: string | null;
+  };
+}
+
+export interface RecruiterJobApplicantsResponse {
+  applicants: RecruiterJobApplicant[];
+}
+
+export interface RecruiterJobConversation {
+  id: number;
+  active: 0 | 1;
+  created_at: string;
+  message_count: number;
+  last_message: string | null;
+  last_message_at: string | null;
+  last_message_from_me: boolean | null;
+  other_party: {
+    id: number;
+    username: string;
+    role: Role | string;
+    full_name: string | null;
+    headline: string | null;
+  };
+}
+
+export interface RecruiterJobConversationsResponse {
+  conversations: RecruiterJobConversation[];
+}
+
+export interface RecruiterAgentMessage {
+  index: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+  from_agent: boolean;
+}
+
+export interface RecruiterAgentConversationResponse {
+  conversation: {
+    id: number;
+    job_posting_id: number | null;
+    active: 0 | 1;
+    created_at: string;
+    agent: { id: number; username: string; role: Role | string };
+    applicant: { id: number; username: string; role: Role | string };
+  } | null;
+  messages: RecruiterAgentMessage[];
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
 
@@ -466,4 +615,68 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ content }) },
       token,
     ),
+
+  recruiterListJobs: (
+    token: string,
+    query: { q?: string; status?: 'active' | 'closed'; limit?: number; offset?: number } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (query.q) params.set('q', query.q);
+    if (query.status) params.set('status', query.status);
+    if (query.limit != null) params.set('limit', String(query.limit));
+    if (query.offset != null) params.set('offset', String(query.offset));
+    const qs = params.toString();
+    return request<RecruiterJobsResponse>(
+      `/api/recruiter/jobs${qs ? `?${qs}` : ''}`,
+      {},
+      token,
+    );
+  },
+
+  recruiterGetJob: (token: string, id: number) =>
+    request<RecruiterJobDetailResponse>(`/api/recruiter/jobs/${id}`, {}, token),
+
+  recruiterCreateJob: (token: string, job: RecruiterJobInput) =>
+    request<RecruiterJobMutateResponse>(
+      '/api/recruiter/jobs',
+      { method: 'POST', body: JSON.stringify({ job }) },
+      token,
+    ),
+
+  recruiterUpdateJob: (token: string, id: number, job: RecruiterJobInput) =>
+    request<RecruiterJobMutateResponse>(
+      `/api/recruiter/jobs/${id}`,
+      { method: 'PATCH', body: JSON.stringify({ job }) },
+      token,
+    ),
+
+  recruiterReviewJob: (token: string, job: RecruiterJobInput) =>
+    request<JobReviewResponse>(
+      '/api/recruiter/jobs/review',
+      { method: 'POST', body: JSON.stringify({ job }) },
+      token,
+    ),
+
+  recruiterJobApplicants: (token: string, id: number) =>
+    request<RecruiterJobApplicantsResponse>(
+      `/api/recruiter/jobs/${id}/applicants`,
+      {},
+      token,
+    ),
+
+  recruiterJobConversations: (token: string, id: number) =>
+    request<RecruiterJobConversationsResponse>(
+      `/api/recruiter/jobs/${id}/conversations`,
+      {},
+      token,
+    ),
+
+  recruiterAgentConversation: (token: string, applicantId: number, jobId?: number) => {
+    const qs = jobId != null ? `?job_id=${jobId}` : '';
+    return request<RecruiterAgentConversationResponse>(
+      `/api/recruiter/applicants/${applicantId}/agent-conversation${qs}`,
+      {},
+      token,
+    );
+  },
 };

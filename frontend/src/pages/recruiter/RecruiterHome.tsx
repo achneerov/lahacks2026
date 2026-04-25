@@ -163,7 +163,7 @@ export default function RecruiterHome() {
                   </div>
                   <div style={styles.itemMeta}>
                     <Link
-                      to={`/recruiter/jobs?job=${a.job.id}`}
+                      to={`/recruiter/jobs/${a.job.id}`}
                       style={styles.itemMetaLink}
                     >
                       {a.job.title}
@@ -196,7 +196,7 @@ function PostingItem({ posting }: { posting: RecruiterRecentPosting }) {
   return (
     <li>
       <Link
-        to={`/recruiter/jobs?job=${posting.id}`}
+        to={`/recruiter/jobs/${posting.id}`}
         style={styles.postingLink}
       >
         <div style={styles.itemTopRow}>
