@@ -64,7 +64,8 @@
 
 /* When the app shell is rendered, expand to full viewport width and drop the
    marketing-style centered border so the sidebar can hug the left edge. */
-#root:has(.app-shell) {
+#root:has(.app-shell),
+#root:has(.landing-page) {
   width: 100%;
   max-width: none;
   border-inline: none;
