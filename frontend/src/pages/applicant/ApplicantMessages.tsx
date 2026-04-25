@@ -47,6 +47,7 @@ export default function ApplicantMessages() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [awaitingReply, setAwaitingReply] = useState(false);
 
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
 
@@ -163,6 +164,12 @@ export default function ApplicantMessages() {
     messagesEndRef.current?.scrollIntoView({ block: 'end' });
   }, [thread?.conversation.id, thread?.messages.length]);
 
+  useEffect(() => {
+    const last = thread?.messages.at(-1);
+    if (!last) return;
+    if (!last.from_me) setAwaitingReply(false);
+  }, [thread?.messages]);
+
   const selectedConversation = useMemo(
     () => conversations.find((c) => c.id === selectedId) ?? null,
     [conversations, selectedId],
@@ -192,6 +199,8 @@ export default function ApplicantMessages() {
           ? { ...prev, messages: [...prev.messages, message] }
           : prev,
       );
+      setAwaitingReply(true);
+      window.setTimeout(() => setAwaitingReply(false), 8000);
       void loadConversations({ silent: true });
     } catch (err) {
       const msg =
@@ -221,6 +230,20 @@ export default function ApplicantMessages() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @keyframes wsBubbleIn {
+          from { opacity: 0; transform: translateY(6px) scale(0.985); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes wsDots {
+          0%, 80%, 100% { opacity: 0.22; transform: translateY(0); }
+          40% { opacity: 1; transform: translateY(-2px); }
+        }
+        @keyframes wsSoftPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(120, 120, 140, 0.16); }
+          50% { box-shadow: 0 0 0 6px rgba(120, 120, 140, 0.0); }
+        }
+      `}</style>
       <header style={styles.header}>
         <span style={styles.eyebrow}>Applicant</span>
         <h1 style={styles.title}>Messages</h1>
@@ -466,6 +489,24 @@ export default function ApplicantMessages() {
                     {sending ? 'Sending…' : 'Send'}
                   </button>
                 </div>
+                <div style={styles.feedbackRow}>
+                  {sending ? (
+                    <span style={styles.feedbackChip}>
+                      Sending
+                      <TypingDots />
+                    </span>
+                  ) : draft.trim() ? (
+                    <span style={styles.feedbackChip}>
+                      You&apos;re typing
+                      <TypingDots />
+                    </span>
+                  ) : awaitingReply ? (
+                    <span style={styles.feedbackChipAwait}>
+                      Waiting for reply
+                      <TypingDots />
+                    </span>
+                  ) : null}
+                </div>
                 <span style={styles.composerHint}>
                   Press ⌘/Ctrl + Enter to send
                 </span>
@@ -488,6 +529,16 @@ export default function ApplicantMessages() {
         </section>
       </section>
     </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <span style={styles.dotsWrap} aria-hidden>
+      <span style={{ ...styles.dot, animationDelay: '0ms' }} />
+      <span style={{ ...styles.dot, animationDelay: '120ms' }} />
+      <span style={{ ...styles.dot, animationDelay: '240ms' }} />
+    </span>
   );
 }
 
@@ -689,6 +740,7 @@ const styles: Record<string, CSSProperties> = {
     border: 'none',
     borderBottom: '1px solid var(--border)',
     textAlign: 'left',
+    transition: 'background 180ms ease, transform 180ms ease',
   },
   conversationItemActive: {
     background: 'var(--accent-bg)',
@@ -899,10 +951,12 @@ const styles: Record<string, CSSProperties> = {
   messageRowMine: {
     display: 'flex',
     justifyContent: 'flex-end',
+    animation: 'wsBubbleIn 280ms cubic-bezier(0.22, 1, 0.36, 1)',
   },
   messageRowTheirs: {
     display: 'flex',
     justifyContent: 'flex-start',
+    animation: 'wsBubbleIn 280ms cubic-bezier(0.22, 1, 0.36, 1)',
   },
   bubbleMine: {
     maxWidth: '72%',
@@ -913,6 +967,7 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
+    boxShadow: '0 6px 12px rgba(0,0,0,0.08)',
   },
   bubbleTheirs: {
     maxWidth: '72%',
@@ -924,12 +979,22 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
+    boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
   },
   bubbleAuthor: {
-    fontSize: 11,
-    fontWeight: 600,
+    display: 'inline-flex',
+    alignItems: 'center',
+    width: 'fit-content',
+    fontSize: 12,
+    fontWeight: 700,
     color: 'var(--accent)',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    background: 'var(--accent-bg)',
+    border: '1px solid var(--accent-border)',
+    borderRadius: 999,
+    padding: '3px 10px',
+    marginBottom: 2,
   },
   bubbleBody: {
     fontSize: 14,
@@ -992,6 +1057,8 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 10,
     cursor: 'pointer',
     flexShrink: 0,
+    transition: 'transform 140ms ease, opacity 140ms ease, box-shadow 140ms ease',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.12)',
   },
   sendBtnDisabled: {
     opacity: 0.55,
@@ -1001,5 +1068,45 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 11,
     color: 'var(--text)',
     opacity: 0.7,
+  },
+  feedbackRow: {
+    minHeight: 18,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  feedbackChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 12,
+    color: 'var(--text)',
+    background: 'var(--accent-bg)',
+    border: '1px solid var(--accent-border)',
+    borderRadius: 999,
+    padding: '4px 10px',
+  },
+  feedbackChipAwait: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 12,
+    color: 'var(--text)',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: 999,
+    padding: '4px 10px',
+    animation: 'wsSoftPulse 1.8s ease-in-out infinite',
+  },
+  dotsWrap: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 999,
+    background: 'currentColor',
+    animation: 'wsDots 950ms ease-in-out infinite',
   },
 };

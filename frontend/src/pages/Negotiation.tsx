@@ -77,6 +77,14 @@ export default function Negotiation() {
   const [streamClosed, setStreamClosed] = useState(false);
 
   const transcriptRef = useRef<HTMLDivElement | null>(null);
+  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottomRef = useRef(true);
+  const prevTranscriptMetaRef = useRef({
+    count: 0,
+    lastLength: 0,
+    hasVerdict: false,
+    verdictPending: false,
+  });
 
   const messageList = useMemo(
     () =>
@@ -233,12 +241,51 @@ export default function Negotiation() {
     }
   }
 
-  // Auto-scroll to the bottom whenever the transcript changes.
+  // Auto-scroll only when user is already near bottom; do not yank them down
+  // if they intentionally scrolled up to read history.
   useEffect(() => {
     const el = transcriptRef.current;
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    const scrollToBottom = () => {
+      const node = transcriptRef.current;
+      if (!node) return;
+      node.scrollTop = node.scrollHeight;
+      transcriptEndRef.current?.scrollIntoView({ block: 'end' });
+    };
+    const prev = prevTranscriptMetaRef.current;
+    const last = messageList.at(-1);
+    const lastLength = last?.content.length ?? 0;
+    const count = messageList.length;
+    const hasNewMessage = count > prev.count;
+    const hasStreamingUpdate = count === prev.count && lastLength > prev.lastLength;
+    const verdictChanged =
+      prev.hasVerdict !== Boolean(verdict) || prev.verdictPending !== verdictPending;
+
+    if (
+      hasNewMessage ||
+      verdictChanged ||
+      (stickToBottomRef.current && hasStreamingUpdate)
+    ) {
+      // Wait for layout to settle, then pin to the true end of transcript.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(scrollToBottom);
+      });
+    }
+
+    prevTranscriptMetaRef.current = {
+      count,
+      lastLength,
+      hasVerdict: Boolean(verdict),
+      verdictPending,
+    };
   }, [messageList, verdict, verdictPending]);
+
+  function handleTranscriptScroll() {
+    const el = transcriptRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceToBottom < 56;
+  }
 
   const completedTurns = messageList.filter((m) => m.done).length;
   const progress = Math.min(1, completedTurns / TOTAL_TURNS);
@@ -259,6 +306,20 @@ export default function Negotiation() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @keyframes wsTypingDot {
+          0%, 80%, 100% { opacity: 0.22; transform: translateY(0); }
+          40% { opacity: 1; transform: translateY(-2px); }
+        }
+        @keyframes wsTypingGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(120,120,140,0.14); }
+          50% { box-shadow: 0 0 0 5px rgba(120,120,140,0.0); }
+        }
+        @keyframes blink {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+      `}</style>
       <header style={styles.header}>
         <Link to={backHref()} style={styles.backLink}>
           ← Back
@@ -276,7 +337,13 @@ export default function Negotiation() {
         </p>
       </header>
 
-      <section style={styles.statusBar} aria-label="Negotiation progress">
+      <section
+        style={{
+          ...styles.statusBar,
+          ...(verdict ? styles.statusBarComplete : null),
+        }}
+        aria-label="Negotiation progress"
+      >
         <div style={styles.progressTrack}>
           <div
             style={{
@@ -335,7 +402,12 @@ export default function Negotiation() {
         </div>
       )}
 
-      <section style={styles.transcript} ref={transcriptRef} aria-live="polite">
+      <section
+        style={styles.transcript}
+        ref={transcriptRef}
+        aria-live="polite"
+        onScroll={handleTranscriptScroll}
+      >
         {messageList.length === 0 && isPending && (
           <div style={styles.empty}>Waiting for the first message…</div>
         )}
@@ -343,8 +415,18 @@ export default function Negotiation() {
           <Bubble key={m.turnIndex} message={m} />
         ))}
         {verdict && (
-          <VerdictCard verdict={verdict} application={application} />
+          <>
+            <div style={styles.sessionDividerWrap} role="separator" aria-label="Chat session ended">
+              <span style={styles.sessionDividerLine} />
+              <span style={styles.sessionDividerLabel}>
+                Session complete - verdict generated
+              </span>
+              <span style={styles.sessionDividerLine} />
+            </div>
+            <VerdictCard verdict={verdict} application={application} />
+          </>
         )}
+        <div ref={transcriptEndRef} />
       </section>
 
       <footer style={styles.footer}>
@@ -375,17 +457,90 @@ function Bubble({ message }: { message: LiveMessage }) {
           ...(isApplicant ? styles.bubbleApplicant : styles.bubbleRecruiter),
         }}
       >
-        <div style={styles.bubbleHeader}>
-          <span style={styles.bubbleSender}>{SENDER_LABEL[message.sender]}</span>
-          <span style={styles.bubbleTurn}>Turn {message.turnIndex + 1}</span>
+        <div
+          style={{
+            ...styles.bubbleHeader,
+            ...(isApplicant
+              ? styles.bubbleHeaderApplicant
+              : styles.bubbleHeaderRecruiter),
+          }}
+        >
+          <span
+            style={{
+              ...styles.bubbleSender,
+              ...(isApplicant
+                ? styles.bubbleSenderApplicant
+                : styles.bubbleSenderRecruiter),
+            }}
+          >
+            {SENDER_LABEL[message.sender]}
+          </span>
         </div>
+        {!message.done && (
+          <TypingIndicator sender={message.sender} />
+        )}
         <p style={styles.bubbleBody}>
-          {message.content || (message.done ? '(no response)' : '')}
-          {!message.done && <span style={styles.cursor}>▍</span>}
+          <TypewriterBody
+            content={message.content || (message.done ? '(no response)' : '')}
+            active={!message.done}
+          />
         </p>
       </div>
     </div>
   );
+}
+
+function TypingIndicator({ sender }: { sender: Sender }) {
+  const label =
+    sender === 'applicant_agent'
+      ? 'Applicant agent is typing'
+      : 'Recruiter agent is typing';
+  return (
+    <div style={styles.typingIndicatorWrap} aria-live="polite" aria-label={label}>
+      <span style={styles.typingLabel}>{label}</span>
+      <span style={styles.typingDots} aria-hidden>
+        <span style={{ ...styles.typingDot, animationDelay: '0ms' }} />
+        <span style={{ ...styles.typingDot, animationDelay: '140ms' }} />
+        <span style={{ ...styles.typingDot, animationDelay: '280ms' }} />
+      </span>
+    </div>
+  );
+}
+
+function TypewriterBody({
+  content,
+  active,
+}: {
+  content: string;
+  active: boolean;
+}) {
+  const [shown, setShown] = useState(content.length);
+
+  useEffect(() => {
+    if (!active) {
+      setShown(content.length);
+      return;
+    }
+    setShown((prev) => Math.min(prev, content.length));
+  }, [content, active]);
+
+  useEffect(() => {
+    if (!active) return;
+    if (shown >= content.length) return;
+
+    const nextChar = content.charAt(shown);
+    let delay = 46;
+    if (nextChar === ' ') delay = 22;
+    else if (/[.,!?;:]/.test(nextChar)) delay = 135;
+    else if (/\n/.test(nextChar)) delay = 170;
+
+    const id = window.setTimeout(() => {
+      setShown((prev) => Math.min(content.length, prev + 1));
+    }, delay);
+    return () => window.clearTimeout(id);
+  }, [active, content, shown]);
+
+  return <>{content.slice(0, shown)}</>;
 }
 
 function VerdictCard({
@@ -501,17 +656,28 @@ const styles: Record<string, CSSProperties> = {
     border: '1px solid var(--border)',
     borderRadius: 14,
     background: 'var(--bg)',
+    transition: 'opacity 220ms ease, filter 220ms ease, transform 220ms ease',
+  },
+  statusBarComplete: {
+    opacity: 0.62,
+    filter: 'saturate(0.75)',
+    transform: 'translateY(-1px)',
   },
   progressTrack: {
     width: '100%',
-    height: 6,
-    background: 'var(--border)',
+    height: 10,
+    padding: 1,
+    boxSizing: 'border-box',
+    background: 'linear-gradient(180deg, #EFE9DF 0%, #E6DED2 100%)',
     borderRadius: 999,
     overflow: 'hidden',
+    boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.7)',
   },
   progressFill: {
     height: '100%',
+    borderRadius: 999,
     transition: 'width 200ms ease',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
   },
   statusRow: {
     display: 'flex',
@@ -599,29 +765,78 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     gap: 12,
   },
+  bubbleHeaderApplicant: {
+    justifyContent: 'space-between',
+  },
+  bubbleHeaderRecruiter: {
+    justifyContent: 'flex-end',
+  },
   bubbleSender: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    width: 'fit-content',
     fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--accent)',
+    fontWeight: 700,
+    color: '#fff',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
+    borderRadius: 999,
+    padding: '3px 10px',
+    border: '1px solid transparent',
+    lineHeight: 1.2,
+  },
+  bubbleSenderApplicant: {
+    background: '#1E6B4A',
+    borderColor: '#1E6B4A',
+  },
+  bubbleSenderRecruiter: {
+    background: '#3D2D74',
+    borderColor: '#3D2D74',
   },
   bubbleTurn: {
     fontSize: 11,
     color: 'var(--text)',
   },
+  bubbleTurnRecruiter: {
+    order: -1,
+    marginRight: 4,
+  },
   bubbleBody: {
     margin: 0,
     fontSize: 14,
-    lineHeight: 1.55,
+    lineHeight: 1.6,
     color: 'var(--text-h)',
     whiteSpace: 'pre-wrap',
   },
-  cursor: {
-    display: 'inline-block',
-    marginLeft: 2,
-    color: 'var(--accent)',
-    animation: 'blink 1s steps(2) infinite',
+  typingIndicatorWrap: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    width: 'fit-content',
+    padding: '5px 10px',
+    borderRadius: 999,
+    border: '1px solid var(--border)',
+    background: 'rgba(255,255,255,0.72)',
+    animation: 'wsTypingGlow 1.7s ease-in-out infinite',
+  },
+  typingLabel: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--text)',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  typingDots: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  typingDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 999,
+    background: 'var(--text)',
+    animation: 'wsTypingDot 1.1s ease-in-out infinite',
   },
   verdictCard: {
     marginTop: 8,
@@ -631,6 +846,30 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
+  },
+  sessionDividerWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  sessionDividerLine: {
+    flex: 1,
+    height: 1,
+    background: 'var(--border)',
+  },
+  sessionDividerLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--text)',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    padding: '4px 10px',
+    borderRadius: 999,
+    border: '1px solid var(--border)',
+    background: 'var(--bg)',
+    whiteSpace: 'nowrap',
   },
   verdictHeader: {
     display: 'flex',
