@@ -158,11 +158,71 @@ export interface ApplicantJobsResponse {
   jobs: JobPosting[];
 }
 
+export type ApplicationStatus = 'Pending' | 'Declined' | 'SentToRecruiter';
+
+export interface ApplicationJobSummary {
+  id: number;
+  title: string;
+  company: string | null;
+  location: string | null;
+  remote: 0 | 1;
+  employment_type: EmploymentType | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  is_active: 0 | 1;
+  poster_username: string;
+}
+
+export interface Application {
+  id: number;
+  status: ApplicationStatus;
+  notes: string | null;
+  applied_at: string;
+  updated_at: string;
+  job: ApplicationJobSummary;
+}
+
+export interface ApplicantApplicationsQuery {
+  q?: string;
+  status?: ApplicationStatus | ApplicationStatus[];
+  limit?: number;
+  offset?: number;
+}
+
+export interface ApplicantApplicationsResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  status_counts: Record<ApplicationStatus, number>;
+  applications: Application[];
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
 
   applicantHome: (token: string) =>
     request<ApplicantHomeResponse>('/api/applicant/home', {}, token),
+
+  applicantApplications: (
+    token: string,
+    query: ApplicantApplicationsQuery = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (query.q) params.set('q', query.q);
+    if (query.status) {
+      const list = Array.isArray(query.status) ? query.status : [query.status];
+      if (list.length > 0) params.set('status', list.join(','));
+    }
+    if (query.limit != null) params.set('limit', String(query.limit));
+    if (query.offset != null) params.set('offset', String(query.offset));
+    const qs = params.toString();
+    return request<ApplicantApplicationsResponse>(
+      `/api/applicant/applications${qs ? `?${qs}` : ''}`,
+      {},
+      token,
+    );
+  },
 
   applicantJobs: (token: string, query: ApplicantJobsQuery = {}) => {
     const params = new URLSearchParams();

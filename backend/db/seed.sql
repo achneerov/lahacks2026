@@ -44,6 +44,32 @@ VALUES
    'Lead ML infra. PyTorch, Ray, k8s.', 'Remote', 1, 'FullTime',
    240000, 320000, 'USD', 1);
 
+-- Applications submitted by applicants
+INSERT INTO applications
+  (id, applicant_id, job_posting_id, status, notes, created_at, updated_at)
+VALUES
+  (1, 1, 1, 'SentToRecruiter',
+   'AI screen passed - strong Node.js + Postgres background.',
+   datetime('now', '-7 days'), datetime('now', '-6 days')),
+  (2, 1, 2, 'Pending',
+   NULL,
+   datetime('now', '-2 days'), datetime('now', '-2 days')),
+  (3, 1, 4, 'Declined',
+   'Looking for more senior ML infra experience.',
+   datetime('now', '-10 days'), datetime('now', '-8 days')),
+  (4, 2, 4, 'SentToRecruiter',
+   'Distributed systems experience matches role well.',
+   datetime('now', '-5 days'), datetime('now', '-4 days')),
+  (5, 2, 1, 'Pending',
+   NULL,
+   datetime('now', '-1 days'), datetime('now', '-1 days')),
+  (6, 3, 2, 'SentToRecruiter',
+   'Portfolio shows strong design-engineering chops.',
+   datetime('now', '-3 days'), datetime('now', '-2 days')),
+  (7, 3, 3, 'Declined',
+   'Internship requires current student status.',
+   datetime('now', '-12 days'), datetime('now', '-11 days'));
+
 -- Conversations
 INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active) VALUES
   (1, 1, 4, 1,    1), -- Alice (Applicant) <-> Dana (Recruiter), about Senior Backend role

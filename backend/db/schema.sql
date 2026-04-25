@@ -7,6 +7,7 @@ DROP TRIGGER IF EXISTS trg_user_profiles_update_applicant_only;
 
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS conversations;
+DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS job_postings;
 DROP TABLE IF EXISTS user_profiles;
 DROP TABLE IF EXISTS users;
@@ -79,6 +80,24 @@ CREATE TABLE job_postings (
 
 CREATE INDEX idx_job_postings_poster ON job_postings(poster_id);
 CREATE INDEX idx_job_postings_active ON job_postings(is_active);
+
+CREATE TABLE applications (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id    INTEGER NOT NULL,
+  job_posting_id  INTEGER NOT NULL,
+  status          TEXT    NOT NULL DEFAULT 'Pending'
+                    CHECK (status IN ('Pending', 'Declined', 'SentToRecruiter')),
+  notes           TEXT,
+  created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+  updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id)   REFERENCES users(id)        ON DELETE CASCADE,
+  FOREIGN KEY (job_posting_id) REFERENCES job_postings(id) ON DELETE CASCADE,
+  UNIQUE (applicant_id, job_posting_id)
+);
+
+CREATE INDEX idx_applications_applicant ON applications(applicant_id);
+CREATE INDEX idx_applications_job       ON applications(job_posting_id);
+CREATE INDEX idx_applications_status    ON applications(status);
 
 CREATE TABLE conversations (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
