@@ -289,7 +289,7 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     gap: 10,
     padding: '10px 12px',
-    borderRadius: 10,
+    borderRadius: 999,
     fontSize: 14,
     color: 'var(--text)',
     textDecoration: 'none',
@@ -311,8 +311,8 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: 0,
   },
   navItemActive: {
-    background: 'var(--accent-bg)',
-    color: 'var(--accent)',
+    background: '#EDE8D2',
+    color: '#111111',
     fontWeight: 500,
   },
   navIcon: {

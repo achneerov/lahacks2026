@@ -1442,7 +1442,7 @@ function Checkbox({
 const styles: Record<string, CSSProperties> = {
   page: { flex: 1, width: '100%', boxSizing: 'border-box', padding: '40px 32px 64px', display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'left', maxWidth: 880 },
   header: { display: 'flex', flexDirection: 'column', gap: 6 },
-  eyebrow: { display: 'inline-block', width: 'fit-content', padding: '4px 12px', fontSize: 12, fontWeight: 500, color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 999, letterSpacing: 0.4, textTransform: 'uppercase' },
+  eyebrow: { display: 'inline-block', width: 'fit-content', padding: '4px 12px', fontSize: 12, fontWeight: 500, color: '#0F3D3A', background: '#EAF6F5', border: '1px solid #76B6B2', borderRadius: 999, letterSpacing: 0.4, textTransform: 'uppercase' },
   title: { margin: '8px 0 4px', fontSize: 32, lineHeight: 1.1, color: 'var(--text-h)', letterSpacing: '-0.5px' },
   subtitle: { margin: 0, color: 'var(--text)', fontSize: 15, maxWidth: 640 },
   errorBanner: { padding: '10px 14px', fontSize: 14, color: '#b00020', background: 'rgba(176, 0, 32, 0.08)', border: '1px solid rgba(176, 0, 32, 0.25)', borderRadius: 10 },
