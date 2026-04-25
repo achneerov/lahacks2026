@@ -284,6 +284,56 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
   const [reviewSource, setReviewSource] = useState<'llm' | 'heuristic' | null>(null);
   const [reviewedAt, setReviewedAt] = useState<Date | null>(null);
 
+  // Quick fill shortcut (Ctrl+Shift+F) — includes a deliberate error for AI review testing
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setForm({
+          title: 'Senior Backend Engineer', company: 'Acme Corp',
+          employment_type: 'FullTime', job_id_requisition: 'REQ-2026-042',
+          department: 'Engineering', team: 'Platform', reporting_to: 'VP of Engineering',
+          number_of_direct_reports: '2', permanent_or_fixed_term: 'Permanent',
+          contract_duration: '', job_level: 'Senior',
+          location: 'San Francisco, CA', remote: true, work_model: 'remote',
+          office_locations: 'San Francisco, CA', hybrid_days_in_office: '',
+          willing_to_hire_internationally: false, travel_required: false,
+          travel_percentage: '', relocation_assistance: true,
+          salary_min: '160000', salary_max: '210000', salary_currency: 'USD',
+          pay_frequency: 'Annual', bonus_commission_structure: '10-15% annual bonus',
+          equity_stock_options: '0.05-0.1% equity', benefits_overview: 'Health, dental, vision, 401k match',
+          retirement_plan: '401k with 4% match', paid_time_off_days: '20',
+          parental_leave_policy: '16 weeks paid', other_perks: 'Gym stipend\nLearning budget\nHome office setup',
+          description: 'This is an entry-level role requiring absolutely no experience. No coding skills needed whatsoever. Just show up and we will teach you everything from scratch.',
+          summary: 'Own and scale our core API services built on Node.js and PostgreSQL.',
+          key_responsibilities: 'Design and implement RESTful APIs\nOptimize database queries\nMentor junior engineers\nParticipate in on-call rotation',
+          why_role_is_open: 'New headcount', team_size: '8', team_structure: 'Platform team within Engineering',
+          cross_functional_collaborators: 'Product\nDesign\nData Engineering',
+          req_years_of_experience: '5', req_education_level: "Bachelor's",
+          req_field_of_study: 'Computer Science', req_certifications: '',
+          req_technical_skills: 'Node.js\nPostgreSQL\nTypeScript\nREST APIs\nDocker',
+          req_work_authorization: 'Must be authorized to work in the US',
+          nice_years_of_experience: '7', nice_education: "Master's",
+          nice_technical_skills: 'Kubernetes\nGraphQL\nRedis', nice_industry_background: 'SaaS / B2B',
+          company_website: 'https://acme.example.com', industry: 'Technology',
+          company_size: '500', company_stage: 'Series C',
+          mission_values: 'Building tools that empower developers worldwide.',
+          culture_description: 'Fast-paced, collaborative, remote-first culture.',
+          dei_statement: 'We are committed to building a diverse and inclusive team.',
+          application_deadline: '2026-06-30', documents_required: 'Resume\nCover letter',
+          interview_rounds: '4', interview_format: 'Phone screen\nTechnical\nSystem design\nTeam fit',
+          expected_time_to_hire: '4-6 weeks', contact_person: 'Dana Recruiter',
+          contact_email_phone: 'dana@acme.example.com',
+          is_active: true,
+        });
+        setFieldErrors({});
+        setIssues([]);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   useEffect(() => {
     if (mode !== 'edit' || !token || !jobId) return;
     let cancelled = false;
