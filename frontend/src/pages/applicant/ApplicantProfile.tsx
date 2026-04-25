@@ -959,16 +959,18 @@ function WorkExperienceCard({
           <div style={styles.row}>
             <Field
               label="Start date"
-              type="date"
+              type="text"
               value={value.start_date ?? ''}
               onChange={v => onChange({ start_date: v })}
+              placeholder="YYYY-MM"
               disabled={disabled}
             />
             <Field
               label="End date"
-              type="date"
+              type="text"
               value={value.current_job ? '' : value.end_date ?? ''}
               onChange={v => onChange({ end_date: v })}
+              placeholder="YYYY-MM"
               disabled={disabled || !!value.current_job}
             />
           </div>
@@ -1112,16 +1114,18 @@ function EducationCard({
           <div style={styles.row}>
             <Field
               label="Start date"
-              type="date"
+              type="text"
               value={value.start_date ?? ''}
               onChange={v => onChange({ start_date: v })}
+              placeholder="YYYY-MM"
               disabled={disabled}
             />
             <Field
               label={value.graduated ? 'Graduation date' : 'Expected graduation'}
-              type="date"
+              type="text"
               value={value.graduation_date ?? ''}
               onChange={v => onChange({ graduation_date: v })}
+              placeholder="YYYY-MM"
               disabled={disabled}
             />
           </div>
