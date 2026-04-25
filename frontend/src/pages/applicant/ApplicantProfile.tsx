@@ -14,11 +14,54 @@ import {
   type ProfileLockState,
   type WorkExperienceInput,
   type EducationInput,
+  type SkillInput,
+  type LanguageInput,
+  type ReferenceInput,
+  type AboutMeInput,
+  type LegalInput,
+  type EeoInput,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 
 type WorkExpItem = WorkExperienceInput & { _key: number; _expanded: boolean };
 type EduItem = EducationInput & { _key: number; _expanded: boolean };
+type SkillItem = SkillInput & { _key: number };
+type LanguageItem = LanguageInput & { _key: number };
+type ReferenceItem = ReferenceInput & { _key: number; _expanded: boolean };
+
+function emptyAbout(): AboutMeInput {
+  return {
+    challenge_you_overcame: '',
+    greatest_strength: '',
+    greatest_weakness: '',
+    five_year_goals: '',
+    leadership_experience: '',
+    anything_else: '',
+  };
+}
+function emptyLegal(): LegalInput {
+  return {
+    us_work_authorization: false,
+    requires_sponsorship: false,
+    visa_type: '',
+    over_18: false,
+    security_clearance: '',
+    needs_accommodation: false,
+  };
+}
+function emptyEeo(): EeoInput {
+  return { gender: '', race_ethnicity: '', disability_status: '', veteran_status: '' };
+}
+
+function linesToList(text: string): string[] {
+  return text
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s !== '');
+}
+function listToLines(list: string[] | null | undefined): string {
+  return Array.isArray(list) ? list.join('\n') : '';
+}
 
 const EMPLOYMENT_TYPES: { value: string; label: string }[] = [
   { value: '', label: '— Select —' },
@@ -61,7 +104,27 @@ export default function ApplicantProfile() {
 
   const [workExp, setWorkExp] = useState<WorkExpItem[]>([]);
   const [education, setEducation] = useState<EduItem[]>([]);
+
+  // Documents
+  const [resumeUrl, setResumeUrl] = useState('');
+  const [writingSamples, setWritingSamples] = useState('');
+  const [portfolioSamples, setPortfolioSamples] = useState('');
+  const [transcripts, setTranscripts] = useState('');
+  const [certifications, setCertifications] = useState('');
+  const [otherDocuments, setOtherDocuments] = useState('');
+
+  // Sub-collections
+  const [skills, setSkills] = useState<SkillItem[]>([]);
+  const [languages, setLanguages] = useState<LanguageItem[]>([]);
+  const [references, setReferences] = useState<ReferenceItem[]>([]);
+
+  // Single-row sections
+  const [aboutMe, setAboutMe] = useState<AboutMeInput>(emptyAbout());
+  const [legal, setLegal] = useState<LegalInput>(emptyLegal());
+  const [eeo, setEeo] = useState<EeoInput>(emptyEeo());
+
   const keyCounter = useRef(0);
+  const pageTopRef = useRef<HTMLDivElement | null>(null);
   const nextKey = () => ++keyCounter.current;
 
   // Snapshot of critical field values as loaded from the server (set in hydrate).
@@ -112,6 +175,25 @@ export default function ApplicantProfile() {
     const newEdu = p.education.map(e => ({ ...e, _key: nextKey(), _expanded: false }));
     setWorkExp(newWork);
     setEducation(newEdu);
+
+    const docs = p.documents;
+    setResumeUrl(docs?.resume ?? '');
+    setWritingSamples(listToLines(docs?.writing_samples));
+    setPortfolioSamples(listToLines(docs?.portfolio_work_samples));
+    setTranscripts(listToLines(docs?.transcripts));
+    setCertifications(listToLines(docs?.certifications));
+    setOtherDocuments(listToLines(docs?.other_documents));
+
+    setSkills(p.skills.map(s => ({ ...s, _key: nextKey() })));
+    setLanguages(p.languages.map(l => ({ ...l, _key: nextKey() })));
+    setReferences(
+      p.references.map(r => ({ ...r, _key: nextKey(), _expanded: false })),
+    );
+
+    setAboutMe({ ...emptyAbout(), ...(p.about_me ?? {}) });
+    setLegal({ ...emptyLegal(), ...(p.legal ?? {}) });
+    setEeo({ ...emptyEeo(), ...(p.eeo ?? {}) });
+
     // Capture the baseline for change detection.
     originalCritical.current = {
       linkedinUrl: ln,
@@ -198,8 +280,67 @@ export default function ApplicantProfile() {
     ]);
   }
 
+  function updateSkill(idx: number, patch: Partial<SkillInput>) {
+    setSkills(prev => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  }
+  function removeSkill(idx: number) {
+    setSkills(prev => prev.filter((_, i) => i !== idx));
+  }
+  function addSkill() {
+    setSkills(prev => [...prev, { _key: nextKey(), skill: '', proficiency: '', years: null }]);
+  }
+
+  function updateLanguage(idx: number, patch: Partial<LanguageInput>) {
+    setLanguages(prev => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
+  }
+  function removeLanguage(idx: number) {
+    setLanguages(prev => prev.filter((_, i) => i !== idx));
+  }
+  function addLanguage() {
+    setLanguages(prev => [...prev, { _key: nextKey(), language: '', proficiency: '' }]);
+  }
+
+  function updateReference(idx: number, patch: Partial<ReferenceInput>) {
+    setReferences(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  }
+  function removeReference(idx: number) {
+    setReferences(prev => prev.filter((_, i) => i !== idx));
+  }
+  function toggleReference(idx: number) {
+    setReferences(prev =>
+      prev.map((r, i) => (i === idx ? { ...r, _expanded: !r._expanded } : r)),
+    );
+  }
+  function addReference() {
+    setReferences(prev => [
+      ...prev,
+      {
+        _key: nextKey(),
+        _expanded: true,
+        name: '',
+        relationship: '',
+        company: '',
+        title: '',
+        phone: '',
+        email: '',
+      },
+    ]);
+  }
+
+  function patchAbout(patch: Partial<AboutMeInput>) {
+    setAboutMe(prev => ({ ...prev, ...patch }));
+  }
+  function patchLegal(patch: Partial<LegalInput>) {
+    setLegal(prev => ({ ...prev, ...patch }));
+  }
+  function patchEeo(patch: Partial<EeoInput>) {
+    setEeo(prev => ({ ...prev, ...patch }));
+  }
+
   async function save() {
     if (!token || saving) return;
+    pageTopRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
     setError(null);
     setSuccess(null);
     setSaving(true);
@@ -248,6 +389,59 @@ export default function ApplicantProfile() {
           ? e.relevant_coursework.filter(c => c && c.trim() !== '')
           : [],
       })),
+      documents: {
+        resume: resumeUrl.trim() || undefined,
+        writing_samples: linesToList(writingSamples),
+        portfolio_work_samples: linesToList(portfolioSamples),
+        transcripts: linesToList(transcripts),
+        certifications: linesToList(certifications),
+        other_documents: linesToList(otherDocuments),
+      },
+      skills: skills
+        .map(({ _key: _sk, ...s }) => ({
+          skill: (s.skill ?? '').trim(),
+          proficiency: (s.proficiency ?? '').trim() || undefined,
+          years: s.years == null || s.years === ('' as unknown as number) ? null : Number(s.years),
+        }))
+        .filter(s => s.skill !== ''),
+      languages: languages
+        .map(({ _key: _lk, ...l }) => ({
+          language: (l.language ?? '').trim(),
+          proficiency: (l.proficiency ?? '').trim() || undefined,
+        }))
+        .filter(l => l.language !== ''),
+      references: references.map(({ _key: _rk, _expanded: _re, ...r }) => ({
+        name: (r.name ?? '').trim() || undefined,
+        relationship: (r.relationship ?? '').trim() || undefined,
+        company: (r.company ?? '').trim() || undefined,
+        title: (r.title ?? '').trim() || undefined,
+        phone: (r.phone ?? '').trim() || undefined,
+        email: (r.email ?? '').trim() || undefined,
+      })),
+      about_me: {
+        challenge_you_overcame: (aboutMe.challenge_you_overcame ?? '').trim() || undefined,
+        greatest_strength: (aboutMe.greatest_strength ?? '').trim() || undefined,
+        greatest_weakness: (aboutMe.greatest_weakness ?? '').trim() || undefined,
+        five_year_goals: (aboutMe.five_year_goals ?? '').trim() || undefined,
+        leadership_experience: (aboutMe.leadership_experience ?? '').trim() || undefined,
+        anything_else: (aboutMe.anything_else ?? '').trim() || undefined,
+      },
+      legal: {
+        us_work_authorization: !!legal.us_work_authorization,
+        requires_sponsorship: !!legal.requires_sponsorship,
+        visa_type: legal.requires_sponsorship
+          ? (legal.visa_type ?? '').trim() || undefined
+          : undefined,
+        over_18: !!legal.over_18,
+        security_clearance: (legal.security_clearance ?? '').trim() || undefined,
+        needs_accommodation: !!legal.needs_accommodation,
+      },
+      eeo: {
+        gender: (eeo.gender ?? '').trim() || undefined,
+        race_ethnicity: (eeo.race_ethnicity ?? '').trim() || undefined,
+        disability_status: (eeo.disability_status ?? '').trim() || undefined,
+        veteran_status: (eeo.veteran_status ?? '').trim() || undefined,
+      },
     };
     try {
       const res = await api.applicantUpdateProfile(token, payload);
@@ -284,7 +478,7 @@ export default function ApplicantProfile() {
   if (loading) return <div style={styles.page}><p>Loading profile…</p></div>;
 
   return (
-    <div style={styles.page}>
+    <div ref={pageTopRef} style={styles.page}>
       <header style={styles.header}>
         <span style={styles.eyebrow}>Applicant</span>
         <h1 style={styles.title}>Edit profile</h1>
@@ -441,6 +635,268 @@ export default function ApplicantProfile() {
               />
             ))
           )}
+        </Section>
+
+        <Section title="Documents">
+          <Field
+            label="Resume URL"
+            type="url"
+            value={resumeUrl}
+            onChange={setResumeUrl}
+            placeholder="https://…"
+          />
+          <Textarea
+            label="Writing samples (one URL per line)"
+            value={writingSamples}
+            onChange={setWritingSamples}
+            rows={2}
+          />
+          <Textarea
+            label="Portfolio / work samples (one URL per line)"
+            value={portfolioSamples}
+            onChange={setPortfolioSamples}
+            rows={2}
+          />
+          <Textarea
+            label="Transcripts (one URL per line)"
+            value={transcripts}
+            onChange={setTranscripts}
+            rows={2}
+          />
+          <Textarea
+            label="Certifications (one URL per line)"
+            value={certifications}
+            onChange={setCertifications}
+            rows={2}
+          />
+          <Textarea
+            label="Other documents (one URL per line)"
+            value={otherDocuments}
+            onChange={setOtherDocuments}
+            rows={2}
+          />
+        </Section>
+
+        <Section
+          title="Skills"
+          action={
+            <button type="button" onClick={addSkill} style={styles.addBtn}>
+              + Add skill
+            </button>
+          }
+        >
+          {skills.length === 0 ? (
+            <p style={styles.emptyHint}>
+              No skills yet. Click <strong>+ Add skill</strong> to add one.
+            </p>
+          ) : (
+            skills.map((s, i) => (
+              <div key={s._key} style={styles.inlineRow}>
+                <div style={{ ...styles.row, flex: 1 }}>
+                  <Field
+                    label="Skill"
+                    value={s.skill ?? ''}
+                    onChange={v => updateSkill(i, { skill: v })}
+                  />
+                  <Field
+                    label="Proficiency"
+                    value={s.proficiency ?? ''}
+                    onChange={v => updateSkill(i, { proficiency: v })}
+                    placeholder="e.g. Advanced"
+                  />
+                  <Field
+                    label="Years"
+                    type="number"
+                    value={s.years != null ? String(s.years) : ''}
+                    onChange={v =>
+                      updateSkill(i, { years: v === '' ? null : Number(v) })
+                    }
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeSkill(i)}
+                  style={styles.removeBtnInline}
+                  aria-label="Remove skill"
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </div>
+            ))
+          )}
+        </Section>
+
+        <Section
+          title="Languages"
+          action={
+            <button type="button" onClick={addLanguage} style={styles.addBtn}>
+              + Add language
+            </button>
+          }
+        >
+          {languages.length === 0 ? (
+            <p style={styles.emptyHint}>
+              No languages yet. Click <strong>+ Add language</strong> to add one.
+            </p>
+          ) : (
+            languages.map((l, i) => (
+              <div key={l._key} style={styles.inlineRow}>
+                <div style={{ ...styles.row, flex: 1 }}>
+                  <Field
+                    label="Language"
+                    value={l.language ?? ''}
+                    onChange={v => updateLanguage(i, { language: v })}
+                  />
+                  <Field
+                    label="Proficiency"
+                    value={l.proficiency ?? ''}
+                    onChange={v => updateLanguage(i, { proficiency: v })}
+                    placeholder="e.g. Native"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeLanguage(i)}
+                  style={styles.removeBtnInline}
+                  aria-label="Remove language"
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </div>
+            ))
+          )}
+        </Section>
+
+        <Section
+          title="References"
+          action={
+            <button type="button" onClick={addReference} style={styles.addBtn}>
+              + Add reference
+            </button>
+          }
+        >
+          {references.length === 0 ? (
+            <p style={styles.emptyHint}>
+              No references yet. Click <strong>+ Add reference</strong> to add one.
+            </p>
+          ) : (
+            references.map((r, i) => (
+              <ReferenceCard
+                key={r._key}
+                index={i}
+                value={r}
+                onChange={patch => updateReference(i, patch)}
+                onRemove={() => removeReference(i)}
+                onToggle={() => toggleReference(i)}
+              />
+            ))
+          )}
+        </Section>
+
+        <Section title="About you">
+          <Textarea
+            label="A challenge you overcame"
+            value={aboutMe.challenge_you_overcame ?? ''}
+            onChange={v => patchAbout({ challenge_you_overcame: v })}
+            rows={3}
+          />
+          <div style={styles.row}>
+            <Field
+              label="Greatest strength"
+              value={aboutMe.greatest_strength ?? ''}
+              onChange={v => patchAbout({ greatest_strength: v })}
+            />
+            <Field
+              label="Greatest weakness"
+              value={aboutMe.greatest_weakness ?? ''}
+              onChange={v => patchAbout({ greatest_weakness: v })}
+            />
+          </div>
+          <Field
+            label="Five-year goals"
+            value={aboutMe.five_year_goals ?? ''}
+            onChange={v => patchAbout({ five_year_goals: v })}
+          />
+          <Field
+            label="Leadership experience"
+            value={aboutMe.leadership_experience ?? ''}
+            onChange={v => patchAbout({ leadership_experience: v })}
+          />
+          <Textarea
+            label="Anything else"
+            value={aboutMe.anything_else ?? ''}
+            onChange={v => patchAbout({ anything_else: v })}
+            rows={3}
+          />
+        </Section>
+
+        <Section title="Work eligibility">
+          <Checkbox
+            label="I am authorized to work in the United States"
+            checked={!!legal.us_work_authorization}
+            onChange={v => patchLegal({ us_work_authorization: v })}
+          />
+          <Checkbox
+            label="I will need visa sponsorship"
+            checked={!!legal.requires_sponsorship}
+            onChange={v => patchLegal({ requires_sponsorship: v })}
+          />
+          {legal.requires_sponsorship && (
+            <Field
+              label="Visa type"
+              value={legal.visa_type ?? ''}
+              onChange={v => patchLegal({ visa_type: v })}
+              placeholder="e.g. F-1 OPT, H-1B"
+            />
+          )}
+          <Checkbox
+            label="I am 18 years of age or older"
+            checked={!!legal.over_18}
+            onChange={v => patchLegal({ over_18: v })}
+          />
+          <Field
+            label="Security clearance (if any)"
+            value={legal.security_clearance ?? ''}
+            onChange={v => patchLegal({ security_clearance: v })}
+            placeholder="e.g. Secret"
+          />
+          <Checkbox
+            label="I need a reasonable accommodation"
+            checked={!!legal.needs_accommodation}
+            onChange={v => patchLegal({ needs_accommodation: v })}
+          />
+        </Section>
+
+        <Section title="EEO (optional)">
+          <p style={styles.hint}>
+            Voluntary. Used for diversity reporting only and not for hiring decisions.
+          </p>
+          <div style={styles.row}>
+            <Field
+              label="Gender"
+              value={eeo.gender ?? ''}
+              onChange={v => patchEeo({ gender: v })}
+            />
+            <Field
+              label="Race / ethnicity"
+              value={eeo.race_ethnicity ?? ''}
+              onChange={v => patchEeo({ race_ethnicity: v })}
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Disability status"
+              value={eeo.disability_status ?? ''}
+              onChange={v => patchEeo({ disability_status: v })}
+            />
+            <Field
+              label="Veteran status"
+              value={eeo.veteran_status ?? ''}
+              onChange={v => patchEeo({ veteran_status: v })}
+            />
+          </div>
         </Section>
 
         {criticalEditsPending && (
@@ -774,6 +1230,109 @@ function EducationCard({
   );
 }
 
+function ReferenceCard({
+  index,
+  value,
+  onChange,
+  onRemove,
+  onToggle,
+}: {
+  index: number;
+  value: ReferenceItem;
+  onChange: (patch: Partial<ReferenceInput>) => void;
+  onRemove: () => void;
+  onToggle: () => void;
+}) {
+  const expanded = value._expanded;
+  const name = value.name?.trim();
+  const heading = name || `Reference #${index + 1}`;
+  const subBits = [value.relationship, value.company, value.title]
+    .map(s => (s ?? '').trim())
+    .filter(s => s !== '');
+
+  return (
+    <div style={expanded ? styles.editCard : styles.previewCard}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={styles.cardToggle}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse entry' : 'Expand to edit'}
+      >
+        <span style={styles.cardToggleMain}>
+          <span style={styles.cardTitle}>{heading}</span>
+          {subBits.length > 0 && (
+            <span style={styles.cardSubtitle}>{subBits.join(' · ')}</span>
+          )}
+        </span>
+        <span style={styles.cardToggleControls}>
+          <span
+            aria-hidden="true"
+            style={{
+              ...styles.chevron,
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}
+          >
+            ›
+          </span>
+        </span>
+      </button>
+      {!expanded ? null : (
+        <div style={styles.cardBody}>
+          <div style={styles.cardActionsRow}>
+            <button
+              type="button"
+              onClick={onRemove}
+              style={styles.removeBtn}
+            >
+              Remove
+            </button>
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Name"
+              value={value.name ?? ''}
+              onChange={v => onChange({ name: v })}
+            />
+            <Field
+              label="Relationship"
+              value={value.relationship ?? ''}
+              onChange={v => onChange({ relationship: v })}
+              placeholder="e.g. Former Manager"
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Company"
+              value={value.company ?? ''}
+              onChange={v => onChange({ company: v })}
+            />
+            <Field
+              label="Title"
+              value={value.title ?? ''}
+              onChange={v => onChange({ title: v })}
+            />
+          </div>
+          <div style={styles.row}>
+            <Field
+              label="Phone"
+              type="tel"
+              value={value.phone ?? ''}
+              onChange={v => onChange({ phone: v })}
+            />
+            <Field
+              label="Email"
+              type="email"
+              value={value.email ?? ''}
+              onChange={v => onChange({ email: v })}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function formatDateRange(
   start: string | null | undefined,
   end: string | null | undefined,
@@ -976,6 +1535,8 @@ const styles: Record<string, CSSProperties> = {
   cardTitle: { fontSize: 14, fontWeight: 600, color: 'var(--text-h)' },
   cardSubtitle: { fontSize: 13, color: 'var(--text)' },
   removeBtn: { padding: '6px 10px', fontSize: 12, fontWeight: 500, color: '#9a1a1a', background: 'transparent', border: '1px solid rgba(154, 26, 26, 0.45)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
+  removeBtnInline: { width: 32, height: 32, padding: 0, fontSize: 18, lineHeight: 1, fontWeight: 600, color: '#9a1a1a', background: 'transparent', border: '1px solid rgba(154, 26, 26, 0.45)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4 },
+  inlineRow: { display: 'flex', alignItems: 'flex-end', gap: 12, width: '100%' },
   addBtn: { padding: '6px 12px', fontSize: 13, fontWeight: 500, color: 'var(--accent)', background: 'transparent', border: '1px dashed var(--accent-border)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
   emptyHint: { margin: 0, fontSize: 13, color: 'var(--text)', padding: 12, border: '1px dashed var(--border)', borderRadius: 10, textAlign: 'center' },
   badge: { marginLeft: 8, padding: '2px 8px', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 999 },
