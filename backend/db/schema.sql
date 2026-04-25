@@ -19,6 +19,7 @@ DROP TABLE IF EXISTS user_languages;
 DROP TABLE IF EXISTS user_skills;
 DROP TABLE IF EXISTS user_education;
 DROP TABLE IF EXISTS user_work_experience;
+DROP TABLE IF EXISTS applicant_documents;
 DROP TABLE IF EXISTS user_documents;
 DROP TABLE IF EXISTS user_profiles;
 DROP TABLE IF EXISTS users;
@@ -86,6 +87,25 @@ WHEN (SELECT role FROM users WHERE id = NEW.user_id) IS NOT 'Applicant'
 BEGIN
   SELECT RAISE(ABORT, 'user_profiles.user_id must reference a user with role = Applicant');
 END;
+
+-- Uploaded PDF documents for applicants (transcripts, letters of
+-- recommendation, etc.). The original PDF lives on disk under
+-- backend/uploads/applicant_documents/<user_id>/<id>.pdf; text_content is the
+-- output of pdf-parse, fed into the applicant-agent prompt at negotiation time.
+CREATE TABLE applicant_documents (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id       INTEGER NOT NULL,
+  kind          TEXT    NOT NULL CHECK (kind IN ('transcript','letter_of_recommendation','other')),
+  title         TEXT,
+  filename      TEXT    NOT NULL,
+  file_path     TEXT    NOT NULL,
+  byte_size     INTEGER NOT NULL,
+  text_content  TEXT,
+  created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_applicant_documents_user ON applicant_documents(user_id);
 
 -- Documents (resume URL, writing samples, etc.)
 CREATE TABLE user_documents (

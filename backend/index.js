@@ -5,6 +5,7 @@ const cors = require('cors');
 require('./db');
 const authRoutes = require('./auth/routes');
 const applicantRoutes = require('./applicant/routes');
+const applicantDocumentsRoutes = require('./applicant/documents');
 const recruiterRoutes = require('./recruiter/routes');
 const applicationsRoutes = require('./applications/routes');
 const jobsRoutes = require('./jobs/routes');
@@ -20,6 +21,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/applicant/documents', applicantDocumentsRoutes);
 app.use('/api/applicant', applicantRoutes);
 app.use('/api/recruiter', recruiterRoutes);
 app.use('/api/applications', applicationsRoutes);

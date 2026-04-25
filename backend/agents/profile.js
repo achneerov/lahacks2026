@@ -130,11 +130,25 @@ function getApplicantProfile(userId) {
     )
     .get(userId) || null;
 
+  const uploaded_documents = db
+    .prepare(
+      `SELECT kind, title, filename, text_content
+         FROM applicant_documents WHERE user_id = ? ORDER BY created_at, id`,
+    )
+    .all(userId)
+    .map((row) => ({
+      kind: row.kind,
+      title: row.title,
+      filename: row.filename,
+      text_content: row.text_content || null,
+    }));
+
   return {
     user,
     profile: {
       personal_information: personal,
       documents,
+      uploaded_documents,
       work_experience,
       education,
       skills,

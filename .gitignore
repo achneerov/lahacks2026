@@ -8,3 +8,4 @@ backend/db/*.db-journal
 backend/db/*.db-wal
 backend/db/*.db-shm
 **/key.json
+backend/uploads/

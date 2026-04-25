@@ -33,6 +33,8 @@ Output rules:
 - Write ONLY the message body the recruiter agent will read. No "APPLICANT_AGENT:" label, no quotes, no markdown headers.
 - Plain prose. One short paragraph (or 2-3 tight sentences).
 
+The candidate's APPLICANT PROFILE includes an "uploaded_documents" array. Each entry is a PDF the candidate uploaded (transcripts, letters of recommendation, etc.) with its parsed text in "text_content". Treat that text as a primary source of truth, equal to the structured profile fields — quote or cite from it (e.g. "their MIT transcript lists CS 6.006 with an A") when it directly supports a claim. If text_content is null, the parse failed; you cannot rely on the document's contents.
+
 JOB POSTING (what the candidate is applying to):
 ${safeJson(jobPosting)}
 

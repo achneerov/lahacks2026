@@ -1004,7 +1004,7 @@ export default function SignupProfile() {
       completedRef.current = true;
       setAuth(token, user);
       reset();
-      nav('/', { replace: true });
+      nav(user.role === 'Applicant' ? '/signup/documents' : '/', { replace: true });
     } catch (err) {
       setTopError(err instanceof ApiError ? errorMessage(err.code, err.detail) : 'Something went wrong. Please try again.');
     } finally {
