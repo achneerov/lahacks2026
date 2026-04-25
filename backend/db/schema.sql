@@ -7,6 +7,7 @@ DROP TRIGGER IF EXISTS trg_user_profiles_update_applicant_only;
 
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS conversations;
+DROP TABLE IF EXISTS negotiation_messages;
 DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS job_postings;
 DROP TABLE IF EXISTS user_eeo;
@@ -204,6 +205,9 @@ CREATE TABLE job_postings (
   salary_currency TEXT    DEFAULT 'USD',
   is_active       INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
   created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+  -- Custom directive injected into the recruiter agent's system prompt.
+  -- e.g. "Make sure they actually know Postgres, not just SQL in general."
+  recruiter_system_prompt TEXT,
   FOREIGN KEY (poster_id) REFERENCES users(id) ON DELETE CASCADE,
   CHECK (salary_min IS NULL OR salary_max IS NULL OR salary_min <= salary_max)
 );
@@ -218,8 +222,10 @@ CREATE TABLE applications (
   status          TEXT    NOT NULL DEFAULT 'Pending'
                     CHECK (status IN ('Pending', 'Declined', 'SentToRecruiter')),
   notes           TEXT,
+  agent_reasoning TEXT,
   created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+  decided_at      TEXT,
   FOREIGN KEY (applicant_id)   REFERENCES users(id)        ON DELETE CASCADE,
   FOREIGN KEY (job_posting_id) REFERENCES job_postings(id) ON DELETE CASCADE,
   UNIQUE (applicant_id, job_posting_id)
@@ -228,6 +234,20 @@ CREATE TABLE applications (
 CREATE INDEX idx_applications_applicant ON applications(applicant_id);
 CREATE INDEX idx_applications_job       ON applications(job_posting_id);
 CREATE INDEX idx_applications_status    ON applications(status);
+
+-- Append-only transcript for the applicant_agent <-> recruiter_agent negotiation.
+-- One row per turn (turn_index 0..13, applicant on even, recruiter on odd).
+CREATE TABLE negotiation_messages (
+  application_id  INTEGER NOT NULL,
+  turn_index      INTEGER NOT NULL,
+  sender          TEXT    NOT NULL CHECK (sender IN ('applicant_agent','recruiter_agent')),
+  content         TEXT    NOT NULL,
+  created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (application_id, turn_index),
+  FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_negotiation_messages_app ON negotiation_messages(application_id);
 
 CREATE TABLE conversations (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,

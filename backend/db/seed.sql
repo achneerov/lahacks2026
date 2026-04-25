@@ -104,46 +104,51 @@ INSERT INTO user_eeo (user_id, gender, race_ethnicity) VALUES
 -- Job postings by recruiters
 INSERT INTO job_postings
   (id, poster_id, title, company, description, location, remote, employment_type,
-   salary_min, salary_max, salary_currency, is_active)
+   salary_min, salary_max, salary_currency, is_active, recruiter_system_prompt)
 VALUES
   (1, 4, 'Senior Backend Engineer', 'Acme Corp',
    'Own core API services. Node.js + Postgres.', 'San Francisco, CA', 1, 'FullTime',
-   160000, 210000, 'USD', 1),
+   160000, 210000, 'USD', 1,
+   'Push hard on real Postgres expertise (query plans, indexing, transactions) — generic SQL knowledge is not enough. Must have shipped production Node.js services.'),
   (2, 4, 'Frontend Engineer', 'Acme Corp',
    'Build the new customer dashboard with React.', 'Remote', 1, 'FullTime',
-   130000, 170000, 'USD', 1),
+   130000, 170000, 'USD', 1,
+   'Looking for a senior React engineer who has owned a real design system. Probe for component API design and accessibility, not just shipping screens.'),
   (3, 5, 'Software Engineering Intern', 'Globex',
    'Summer 2026 internship on the platform team.', 'New York, NY', 0, 'Internship',
-   8000, 10000, 'USD', 1),
+   8000, 10000, 'USD', 1,
+   'Mandatory: candidate must currently be enrolled in an undergraduate program and able to work onsite in New York for summer 2026. Decline immediately if either is not true.'),
   (4, 5, 'Staff ML Engineer', 'Globex',
    'Lead ML infra. PyTorch, Ray, k8s.', 'Remote', 1, 'FullTime',
-   240000, 320000, 'USD', 1);
+   240000, 320000, 'USD', 1,
+   'Need a true staff-level ML infra engineer. Must have shipped Ray or similar at scale. Decline if they only have ML researcher / notebook experience.');
 
 -- Applications submitted by applicants
+-- Status reasoning is stored in agent_reasoning to mimic a completed negotiation.
 INSERT INTO applications
-  (id, applicant_id, job_posting_id, status, notes, created_at, updated_at)
+  (id, applicant_id, job_posting_id, status, notes, agent_reasoning,
+   created_at, updated_at, decided_at)
 VALUES
   (1, 1, 1, 'SentToRecruiter',
    'AI screen passed - strong Node.js + Postgres background.',
-   datetime('now', '-7 days'), datetime('now', '-6 days')),
-  (2, 1, 2, 'Pending',
-   NULL,
-   datetime('now', '-2 days'), datetime('now', '-2 days')),
+   'Candidate explicitly described production Node.js + Postgres ownership, including a TypeScript migration that reduced bugs by 40%. Aligned with recruiter directive on real Postgres expertise.',
+   datetime('now', '-7 days'), datetime('now', '-6 days'), datetime('now', '-6 days')),
   (3, 1, 4, 'Declined',
    'Looking for more senior ML infra experience.',
-   datetime('now', '-10 days'), datetime('now', '-8 days')),
+   'Candidate has no ML infra background — primary experience is full-stack web. Fails the staff-level Ray/PyTorch requirement.',
+   datetime('now', '-10 days'), datetime('now', '-8 days'), datetime('now', '-8 days')),
   (4, 2, 4, 'SentToRecruiter',
    'Distributed systems experience matches role well.',
-   datetime('now', '-5 days'), datetime('now', '-4 days')),
-  (5, 2, 1, 'Pending',
-   NULL,
-   datetime('now', '-1 days'), datetime('now', '-1 days')),
+   'Strong distributed systems background scaling 100->10k RPS, plus k8s. Lacks explicit Ray, but recruiter accepted equivalent infra depth.',
+   datetime('now', '-5 days'), datetime('now', '-4 days'), datetime('now', '-4 days')),
   (6, 3, 2, 'SentToRecruiter',
    'Portfolio shows strong design-engineering chops.',
-   datetime('now', '-3 days'), datetime('now', '-2 days')),
+   'Built a component library used across 5 products; led a design system initiative. Solid match for the senior React + design-system bar.',
+   datetime('now', '-3 days'), datetime('now', '-2 days'), datetime('now', '-2 days')),
   (7, 3, 3, 'Declined',
    'Internship requires current student status.',
-   datetime('now', '-12 days'), datetime('now', '-11 days'));
+   'Candidate already graduated UCLA in 2021 and is employed full-time. Fails the mandatory current-undergraduate-enrollment requirement.',
+   datetime('now', '-12 days'), datetime('now', '-11 days'), datetime('now', '-11 days'));
 
 -- Conversations
 INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active) VALUES

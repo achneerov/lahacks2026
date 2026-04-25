@@ -1,5 +1,7 @@
 const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001';
 
+export const API_BASE_URL = API_BASE;
+
 export type Role = 'Applicant' | 'Recruiter' | 'Agent';
 export type SignupRole = 'Applicant' | 'Recruiter';
 
@@ -609,8 +611,58 @@ export interface RecruiterAgentConversationResponse {
   messages: RecruiterAgentMessage[];
 }
 
+// Two-agent negotiation
+// One row per turn in the applicant_agent <-> recruiter_agent conversation.
+export interface NegotiationMessage {
+  turn_index: number;
+  sender: 'applicant_agent' | 'recruiter_agent';
+  content: string;
+  created_at: string;
+}
+
+// The richer application shape returned by GET /api/applications/:id and
+// POST /api/applications. Distinct from the list-row `Application` above.
+export interface ApplicationDetail {
+  id: number;
+  applicant_id: number;
+  job_posting_id: number;
+  status: ApplicationStatus;
+  notes: string | null;
+  agent_reasoning: string | null;
+  created_at: string;
+  updated_at: string;
+  decided_at: string | null;
+  job_title: string;
+  job_company: string | null;
+  job_poster_id: number;
+  applicant_username: string;
+  poster_username: string;
+}
+
+export interface CreateApplicationResponse {
+  application: ApplicationDetail;
+}
+
+export interface GetApplicationResponse {
+  application: ApplicationDetail;
+  messages: NegotiationMessage[];
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
+
+  apply: (token: string, jobPostingId: number) =>
+    request<CreateApplicationResponse>(
+      '/api/applications',
+      {
+        method: 'POST',
+        body: JSON.stringify({ job_posting_id: jobPostingId }),
+      },
+      token,
+    ),
+
+  getApplication: (token: string, id: number) =>
+    request<GetApplicationResponse>(`/api/applications/${id}`, {}, token),
 
   applicantHome: (token: string) =>
     request<ApplicantHomeResponse>('/api/applicant/home', {}, token),
