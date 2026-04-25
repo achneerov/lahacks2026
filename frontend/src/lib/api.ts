@@ -83,8 +83,48 @@ export interface ApplicantProfileInput {
   years_experience?: number | null;
 }
 
+export interface ApplicantHomeStats {
+  profile_completeness: number;
+  active_conversations: number;
+  messages_received: number;
+  open_jobs: number;
+}
+
+export interface ApplicantRecentConversation {
+  id: number;
+  job_posting_id: number | null;
+  job_title: string | null;
+  other_party: { id: number; username: string; role: Role | string };
+  last_message: string | null;
+  last_message_at: string | null;
+  created_at: string;
+}
+
+export interface ApplicantFeaturedJob {
+  id: number;
+  title: string;
+  company: string | null;
+  location: string | null;
+  remote: 0 | 1;
+  employment_type: 'FullTime' | 'PartTime' | 'Contract' | 'Internship' | 'Temporary' | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  created_at: string;
+  poster_username: string;
+}
+
+export interface ApplicantHomeResponse {
+  stats: ApplicantHomeStats;
+  recent_conversations: ApplicantRecentConversation[];
+  featured_jobs: ApplicantFeaturedJob[];
+}
+
 export const api = {
   worldIdContext: () => request<WorldIdContext>('/api/auth/world-id-context'),
+
+  applicantHome: (token: string) =>
+    request<ApplicantHomeResponse>('/api/applicant/home', {}, token),
 
   signupCheckBasics: (body: {
     email: string;

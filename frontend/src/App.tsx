@@ -1,12 +1,20 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { SignupProvider } from './signup/SignupContext';
+import RequireRole from './components/RequireRole';
+import AppShell from './layouts/AppShell';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import SignupBasics from './pages/signup/SignupBasics';
 import SignupWorldId from './pages/signup/SignupWorldId';
 import SignupProfile from './pages/signup/SignupProfile';
+import ApplicantMessages from './pages/applicant/ApplicantMessages';
+import ApplicantJobs from './pages/applicant/ApplicantJobs';
+import ApplicantApplications from './pages/applicant/ApplicantApplications';
+import ApplicantProfile from './pages/applicant/ApplicantProfile';
+import RecruiterJobs from './pages/recruiter/RecruiterJobs';
+import RecruiterMessages from './pages/recruiter/RecruiterMessages';
 
 function App() {
   return (
@@ -20,6 +28,68 @@ function App() {
             <Route path="/signup" element={<SignupBasics />} />
             <Route path="/signup/world-id" element={<SignupWorldId />} />
             <Route path="/signup/profile" element={<SignupProfile />} />
+
+            <Route
+              path="/applicant/messages"
+              element={
+                <RequireRole role="Applicant">
+                  <AppShell>
+                    <ApplicantMessages />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/applicant/jobs"
+              element={
+                <RequireRole role="Applicant">
+                  <AppShell>
+                    <ApplicantJobs />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/applicant/applications"
+              element={
+                <RequireRole role="Applicant">
+                  <AppShell>
+                    <ApplicantApplications />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/applicant/profile"
+              element={
+                <RequireRole role="Applicant">
+                  <AppShell>
+                    <ApplicantProfile />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+
+            <Route
+              path="/recruiter/jobs"
+              element={
+                <RequireRole role="Recruiter">
+                  <AppShell>
+                    <RecruiterJobs />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/recruiter/messages"
+              element={
+                <RequireRole role="Recruiter">
+                  <AppShell>
+                    <RecruiterMessages />
+                  </AppShell>
+                </RequireRole>
+              }
+            />
           </Routes>
         </SignupProvider>
       </BrowserRouter>
