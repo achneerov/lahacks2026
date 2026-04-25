@@ -14,8 +14,6 @@ import {
   type EducationInput,
   type SkillInput,
   type LanguageInput,
-  type ReferenceInput,
-  type AboutMeInput,
   type LegalInput,
   type EeoInput,
 } from '../../lib/api';
@@ -34,7 +32,6 @@ function emptyEducation(): EducationInput {
 }
 function emptySkill(): SkillInput { return { skill: '', proficiency: '', years: null }; }
 function emptyLanguage(): LanguageInput { return { language: '', proficiency: '' }; }
-function emptyReference(): ReferenceInput { return { name: '', relationship: '', company: '', title: '', phone: '', email: '' }; }
 
 interface FormState {
   first_name: string;
@@ -58,8 +55,6 @@ interface FormState {
   education: EducationInput[];
   skills: SkillInput[];
   languages: LanguageInput[];
-  references: ReferenceInput[];
-  about_me: AboutMeInput;
   legal: LegalInput;
   eeo: EeoInput;
 }
@@ -73,8 +68,6 @@ const EMPTY_FORM: FormState = {
   education: [emptyEducation()],
   skills: [emptySkill()],
   languages: [emptyLanguage()],
-  references: [emptyReference()],
-  about_me: { challenge_you_overcame: '', greatest_strength: '', greatest_weakness: '', five_year_goals: '', leadership_experience: '', anything_else: '' },
   legal: { us_work_authorization: false, requires_sponsorship: false, visa_type: '', over_18: false, security_clearance: '', needs_accommodation: false },
   eeo: { gender: '', race_ethnicity: '', disability_status: '', veteran_status: '' },
 };
@@ -94,8 +87,6 @@ function toProfile(form: FormState): ApplicantProfileInput {
     education: form.education.filter(e => e.school?.trim() || e.degree?.trim()),
     skills: form.skills.filter(sk => sk.skill?.trim()),
     languages: form.languages.filter(l => l.language?.trim()),
-    references: form.references.filter(r => r.name?.trim()),
-    about_me: form.about_me,
     legal: form.legal,
     eeo: form.eeo,
   };
@@ -120,7 +111,7 @@ function validate(form: FormState): string[] {
 
 // ── wizard config ──
 
-const PROFILE_STEPS = 11;
+const PROFILE_STEPS = 9;
 const PROFILE_STEP_TITLES = [
   'Personal information',
   'Address',
@@ -129,8 +120,6 @@ const PROFILE_STEP_TITLES = [
   'Education',
   'Skills',
   'Languages',
-  'References',
-  'About you',
   'Work eligibility',
   'EEO (optional)',
 ] as const;
@@ -142,8 +131,6 @@ const PROFILE_STEP_SUBTITLES = [
   'Where did you study?',
   'What are you great at?',
   'What languages do you speak?',
-  'People who can speak to your work.',
-  'A bit more about you in your own words.',
   'A few legal details before we wrap up.',
   'Voluntary, used for diversity reporting only.',
 ] as const;
@@ -753,8 +740,6 @@ export default function SignupProfile() {
           education: [{ school: 'UC Berkeley', city: 'Berkeley', state: 'CA', degree: 'B.S.', major: 'Computer Science', minor: '', start_date: '2016-08', graduation_date: '2020-05', graduated: true, gpa: '3.7', honors: "Dean's List", relevant_coursework: [] }],
           skills: [{ skill: 'TypeScript', proficiency: 'Advanced', years: 4 }, { skill: 'React', proficiency: 'Advanced', years: 4 }],
           languages: [{ language: 'English', proficiency: 'Native' }],
-          references: [{ name: 'Jane Smith', relationship: 'Former Manager', company: 'TechCorp', title: 'Engineering Director', phone: '555-999-8888', email: 'jane@techcorp.com' }],
-          about_me: { challenge_you_overcame: 'Led a major migration under tight deadlines', greatest_strength: 'Full-stack versatility', greatest_weakness: 'Can over-engineer solutions', five_year_goals: 'Lead a platform engineering team', leadership_experience: 'Mentored 2 junior developers', anything_else: '' },
           legal: { us_work_authorization: true, requires_sponsorship: false, visa_type: '', over_18: true, security_clearance: '', needs_accommodation: false },
           eeo: { gender: 'Male', race_ethnicity: 'White', disability_status: '', veteran_status: '' },
         });
@@ -952,48 +937,6 @@ export default function SignupProfile() {
         );
       case 7:
         return (
-          <FormSection title="References">
-            {form.references.map((r, i) => (
-              <div key={i} style={s.subCard}>
-                <div style={s.row2}>
-                  <Input label="NAME" value={r.name || ''} onChange={v => { const arr = [...form.references]; arr[i] = { ...arr[i], name: v }; updateField('references', arr); }} />
-                  <Input label="RELATIONSHIP" value={r.relationship || ''} onChange={v => { const arr = [...form.references]; arr[i] = { ...arr[i], relationship: v }; updateField('references', arr); }} />
-                </div>
-                <div style={s.row2}>
-                  <Input label="COMPANY" value={r.company || ''} onChange={v => { const arr = [...form.references]; arr[i] = { ...arr[i], company: v }; updateField('references', arr); }} />
-                  <Input label="TITLE" value={r.title || ''} onChange={v => { const arr = [...form.references]; arr[i] = { ...arr[i], title: v }; updateField('references', arr); }} />
-                </div>
-                <div style={s.row2}>
-                  <Input label="PHONE" value={r.phone || ''} onChange={v => { const arr = [...form.references]; arr[i] = { ...arr[i], phone: v }; updateField('references', arr); }} />
-                  <Input label="EMAIL" value={r.email || ''} onChange={v => { const arr = [...form.references]; arr[i] = { ...arr[i], email: v }; updateField('references', arr); }} />
-                </div>
-                {form.references.length > 1 && (
-                  <button type="button" style={s.removeBtn} onClick={() => updateField('references', form.references.filter((_, j) => j !== i))}>
-                    Remove this reference
-                  </button>
-                )}
-              </div>
-            ))}
-            <button type="button" style={s.addBtn} onClick={() => updateField('references', [...form.references, emptyReference()])}>
-              + Add reference
-            </button>
-          </FormSection>
-        );
-      case 8:
-        return (
-          <FormSection title="About you">
-            <TextArea label="A CHALLENGE YOU OVERCAME" value={form.about_me.challenge_you_overcame || ''} onChange={v => updateField('about_me', { ...form.about_me, challenge_you_overcame: v })} />
-            <div style={s.row2}>
-              <Input label="GREATEST STRENGTH" value={form.about_me.greatest_strength || ''} onChange={v => updateField('about_me', { ...form.about_me, greatest_strength: v })} />
-              <Input label="GREATEST WEAKNESS" value={form.about_me.greatest_weakness || ''} onChange={v => updateField('about_me', { ...form.about_me, greatest_weakness: v })} />
-            </div>
-            <Input label="FIVE-YEAR GOALS" value={form.about_me.five_year_goals || ''} onChange={v => updateField('about_me', { ...form.about_me, five_year_goals: v })} />
-            <Input label="LEADERSHIP EXPERIENCE" value={form.about_me.leadership_experience || ''} onChange={v => updateField('about_me', { ...form.about_me, leadership_experience: v })} />
-            <TextArea label="ANYTHING ELSE" value={form.about_me.anything_else || ''} onChange={v => updateField('about_me', { ...form.about_me, anything_else: v })} />
-          </FormSection>
-        );
-      case 9:
-        return (
           <FormSection title="Work eligibility">
             <Checkbox label="I am authorized to work in the United States" checked={!!form.legal.us_work_authorization} onChange={v => updateField('legal', { ...form.legal, us_work_authorization: v })} />
             <Checkbox label="I will need visa sponsorship" checked={!!form.legal.requires_sponsorship} onChange={v => updateField('legal', { ...form.legal, requires_sponsorship: v })} />
@@ -1003,7 +946,7 @@ export default function SignupProfile() {
             <Checkbox label="I need a reasonable accommodation" checked={!!form.legal.needs_accommodation} onChange={v => updateField('legal', { ...form.legal, needs_accommodation: v })} />
           </FormSection>
         );
-      case 10:
+      case 8:
       default:
         return (
           <FormSection
