@@ -1,17 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Landing() {
   const nav = useNavigate();
   const [monthlyApplicants, setMonthlyApplicants] = useState(5000);
-  const [threatCount, setThreatCount] = useState(1204923);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setThreatCount(prev => prev + Math.floor(Math.random() * 5) + 1);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
 
   const spamBlocked = Math.round(monthlyApplicants * 0.35); 
   const hoursSaved = Math.round(spamBlocked * 0.15); 
@@ -23,24 +15,11 @@ export default function Landing() {
           <div style={styles.logoIcon}></div>
           <span style={styles.logoText}>Aegis</span>
         </div>
-        <div style={styles.navLiveCounter}>
-          <span style={styles.pulseLight}></span>
-          <span style={styles.counterText}>{threatCount.toLocaleString()} automated threats blocked</span>
-        </div>
       </nav>
 
       <main style={styles.main}>
         {/* HERO SECTION */}
         <section style={styles.heroSection}>
-          <div style={styles.eyebrowContainer}>
-            <div style={styles.checkIconWrapper}>
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <span style={styles.eyebrowText}>SECURE TALENT ACQUISITION</span>
-          </div>
-
           <h1 style={styles.heroTitle}>
             Integrity-First Hiring<br />for the Modern Enterprise
           </h1>
