@@ -199,22 +199,94 @@ CREATE TABLE user_eeo (
 
 -- Job postings
 CREATE TABLE job_postings (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  poster_id       INTEGER NOT NULL,
-  title           TEXT    NOT NULL,
-  company         TEXT,
-  description     TEXT,
-  location        TEXT,
-  remote          INTEGER NOT NULL DEFAULT 0 CHECK (remote IN (0, 1)),
-  employment_type TEXT CHECK (employment_type IN ('FullTime','PartTime','Contract','Internship','Temporary')),
-  salary_min      INTEGER,
-  salary_max      INTEGER,
-  salary_currency TEXT    DEFAULT 'USD',
-  is_active       INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
-  created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
-  -- Custom directive injected into the recruiter agent's system prompt.
-  -- e.g. "Make sure they actually know Postgres, not just SQL in general."
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  poster_id             INTEGER NOT NULL,
+  is_active             INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+  created_at            TEXT    NOT NULL DEFAULT (datetime('now')),
+
+  -- Job basics
+  title                 TEXT    NOT NULL,
+  job_id_requisition    TEXT,
+  department            TEXT,
+  team                  TEXT,
+  reporting_to          TEXT,
+  number_of_direct_reports INTEGER,
+  employment_type       TEXT CHECK (employment_type IN ('FullTime','PartTime','Contract','Internship','Temporary')),
+  permanent_or_fixed_term TEXT,
+  contract_duration     TEXT,
+  job_level             TEXT,
+
+  -- Location
+  office_locations      TEXT, -- JSON array of strings
+  work_model            TEXT, -- remote / hybrid / on-site
+  hybrid_days_in_office INTEGER,
+  willing_to_hire_internationally INTEGER DEFAULT 0 CHECK (willing_to_hire_internationally IN (0, 1)),
+  travel_required       INTEGER DEFAULT 0 CHECK (travel_required IN (0, 1)),
+  travel_percentage     TEXT,
+  relocation_assistance INTEGER DEFAULT 0 CHECK (relocation_assistance IN (0, 1)),
+
+  -- Compensation
+  salary_min            INTEGER,
+  salary_max            INTEGER,
+  pay_frequency         TEXT,
+  salary_currency       TEXT DEFAULT 'USD',
+  bonus_commission_structure TEXT,
+  equity_stock_options  TEXT,
+  benefits_overview     TEXT,
+  retirement_plan       TEXT,
+  paid_time_off_days    INTEGER,
+  parental_leave_policy TEXT,
+  other_perks           TEXT, -- JSON array of strings
+
+  -- Role description
+  summary               TEXT,
+  key_responsibilities  TEXT, -- JSON array of strings
+  why_role_is_open      TEXT,
+  team_size             INTEGER,
+  team_structure        TEXT,
+  cross_functional_collaborators TEXT, -- JSON array of strings
+
+  -- Requirements
+  req_years_of_experience INTEGER,
+  req_education_level   TEXT,
+  req_field_of_study    TEXT,
+  req_certifications    TEXT, -- JSON array of strings
+  req_technical_skills  TEXT, -- JSON array of strings
+  req_languages         TEXT, -- JSON array of {language, proficiency}
+  req_work_authorization TEXT,
+
+  -- Nice to haves
+  nice_years_of_experience INTEGER,
+  nice_education        TEXT,
+  nice_technical_skills TEXT, -- JSON array of strings
+  nice_industry_background TEXT,
+
+  -- Company information
+  company               TEXT,
+  company_website       TEXT,
+  industry              TEXT,
+  company_size          INTEGER,
+  company_stage         TEXT,
+  mission_values        TEXT,
+  culture_description   TEXT,
+  dei_statement         TEXT,
+
+  -- Application process
+  application_deadline  TEXT,
+  how_to_apply          TEXT,
+  documents_required    TEXT, -- JSON array of strings
+  interview_rounds      INTEGER,
+  interview_format      TEXT, -- JSON array of strings
+  expected_time_to_hire TEXT,
+  contact_person        TEXT,
+  contact_email_phone   TEXT,
+
+  -- Legacy / internal
+  description           TEXT,
+  location              TEXT,
+  remote                INTEGER NOT NULL DEFAULT 0 CHECK (remote IN (0, 1)),
   recruiter_system_prompt TEXT,
+
   FOREIGN KEY (poster_id) REFERENCES users(id) ON DELETE CASCADE,
   CHECK (salary_min IS NULL OR salary_max IS NULL OR salary_min <= salary_max)
 );

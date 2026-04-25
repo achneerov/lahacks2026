@@ -103,25 +103,51 @@ INSERT INTO user_eeo (user_id, gender, race_ethnicity) VALUES
 
 -- Job postings by recruiters
 INSERT INTO job_postings
-  (id, poster_id, title, company, description, location, remote, employment_type,
-   salary_min, salary_max, salary_currency, is_active, recruiter_system_prompt)
+  (id, poster_id, title, company, employment_type, salary_min, salary_max, salary_currency,
+   is_active, description, location, remote, recruiter_system_prompt,
+   department, job_level, work_model, summary, key_responsibilities,
+   req_years_of_experience, req_technical_skills, req_education_level,
+   benefits_overview, paid_time_off_days, company_website, industry, company_size, company_stage)
 VALUES
-  (1, 4, 'Senior Backend Engineer', 'Acme Corp',
-   'Own core API services. Node.js + Postgres.', 'San Francisco, CA', 1, 'FullTime',
-   160000, 210000, 'USD', 1,
-   'Push hard on real Postgres expertise (query plans, indexing, transactions) — generic SQL knowledge is not enough. Must have shipped production Node.js services.'),
-  (2, 4, 'Frontend Engineer', 'Acme Corp',
-   'Build the new customer dashboard with React.', 'Remote', 1, 'FullTime',
-   130000, 170000, 'USD', 1,
-   'Looking for a senior React engineer who has owned a real design system. Probe for component API design and accessibility, not just shipping screens.'),
-  (3, 5, 'Software Engineering Intern', 'Globex',
-   'Summer 2026 internship on the platform team.', 'New York, NY', 0, 'Internship',
-   8000, 10000, 'USD', 1,
-   'Mandatory: candidate must currently be enrolled in an undergraduate program and able to work onsite in New York for summer 2026. Decline immediately if either is not true.'),
-  (4, 5, 'Staff ML Engineer', 'Globex',
-   'Lead ML infra. PyTorch, Ray, k8s.', 'Remote', 1, 'FullTime',
-   240000, 320000, 'USD', 1,
-   'Need a true staff-level ML infra engineer. Must have shipped Ray or similar at scale. Decline if they only have ML researcher / notebook experience.');
+  (1, 4, 'Senior Backend Engineer', 'Acme Corp', 'FullTime', 160000, 210000, 'USD',
+   1, 'Own core API services. Node.js + Postgres.', 'San Francisco, CA', 1,
+   'Push hard on real Postgres expertise (query plans, indexing, transactions) — generic SQL knowledge is not enough.',
+   'Engineering', 'Senior', 'remote',
+   'Own and scale our core API services built on Node.js and PostgreSQL.',
+   '["Design and implement RESTful APIs","Optimize database queries and schema","Mentor junior engineers","Participate in on-call rotation"]',
+   5, '["Node.js","PostgreSQL","TypeScript","REST APIs"]', 'Bachelor''s',
+   'Health, dental, vision, 401k match', 20,
+   'https://acme.example.com', 'Technology', 500, 'growth'),
+
+  (2, 4, 'Frontend Engineer', 'Acme Corp', 'FullTime', 130000, 170000, 'USD',
+   1, 'Build the new customer dashboard with React.', 'Remote', 1,
+   'Looking for a senior React engineer who has owned a real design system.',
+   'Engineering', 'Mid', 'remote',
+   'Build and own the new customer-facing dashboard using React and TypeScript.',
+   '["Build reusable React components","Implement responsive designs","Write unit and integration tests","Collaborate with design team"]',
+   3, '["React","TypeScript","CSS","Jest"]', 'Bachelor''s',
+   'Health, dental, vision, 401k match', 20,
+   'https://acme.example.com', 'Technology', 500, 'growth'),
+
+  (3, 5, 'Software Engineering Intern', 'Globex', 'Internship', 8000, 10000, 'USD',
+   1, 'Summer 2026 internship on the platform team.', 'New York, NY', 0,
+   'Mandatory: candidate must currently be enrolled in an undergraduate program.',
+   'Platform', 'Junior', 'on-site',
+   'Join the platform team for a 12-week summer internship building internal tools.',
+   '["Build internal developer tools","Write documentation","Participate in code reviews"]',
+   0, '["Python","Git"]', 'Currently enrolled',
+   'Housing stipend, free lunch', 0,
+   'https://globex.example.com', 'Technology', 2000, 'public'),
+
+  (4, 5, 'Staff ML Engineer', 'Globex', 'FullTime', 240000, 320000, 'USD',
+   1, 'Lead ML infra. PyTorch, Ray, k8s.', 'Remote', 1,
+   'Need a true staff-level ML infra engineer. Must have shipped Ray or similar at scale.',
+   'ML Infrastructure', 'Staff', 'remote',
+   'Lead the ML infrastructure team, building scalable training and serving pipelines.',
+   '["Design ML training pipelines","Scale model serving infrastructure","Mentor ML engineers","Drive technical strategy"]',
+   8, '["PyTorch","Ray","Kubernetes","Python","Distributed Systems"]', 'Master''s',
+   'Health, dental, vision, 401k match, equity', 25,
+   'https://globex.example.com', 'Technology', 2000, 'public');
 
 -- Applications submitted by applicants
 -- Status reasoning is stored in agent_reasoning to mimic a completed negotiation.

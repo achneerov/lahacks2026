@@ -482,6 +482,69 @@ export interface RecruiterJob {
   salary_currency: string | null;
   is_active: 0 | 1;
   created_at: string;
+  // Job basics
+  job_id_requisition: string | null;
+  department: string | null;
+  team: string | null;
+  reporting_to: string | null;
+  number_of_direct_reports: number | null;
+  permanent_or_fixed_term: string | null;
+  contract_duration: string | null;
+  job_level: string | null;
+  // Location
+  office_locations: string | null;
+  work_model: string | null;
+  hybrid_days_in_office: number | null;
+  willing_to_hire_internationally: 0 | 1;
+  travel_required: 0 | 1;
+  travel_percentage: string | null;
+  relocation_assistance: 0 | 1;
+  // Compensation
+  pay_frequency: string | null;
+  bonus_commission_structure: string | null;
+  equity_stock_options: string | null;
+  benefits_overview: string | null;
+  retirement_plan: string | null;
+  paid_time_off_days: number | null;
+  parental_leave_policy: string | null;
+  other_perks: string | null;
+  // Role description
+  summary: string | null;
+  key_responsibilities: string | null;
+  why_role_is_open: string | null;
+  team_size: number | null;
+  team_structure: string | null;
+  cross_functional_collaborators: string | null;
+  // Requirements
+  req_years_of_experience: number | null;
+  req_education_level: string | null;
+  req_field_of_study: string | null;
+  req_certifications: string | null;
+  req_technical_skills: string | null;
+  req_languages: string | null;
+  req_work_authorization: string | null;
+  // Nice to haves
+  nice_years_of_experience: number | null;
+  nice_education: string | null;
+  nice_technical_skills: string | null;
+  nice_industry_background: string | null;
+  // Company info
+  company_website: string | null;
+  industry: string | null;
+  company_size: number | null;
+  company_stage: string | null;
+  mission_values: string | null;
+  culture_description: string | null;
+  dei_statement: string | null;
+  // Application process
+  application_deadline: string | null;
+  how_to_apply: string | null;
+  documents_required: string | null;
+  interview_rounds: number | null;
+  interview_format: string | null;
+  expected_time_to_hire: string | null;
+  contact_person: string | null;
+  contact_email_phone: string | null;
 }
 
 export interface RecruiterJobListItem extends RecruiterJob {
@@ -510,6 +573,69 @@ export interface RecruiterJobInput {
   salary_max?: number | null;
   salary_currency?: string | null;
   is_active?: boolean;
+  // Job basics
+  job_id_requisition?: string | null;
+  department?: string | null;
+  team?: string | null;
+  reporting_to?: string | null;
+  number_of_direct_reports?: number | null;
+  permanent_or_fixed_term?: string | null;
+  contract_duration?: string | null;
+  job_level?: string | null;
+  // Location
+  office_locations?: string[] | null;
+  work_model?: string | null;
+  hybrid_days_in_office?: number | null;
+  willing_to_hire_internationally?: boolean;
+  travel_required?: boolean;
+  travel_percentage?: string | null;
+  relocation_assistance?: boolean;
+  // Compensation
+  pay_frequency?: string | null;
+  bonus_commission_structure?: string | null;
+  equity_stock_options?: string | null;
+  benefits_overview?: string | null;
+  retirement_plan?: string | null;
+  paid_time_off_days?: number | null;
+  parental_leave_policy?: string | null;
+  other_perks?: string[] | null;
+  // Role description
+  summary?: string | null;
+  key_responsibilities?: string[] | null;
+  why_role_is_open?: string | null;
+  team_size?: number | null;
+  team_structure?: string | null;
+  cross_functional_collaborators?: string[] | null;
+  // Requirements
+  req_years_of_experience?: number | null;
+  req_education_level?: string | null;
+  req_field_of_study?: string | null;
+  req_certifications?: string[] | null;
+  req_technical_skills?: string[] | null;
+  req_languages?: { language: string; proficiency: string }[] | null;
+  req_work_authorization?: string | null;
+  // Nice to haves
+  nice_years_of_experience?: number | null;
+  nice_education?: string | null;
+  nice_technical_skills?: string[] | null;
+  nice_industry_background?: string | null;
+  // Company info
+  company_website?: string | null;
+  industry?: string | null;
+  company_size?: number | null;
+  company_stage?: string | null;
+  mission_values?: string | null;
+  culture_description?: string | null;
+  dei_statement?: string | null;
+  // Application process
+  application_deadline?: string | null;
+  how_to_apply?: string | null;
+  documents_required?: string[] | null;
+  interview_rounds?: number | null;
+  interview_format?: string[] | null;
+  expected_time_to_hire?: string | null;
+  contact_person?: string | null;
+  contact_email_phone?: string | null;
 }
 
 export interface RecruiterJobDetailStats {

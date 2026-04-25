@@ -14,30 +14,104 @@ import { useAuth } from '../../auth/AuthContext';
 type Mode = 'create' | 'edit';
 
 type FormState = {
+  // Job basics
   title: string;
   company: string;
-  description: string;
+  employment_type: EmploymentType | '';
+  job_id_requisition: string;
+  department: string;
+  team: string;
+  reporting_to: string;
+  number_of_direct_reports: string;
+  permanent_or_fixed_term: string;
+  contract_duration: string;
+  job_level: string;
+  // Location
   location: string;
   remote: boolean;
-  employment_type: EmploymentType | '';
+  work_model: string;
+  office_locations: string;
+  hybrid_days_in_office: string;
+  willing_to_hire_internationally: boolean;
+  travel_required: boolean;
+  travel_percentage: string;
+  relocation_assistance: boolean;
+  // Compensation
   salary_min: string;
   salary_max: string;
   salary_currency: string;
+  pay_frequency: string;
+  bonus_commission_structure: string;
+  equity_stock_options: string;
+  benefits_overview: string;
+  retirement_plan: string;
+  paid_time_off_days: string;
+  parental_leave_policy: string;
+  other_perks: string;
+  // Role description
+  description: string;
+  summary: string;
+  key_responsibilities: string;
+  why_role_is_open: string;
+  team_size: string;
+  team_structure: string;
+  cross_functional_collaborators: string;
+  // Requirements
+  req_years_of_experience: string;
+  req_education_level: string;
+  req_field_of_study: string;
+  req_certifications: string;
+  req_technical_skills: string;
+  req_work_authorization: string;
+  // Nice to haves
+  nice_years_of_experience: string;
+  nice_education: string;
+  nice_technical_skills: string;
+  nice_industry_background: string;
+  // Company info
+  company_website: string;
+  industry: string;
+  company_size: string;
+  company_stage: string;
+  mission_values: string;
+  culture_description: string;
+  dei_statement: string;
+  // Application process
+  application_deadline: string;
+  how_to_apply: string;
+  documents_required: string;
+  interview_rounds: string;
+  interview_format: string;
+  expected_time_to_hire: string;
+  contact_person: string;
+  contact_email_phone: string;
+  // Status
   is_active: boolean;
 };
 
 type FieldKey = keyof FormState;
 
 const EMPTY_FORM: FormState = {
-  title: '',
-  company: '',
-  description: '',
-  location: '',
-  remote: false,
-  employment_type: '',
-  salary_min: '',
-  salary_max: '',
-  salary_currency: 'USD',
+  title: '', company: '', employment_type: '', job_id_requisition: '', department: '',
+  team: '', reporting_to: '', number_of_direct_reports: '', permanent_or_fixed_term: '',
+  contract_duration: '', job_level: '',
+  location: '', remote: false, work_model: '', office_locations: '',
+  hybrid_days_in_office: '', willing_to_hire_internationally: false,
+  travel_required: false, travel_percentage: '', relocation_assistance: false,
+  salary_min: '', salary_max: '', salary_currency: 'USD', pay_frequency: '',
+  bonus_commission_structure: '', equity_stock_options: '', benefits_overview: '',
+  retirement_plan: '', paid_time_off_days: '', parental_leave_policy: '', other_perks: '',
+  description: '', summary: '', key_responsibilities: '', why_role_is_open: '',
+  team_size: '', team_structure: '', cross_functional_collaborators: '',
+  req_years_of_experience: '', req_education_level: '', req_field_of_study: '',
+  req_certifications: '', req_technical_skills: '', req_work_authorization: '',
+  nice_years_of_experience: '', nice_education: '', nice_technical_skills: '',
+  nice_industry_background: '',
+  company_website: '', industry: '', company_size: '', company_stage: '',
+  mission_values: '', culture_description: '', dei_statement: '',
+  application_deadline: '', how_to_apply: '', documents_required: '',
+  interview_rounds: '', interview_format: '', expected_time_to_hire: '',
+  contact_person: '', contact_email_phone: '',
   is_active: true,
 };
 
@@ -61,37 +135,136 @@ const FIELD_LABELS: Record<JobReviewIssue['field'], string> = {
   salary_currency: 'Salary currency',
 };
 
+function tryParseJsonArray(val: string | null): string[] {
+  if (!val) return [];
+  try { const arr = JSON.parse(val); return Array.isArray(arr) ? arr : []; } catch { return []; }
+}
+
 function jobToForm(job: RecruiterJob | null): FormState {
   if (!job) return { ...EMPTY_FORM };
   return {
-    title: job.title ?? '',
-    company: job.company ?? '',
-    description: job.description ?? '',
-    location: job.location ?? '',
-    remote: job.remote === 1,
+    title: job.title ?? '', company: job.company ?? '',
     employment_type: (job.employment_type ?? '') as EmploymentType | '',
-    salary_min: job.salary_min == null ? '' : String(job.salary_min),
-    salary_max: job.salary_max == null ? '' : String(job.salary_max),
+    job_id_requisition: job.job_id_requisition ?? '', department: job.department ?? '',
+    team: job.team ?? '', reporting_to: job.reporting_to ?? '',
+    number_of_direct_reports: job.number_of_direct_reports != null ? String(job.number_of_direct_reports) : '',
+    permanent_or_fixed_term: job.permanent_or_fixed_term ?? '',
+    contract_duration: job.contract_duration ?? '', job_level: job.job_level ?? '',
+    location: job.location ?? '', remote: job.remote === 1,
+    work_model: job.work_model ?? '',
+    office_locations: tryParseJsonArray(job.office_locations).join('\n'),
+    hybrid_days_in_office: job.hybrid_days_in_office != null ? String(job.hybrid_days_in_office) : '',
+    willing_to_hire_internationally: job.willing_to_hire_internationally === 1,
+    travel_required: job.travel_required === 1,
+    travel_percentage: job.travel_percentage ?? '',
+    relocation_assistance: job.relocation_assistance === 1,
+    salary_min: job.salary_min != null ? String(job.salary_min) : '',
+    salary_max: job.salary_max != null ? String(job.salary_max) : '',
     salary_currency: job.salary_currency ?? 'USD',
+    pay_frequency: job.pay_frequency ?? '',
+    bonus_commission_structure: job.bonus_commission_structure ?? '',
+    equity_stock_options: job.equity_stock_options ?? '',
+    benefits_overview: job.benefits_overview ?? '',
+    retirement_plan: job.retirement_plan ?? '',
+    paid_time_off_days: job.paid_time_off_days != null ? String(job.paid_time_off_days) : '',
+    parental_leave_policy: job.parental_leave_policy ?? '',
+    other_perks: tryParseJsonArray(job.other_perks).join('\n'),
+    description: job.description ?? '', summary: job.summary ?? '',
+    key_responsibilities: tryParseJsonArray(job.key_responsibilities).join('\n'),
+    why_role_is_open: job.why_role_is_open ?? '',
+    team_size: job.team_size != null ? String(job.team_size) : '',
+    team_structure: job.team_structure ?? '',
+    cross_functional_collaborators: tryParseJsonArray(job.cross_functional_collaborators).join('\n'),
+    req_years_of_experience: job.req_years_of_experience != null ? String(job.req_years_of_experience) : '',
+    req_education_level: job.req_education_level ?? '',
+    req_field_of_study: job.req_field_of_study ?? '',
+    req_certifications: tryParseJsonArray(job.req_certifications).join('\n'),
+    req_technical_skills: tryParseJsonArray(job.req_technical_skills).join('\n'),
+    req_work_authorization: job.req_work_authorization ?? '',
+    nice_years_of_experience: job.nice_years_of_experience != null ? String(job.nice_years_of_experience) : '',
+    nice_education: job.nice_education ?? '',
+    nice_technical_skills: tryParseJsonArray(job.nice_technical_skills).join('\n'),
+    nice_industry_background: job.nice_industry_background ?? '',
+    company_website: job.company_website ?? '', industry: job.industry ?? '',
+    company_size: job.company_size != null ? String(job.company_size) : '',
+    company_stage: job.company_stage ?? '',
+    mission_values: job.mission_values ?? '', culture_description: job.culture_description ?? '',
+    dei_statement: job.dei_statement ?? '',
+    application_deadline: job.application_deadline ?? '', how_to_apply: job.how_to_apply ?? '',
+    documents_required: tryParseJsonArray(job.documents_required).join('\n'),
+    interview_rounds: job.interview_rounds != null ? String(job.interview_rounds) : '',
+    interview_format: tryParseJsonArray(job.interview_format).join('\n'),
+    expected_time_to_hire: job.expected_time_to_hire ?? '',
+    contact_person: job.contact_person ?? '', contact_email_phone: job.contact_email_phone ?? '',
     is_active: job.is_active === 1,
   };
 }
 
+function linesToArray(text: string): string[] {
+  return text.split('\n').map(s => s.trim()).filter(s => s !== '');
+}
+
+function strOrNull(v: string): string | null { return v.trim() || null; }
+function numOrNull(v: string): number | null { const t = v.trim(); return t === '' ? null : Number(t); }
+
 function buildPayload(form: FormState): RecruiterJobInput {
   return {
     title: form.title.trim(),
-    company: form.company.trim() === '' ? null : form.company.trim(),
-    description:
-      form.description.trim() === '' ? null : form.description.trim(),
-    location: form.location.trim() === '' ? null : form.location.trim(),
-    remote: form.remote,
+    company: strOrNull(form.company),
     employment_type: form.employment_type === '' ? null : form.employment_type,
-    salary_min:
-      form.salary_min.trim() === '' ? null : Number(form.salary_min),
-    salary_max:
-      form.salary_max.trim() === '' ? null : Number(form.salary_max),
-    salary_currency:
-      form.salary_currency.trim() === '' ? 'USD' : form.salary_currency.trim(),
+    job_id_requisition: strOrNull(form.job_id_requisition),
+    department: strOrNull(form.department), team: strOrNull(form.team),
+    reporting_to: strOrNull(form.reporting_to),
+    number_of_direct_reports: numOrNull(form.number_of_direct_reports),
+    permanent_or_fixed_term: strOrNull(form.permanent_or_fixed_term),
+    contract_duration: strOrNull(form.contract_duration),
+    job_level: strOrNull(form.job_level),
+    location: strOrNull(form.location), remote: form.remote,
+    work_model: strOrNull(form.work_model),
+    office_locations: linesToArray(form.office_locations),
+    hybrid_days_in_office: numOrNull(form.hybrid_days_in_office),
+    willing_to_hire_internationally: form.willing_to_hire_internationally,
+    travel_required: form.travel_required,
+    travel_percentage: strOrNull(form.travel_percentage),
+    relocation_assistance: form.relocation_assistance,
+    salary_min: numOrNull(form.salary_min), salary_max: numOrNull(form.salary_max),
+    salary_currency: form.salary_currency.trim() || 'USD',
+    pay_frequency: strOrNull(form.pay_frequency),
+    bonus_commission_structure: strOrNull(form.bonus_commission_structure),
+    equity_stock_options: strOrNull(form.equity_stock_options),
+    benefits_overview: strOrNull(form.benefits_overview),
+    retirement_plan: strOrNull(form.retirement_plan),
+    paid_time_off_days: numOrNull(form.paid_time_off_days),
+    parental_leave_policy: strOrNull(form.parental_leave_policy),
+    other_perks: linesToArray(form.other_perks),
+    description: strOrNull(form.description), summary: strOrNull(form.summary),
+    key_responsibilities: linesToArray(form.key_responsibilities),
+    why_role_is_open: strOrNull(form.why_role_is_open),
+    team_size: numOrNull(form.team_size), team_structure: strOrNull(form.team_structure),
+    cross_functional_collaborators: linesToArray(form.cross_functional_collaborators),
+    req_years_of_experience: numOrNull(form.req_years_of_experience),
+    req_education_level: strOrNull(form.req_education_level),
+    req_field_of_study: strOrNull(form.req_field_of_study),
+    req_certifications: linesToArray(form.req_certifications),
+    req_technical_skills: linesToArray(form.req_technical_skills),
+    req_work_authorization: strOrNull(form.req_work_authorization),
+    nice_years_of_experience: numOrNull(form.nice_years_of_experience),
+    nice_education: strOrNull(form.nice_education),
+    nice_technical_skills: linesToArray(form.nice_technical_skills),
+    nice_industry_background: strOrNull(form.nice_industry_background),
+    company_website: strOrNull(form.company_website), industry: strOrNull(form.industry),
+    company_size: numOrNull(form.company_size), company_stage: strOrNull(form.company_stage),
+    mission_values: strOrNull(form.mission_values),
+    culture_description: strOrNull(form.culture_description),
+    dei_statement: strOrNull(form.dei_statement),
+    application_deadline: strOrNull(form.application_deadline),
+    how_to_apply: strOrNull(form.how_to_apply),
+    documents_required: linesToArray(form.documents_required),
+    interview_rounds: numOrNull(form.interview_rounds),
+    interview_format: linesToArray(form.interview_format),
+    expected_time_to_hire: strOrNull(form.expected_time_to_hire),
+    contact_person: strOrNull(form.contact_person),
+    contact_email_phone: strOrNull(form.contact_email_phone),
     is_active: form.is_active,
   };
 }
@@ -237,159 +410,140 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
 
       <section style={styles.cardCol}>
         <fieldset style={styles.fieldset} disabled={saving}>
-          <legend style={styles.legend}>Role</legend>
-
-          <Field
-            label="Title"
-            required
-            issues={issuesByField.get('title')}
-            input={
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => update('title', e.target.value)}
-                placeholder="e.g. Senior Backend Engineer"
-                style={styles.input}
-                required
-              />
-            }
-          />
-
+          <legend style={styles.legend}>Job Basics</legend>
+          <Field label="Title" required issues={issuesByField.get('title')} input={<input type="text" value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Senior Backend Engineer" style={styles.input} required />} />
           <div style={styles.gridTwo}>
-            <Field
-              label="Company"
-              issues={issuesByField.get('company')}
-              input={
-                <input
-                  type="text"
-                  value={form.company}
-                  onChange={(e) => update('company', e.target.value)}
-                  placeholder="e.g. Acme Corp"
-                  style={styles.input}
-                />
-              }
-            />
-            <Field
-              label="Employment type"
-              issues={issuesByField.get('employment_type')}
-              input={
-                <select
-                  value={form.employment_type}
-                  onChange={(e) =>
-                    update('employment_type', e.target.value as EmploymentType | '')
-                  }
-                  style={styles.input}
-                >
-                  {EMPLOYMENT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              }
-            />
+            <Field label="Company" issues={issuesByField.get('company')} input={<input type="text" value={form.company} onChange={e => update('company', e.target.value)} placeholder="e.g. Acme Corp" style={styles.input} />} />
+            <Field label="Employment type" input={<select value={form.employment_type} onChange={e => update('employment_type', e.target.value as EmploymentType | '')} style={styles.input}>{EMPLOYMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>} />
           </div>
-
           <div style={styles.gridTwo}>
-            <Field
-              label="Location"
-              issues={issuesByField.get('location')}
-              input={
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => update('location', e.target.value)}
-                  placeholder="e.g. San Francisco, CA"
-                  style={styles.input}
-                />
-              }
-            />
-            <Field
-              label="Remote"
-              input={
-                <label style={styles.toggleRow}>
-                  <input
-                    type="checkbox"
-                    checked={form.remote}
-                    onChange={(e) => update('remote', e.target.checked)}
-                  />
-                  <span>This role can be done remotely</span>
-                </label>
-              }
-            />
+            <Field label="Job ID / Requisition #" input={<input type="text" value={form.job_id_requisition} onChange={e => update('job_id_requisition', e.target.value)} style={styles.input} />} />
+            <Field label="Department" input={<input type="text" value={form.department} onChange={e => update('department', e.target.value)} style={styles.input} />} />
           </div>
+          <div style={styles.gridTwo}>
+            <Field label="Team" input={<input type="text" value={form.team} onChange={e => update('team', e.target.value)} style={styles.input} />} />
+            <Field label="Reporting to" input={<input type="text" value={form.reporting_to} onChange={e => update('reporting_to', e.target.value)} placeholder="Title of direct manager" style={styles.input} />} />
+          </div>
+          <div style={styles.gridThree}>
+            <Field label="# Direct reports" input={<input type="number" min={0} value={form.number_of_direct_reports} onChange={e => update('number_of_direct_reports', e.target.value)} style={styles.input} />} />
+            <Field label="Permanent / Fixed-term" input={<input type="text" value={form.permanent_or_fixed_term} onChange={e => update('permanent_or_fixed_term', e.target.value)} placeholder="Permanent" style={styles.input} />} />
+            <Field label="Contract duration" input={<input type="text" value={form.contract_duration} onChange={e => update('contract_duration', e.target.value)} placeholder="e.g. 6 months" style={styles.input} />} />
+          </div>
+          <Field label="Job level / Seniority" input={<input type="text" value={form.job_level} onChange={e => update('job_level', e.target.value)} placeholder="e.g. Senior, Staff, Lead" style={styles.input} />} />
+        </fieldset>
 
-          <Field
-            label="Description"
-            issues={issuesByField.get('description')}
-            input={
-              <textarea
-                value={form.description}
-                onChange={(e) => update('description', e.target.value)}
-                placeholder="Describe the role: responsibilities, tech stack, what success looks like, who you're looking for…"
-                style={{ ...styles.input, minHeight: 180, resize: 'vertical' }}
-              />
-            }
-          />
+        <fieldset style={styles.fieldset} disabled={saving}>
+          <legend style={styles.legend}>Location</legend>
+          <div style={styles.gridTwo}>
+            <Field label="Location" input={<input type="text" value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. San Francisco, CA" style={styles.input} />} />
+            <Field label="Work model" input={<select value={form.work_model} onChange={e => update('work_model', e.target.value)} style={styles.input}><option value="">Not specified</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="on-site">On-site</option></select>} />
+          </div>
+          <Field label="Office locations (one per line)" input={<textarea value={form.office_locations} onChange={e => update('office_locations', e.target.value)} rows={2} placeholder="San Francisco, CA&#10;New York, NY" style={{ ...styles.input, resize: 'vertical' }} />} />
+          {form.work_model === 'hybrid' && <Field label="Days in office per week" input={<input type="number" min={0} max={7} value={form.hybrid_days_in_office} onChange={e => update('hybrid_days_in_office', e.target.value)} style={styles.input} />} />}
+          <div style={styles.gridTwo}>
+            <Field label="Remote" input={<label style={styles.toggleRow}><input type="checkbox" checked={form.remote} onChange={e => update('remote', e.target.checked)} /><span>Remote-friendly</span></label>} />
+            <Field label="International" input={<label style={styles.toggleRow}><input type="checkbox" checked={form.willing_to_hire_internationally} onChange={e => update('willing_to_hire_internationally', e.target.checked)} /><span>Willing to hire internationally</span></label>} />
+          </div>
+          <div style={styles.gridThree}>
+            <Field label="Travel required" input={<label style={styles.toggleRow}><input type="checkbox" checked={form.travel_required} onChange={e => update('travel_required', e.target.checked)} /><span>Yes</span></label>} />
+            <Field label="Travel %" input={<input type="text" value={form.travel_percentage} onChange={e => update('travel_percentage', e.target.value)} placeholder="e.g. 20%" style={styles.input} />} />
+            <Field label="Relocation" input={<label style={styles.toggleRow}><input type="checkbox" checked={form.relocation_assistance} onChange={e => update('relocation_assistance', e.target.checked)} /><span>Offered</span></label>} />
+          </div>
         </fieldset>
 
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Compensation</legend>
-
           <div style={styles.gridThree}>
-            <Field
-              label="Min salary"
-              issues={issuesByField.get('salary_min')}
-              input={
-                <input
-                  type="number"
-                  min={0}
-                  value={form.salary_min}
-                  onChange={(e) => update('salary_min', e.target.value)}
-                  placeholder="e.g. 120000"
-                  style={styles.input}
-                />
-              }
-            />
-            <Field
-              label="Max salary"
-              issues={issuesByField.get('salary_max')}
-              input={
-                <input
-                  type="number"
-                  min={0}
-                  value={form.salary_max}
-                  onChange={(e) => update('salary_max', e.target.value)}
-                  placeholder="e.g. 180000"
-                  style={styles.input}
-                />
-              }
-            />
-            <Field
-              label="Currency"
-              issues={issuesByField.get('salary_currency')}
-              input={
-                <input
-                  type="text"
-                  value={form.salary_currency}
-                  onChange={(e) => update('salary_currency', e.target.value.toUpperCase())}
-                  maxLength={3}
-                  placeholder="USD"
-                  style={styles.input}
-                />
-              }
-            />
+            <Field label="Min salary" input={<input type="number" min={0} value={form.salary_min} onChange={e => update('salary_min', e.target.value)} placeholder="120000" style={styles.input} />} />
+            <Field label="Max salary" input={<input type="number" min={0} value={form.salary_max} onChange={e => update('salary_max', e.target.value)} placeholder="180000" style={styles.input} />} />
+            <Field label="Currency" input={<input type="text" value={form.salary_currency} onChange={e => update('salary_currency', e.target.value.toUpperCase())} maxLength={3} placeholder="USD" style={styles.input} />} />
+          </div>
+          <div style={styles.gridTwo}>
+            <Field label="Pay frequency" input={<input type="text" value={form.pay_frequency} onChange={e => update('pay_frequency', e.target.value)} placeholder="Annual" style={styles.input} />} />
+            <Field label="PTO days/year" input={<input type="number" min={0} value={form.paid_time_off_days} onChange={e => update('paid_time_off_days', e.target.value)} style={styles.input} />} />
+          </div>
+          <Field label="Bonus / Commission" input={<input type="text" value={form.bonus_commission_structure} onChange={e => update('bonus_commission_structure', e.target.value)} style={styles.input} />} />
+          <Field label="Equity / Stock options" input={<input type="text" value={form.equity_stock_options} onChange={e => update('equity_stock_options', e.target.value)} style={styles.input} />} />
+          <Field label="Benefits overview" input={<textarea value={form.benefits_overview} onChange={e => update('benefits_overview', e.target.value)} rows={2} placeholder="Health, dental, vision…" style={{ ...styles.input, resize: 'vertical' }} />} />
+          <div style={styles.gridTwo}>
+            <Field label="Retirement plan" input={<input type="text" value={form.retirement_plan} onChange={e => update('retirement_plan', e.target.value)} placeholder="401k with match" style={styles.input} />} />
+            <Field label="Parental leave" input={<input type="text" value={form.parental_leave_policy} onChange={e => update('parental_leave_policy', e.target.value)} style={styles.input} />} />
+          </div>
+          <Field label="Other perks (one per line)" input={<textarea value={form.other_perks} onChange={e => update('other_perks', e.target.value)} rows={2} placeholder="Gym stipend&#10;Learning budget" style={{ ...styles.input, resize: 'vertical' }} />} />
+        </fieldset>
+
+        <fieldset style={styles.fieldset} disabled={saving}>
+          <legend style={styles.legend}>Role Description</legend>
+          <Field label="Summary" input={<textarea value={form.summary} onChange={e => update('summary', e.target.value)} rows={3} placeholder="Brief overview of the role" style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="Key responsibilities (one per line)" input={<textarea value={form.key_responsibilities} onChange={e => update('key_responsibilities', e.target.value)} rows={4} placeholder="Design and implement APIs&#10;Mentor junior engineers" style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="Full description" issues={issuesByField.get('description')} input={<textarea value={form.description} onChange={e => update('description', e.target.value)} rows={6} placeholder="Detailed role description…" style={{ ...styles.input, minHeight: 140, resize: 'vertical' }} />} />
+          <Field label="Why is this role open?" input={<input type="text" value={form.why_role_is_open} onChange={e => update('why_role_is_open', e.target.value)} placeholder="New headcount / Backfill" style={styles.input} />} />
+          <div style={styles.gridTwo}>
+            <Field label="Team size" input={<input type="number" min={0} value={form.team_size} onChange={e => update('team_size', e.target.value)} style={styles.input} />} />
+            <Field label="Team structure" input={<input type="text" value={form.team_structure} onChange={e => update('team_structure', e.target.value)} style={styles.input} />} />
+          </div>
+          <Field label="Cross-functional collaborators (one per line)" input={<textarea value={form.cross_functional_collaborators} onChange={e => update('cross_functional_collaborators', e.target.value)} rows={2} style={{ ...styles.input, resize: 'vertical' }} />} />
+        </fieldset>
+
+        <fieldset style={styles.fieldset} disabled={saving}>
+          <legend style={styles.legend}>Requirements</legend>
+          <div style={styles.gridThree}>
+            <Field label="Years of experience" input={<input type="number" min={0} value={form.req_years_of_experience} onChange={e => update('req_years_of_experience', e.target.value)} style={styles.input} />} />
+            <Field label="Education level" input={<input type="text" value={form.req_education_level} onChange={e => update('req_education_level', e.target.value)} placeholder="Bachelor's" style={styles.input} />} />
+            <Field label="Field of study" input={<input type="text" value={form.req_field_of_study} onChange={e => update('req_field_of_study', e.target.value)} placeholder="Computer Science" style={styles.input} />} />
+          </div>
+          <Field label="Required technical skills (one per line)" input={<textarea value={form.req_technical_skills} onChange={e => update('req_technical_skills', e.target.value)} rows={3} placeholder="Node.js&#10;PostgreSQL&#10;TypeScript" style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="Required certifications (one per line)" input={<textarea value={form.req_certifications} onChange={e => update('req_certifications', e.target.value)} rows={2} style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="Work authorization" input={<input type="text" value={form.req_work_authorization} onChange={e => update('req_work_authorization', e.target.value)} placeholder="Must be authorized to work in the US" style={styles.input} />} />
+        </fieldset>
+
+        <fieldset style={styles.fieldset} disabled={saving}>
+          <legend style={styles.legend}>Nice to Haves</legend>
+          <div style={styles.gridTwo}>
+            <Field label="Years of experience" input={<input type="number" min={0} value={form.nice_years_of_experience} onChange={e => update('nice_years_of_experience', e.target.value)} style={styles.input} />} />
+            <Field label="Education" input={<input type="text" value={form.nice_education} onChange={e => update('nice_education', e.target.value)} style={styles.input} />} />
+          </div>
+          <Field label="Preferred technical skills (one per line)" input={<textarea value={form.nice_technical_skills} onChange={e => update('nice_technical_skills', e.target.value)} rows={2} style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="Industry background" input={<input type="text" value={form.nice_industry_background} onChange={e => update('nice_industry_background', e.target.value)} style={styles.input} />} />
+        </fieldset>
+
+        <fieldset style={styles.fieldset} disabled={saving}>
+          <legend style={styles.legend}>Company Information</legend>
+          <div style={styles.gridTwo}>
+            <Field label="Company website" input={<input type="url" value={form.company_website} onChange={e => update('company_website', e.target.value)} placeholder="https://…" style={styles.input} />} />
+            <Field label="Industry" input={<input type="text" value={form.industry} onChange={e => update('industry', e.target.value)} style={styles.input} />} />
+          </div>
+          <div style={styles.gridTwo}>
+            <Field label="Company size" input={<input type="number" min={0} value={form.company_size} onChange={e => update('company_size', e.target.value)} placeholder="e.g. 500" style={styles.input} />} />
+            <Field label="Company stage" input={<input type="text" value={form.company_stage} onChange={e => update('company_stage', e.target.value)} placeholder="e.g. Series B, Public" style={styles.input} />} />
+          </div>
+          <Field label="Mission / Values" input={<textarea value={form.mission_values} onChange={e => update('mission_values', e.target.value)} rows={2} style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="Culture description" input={<textarea value={form.culture_description} onChange={e => update('culture_description', e.target.value)} rows={2} style={{ ...styles.input, resize: 'vertical' }} />} />
+          <Field label="DEI statement" input={<textarea value={form.dei_statement} onChange={e => update('dei_statement', e.target.value)} rows={2} style={{ ...styles.input, resize: 'vertical' }} />} />
+        </fieldset>
+
+        <fieldset style={styles.fieldset} disabled={saving}>
+          <legend style={styles.legend}>Application Process</legend>
+          <div style={styles.gridTwo}>
+            <Field label="Application deadline" input={<input type="date" value={form.application_deadline} onChange={e => update('application_deadline', e.target.value)} style={styles.input} />} />
+            <Field label="Expected time to hire" input={<input type="text" value={form.expected_time_to_hire} onChange={e => update('expected_time_to_hire', e.target.value)} placeholder="e.g. 4-6 weeks" style={styles.input} />} />
+          </div>
+          <Field label="How to apply" input={<input type="text" value={form.how_to_apply} onChange={e => update('how_to_apply', e.target.value)} placeholder="Portal / Email / Referral" style={styles.input} />} />
+          <Field label="Documents required (one per line)" input={<textarea value={form.documents_required} onChange={e => update('documents_required', e.target.value)} rows={2} placeholder="Resume&#10;Cover letter" style={{ ...styles.input, resize: 'vertical' }} />} />
+          <div style={styles.gridTwo}>
+            <Field label="Interview rounds" input={<input type="number" min={0} value={form.interview_rounds} onChange={e => update('interview_rounds', e.target.value)} style={styles.input} />} />
+            <Field label="Interview format (one per line)" input={<textarea value={form.interview_format} onChange={e => update('interview_format', e.target.value)} rows={2} placeholder="Phone screen&#10;Technical&#10;On-site" style={{ ...styles.input, resize: 'vertical' }} />} />
+          </div>
+          <div style={styles.gridTwo}>
+            <Field label="Contact person" input={<input type="text" value={form.contact_person} onChange={e => update('contact_person', e.target.value)} style={styles.input} />} />
+            <Field label="Contact email / phone" input={<input type="text" value={form.contact_email_phone} onChange={e => update('contact_email_phone', e.target.value)} style={styles.input} />} />
           </div>
         </fieldset>
 
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Status</legend>
           <label style={styles.toggleRow}>
-            <input
-              type="checkbox"
-              checked={form.is_active}
-              onChange={(e) => update('is_active', e.target.checked)}
-            />
+            <input type="checkbox" checked={form.is_active} onChange={e => update('is_active', e.target.checked)} />
             <span>Posting is active and visible to applicants</span>
           </label>
         </fieldset>
