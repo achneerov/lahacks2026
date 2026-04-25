@@ -12,8 +12,11 @@ export default function Landing() {
     <div className="landing-page" style={styles.pageContainer}>
       <nav style={styles.nav}>
         <div style={styles.navLogo}>
-          <div style={styles.logoIcon}></div>
-          <span style={styles.logoText}>Aegis</span>
+          <div style={styles.logoIcon}>
+            <span style={styles.logoRingMid}></span>
+            <span style={styles.logoRingInner}></span>
+          </div>
+          <span style={styles.logoText}>Impulse</span>
         </div>
       </nav>
 
@@ -24,7 +27,7 @@ export default function Landing() {
             Integrity-First Hiring<br />for the Modern Enterprise
           </h1>
           <p style={styles.heroSubtitle}>
-            Aegis Talent secures your hiring pipeline by verifying human authenticity at the source. Build teams grounded in verified identity and cryptographic trust.
+            Impulse secures your hiring pipeline by verifying human authenticity at the source. Build teams grounded in verified identity and cryptographic trust.
           </p>
 
           <button
@@ -158,7 +161,7 @@ export default function Landing() {
         <div style={styles.darkSplitContent}>
           <div style={styles.darkSplitLeft}>
             <h2 style={styles.darkSplitTitle}>Enterprise-grade.<br />Developer-friendly.</h2>
-            <p style={styles.darkSplitBody}>Aegis Talent is designed to fit seamlessly into any modern corporate infrastructure. We prioritize data sovereignty, ensuring candidate privacy is mathematically guaranteed without adding unnecessary friction to your recruitment flow.</p>
+            <p style={styles.darkSplitBody}>Impulse is designed to fit seamlessly into any modern corporate infrastructure. We prioritize data sovereignty, ensuring candidate privacy is mathematically guaranteed without adding unnecessary friction to your recruitment flow.</p>
             <ul style={styles.checkList}>
               <li style={styles.checkListItem}>
                 <div style={styles.checkIconLightWrapper}>
@@ -204,13 +207,13 @@ export default function Landing() {
 
       {/* FOOTER */}
       <footer style={styles.footer}>
-        <div style={styles.footerBrand}>Aegis Talent</div>
+        <div style={styles.footerBrand}>Impulse</div>
         <div style={styles.footerLinks}>
           <span style={styles.footerLink}>Documentation</span>
           <span style={styles.footerLink}>Privacy Policy</span>
           <span style={styles.footerLink}>System Status</span>
         </div>
-        <div style={styles.footerCopyright}>© 2026 Aegis Talent Acquisition Systems.</div>
+        <div style={styles.footerCopyright}>© 2026 Impulse.</div>
       </footer>
     </div>
   );
@@ -244,8 +247,29 @@ const styles: Record<string, React.CSSProperties> = {
   logoIcon: {
     width: '24px',
     height: '24px',
-    backgroundColor: '#000',
-    borderRadius: '6px'
+    border: '2px solid #111827',
+    borderRadius: '50%',
+    position: 'relative',
+    boxSizing: 'border-box',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  logoRingMid: {
+    width: '14px',
+    height: '14px',
+    border: '2px solid #111827',
+    borderRadius: '50%',
+    position: 'absolute',
+    boxSizing: 'border-box'
+  },
+  logoRingInner: {
+    width: '6px',
+    height: '6px',
+    border: '2px solid #111827',
+    borderRadius: '50%',
+    position: 'absolute',
+    boxSizing: 'border-box'
   },
   logoText: {
     fontWeight: 600,

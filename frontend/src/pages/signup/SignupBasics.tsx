@@ -94,9 +94,10 @@ export default function SignupBasics() {
         <div style={styles.leftContent}>
           <div style={styles.logoRow}>
             <div style={styles.logoIcon}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <span style={styles.logoRingMid}></span>
+              <span style={styles.logoRingInner}></span>
             </div>
-            <span style={styles.logoText}>AegisTalent</span>
+            <span style={styles.logoText}>Impulse</span>
           </div>
 
           <div style={styles.heroTextContainer}>
@@ -300,11 +301,29 @@ const styles: Record<string, React.CSSProperties> = {
   logoIcon: {
     width: '32px',
     height: '32px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'relative',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  logoRingMid: {
+    width: '18px',
+    height: '18px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'absolute',
+    boxSizing: 'border-box'
+  },
+  logoRingInner: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'absolute',
+    boxSizing: 'border-box'
   },
   logoText: {
     fontSize: '20px',

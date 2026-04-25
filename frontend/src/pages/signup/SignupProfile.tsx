@@ -189,11 +189,29 @@ const layout: Record<string, CSSProperties> = {
   logoIcon: {
     width: '32px',
     height: '32px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'relative',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoRingMid: {
+    width: '18px',
+    height: '18px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'absolute',
+    boxSizing: 'border-box',
+  },
+  logoRingInner: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'absolute',
+    boxSizing: 'border-box',
   },
   logoText: { fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' },
   heroTextContainer: { maxWidth: '480px', marginBottom: '80px' },
@@ -1024,9 +1042,10 @@ export default function SignupProfile() {
         <div style={layout.leftContent}>
           <div style={layout.logoRow}>
             <div style={layout.logoIcon}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              <span style={layout.logoRingMid}></span>
+              <span style={layout.logoRingInner}></span>
             </div>
-            <span style={layout.logoText}>AegisTalent</span>
+            <span style={layout.logoText}>Impulse</span>
           </div>
           <div style={layout.heroTextContainer}>
             <h1 style={layout.heroTitle}>Build a profile employers trust.</h1>

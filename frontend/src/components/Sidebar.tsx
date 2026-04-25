@@ -89,9 +89,10 @@ export default function Sidebar() {
     <aside className="app-sidebar" style={styles.aside}>
       <div style={styles.brandRow}>
         <span style={styles.brandMark} aria-hidden="true">
-          <SparkIcon />
+          <span style={styles.brandRingMid} />
+          <span style={styles.brandRingInner} />
         </span>
-        <span style={styles.brandText}>Verified</span>
+        <span style={styles.brandText}>Impulse</span>
       </div>
 
       <nav style={styles.nav} aria-label="Primary">
@@ -220,14 +221,6 @@ function LogoutIcon() {
   );
 }
 
-function SparkIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6L12 2zM19 14l.9 2.7L22 17.5l-2.1.8L19 21l-.9-2.7L16 17.5l2.1-.8L19 14z" />
-    </svg>
-  );
-}
-
 const styles: Record<string, CSSProperties> = {
   aside: {
     width: 240,
@@ -253,13 +246,30 @@ const styles: Record<string, CSSProperties> = {
   brandMark: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    background: 'var(--accent-bg)',
+    borderRadius: '50%',
+    border: '2px solid var(--accent)',
     color: 'var(--accent)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid var(--accent-border)',
+    position: 'relative',
+    boxSizing: 'border-box',
+  },
+  brandRingMid: {
+    width: 18,
+    height: 18,
+    borderRadius: '50%',
+    border: '2px solid var(--accent)',
+    position: 'absolute',
+    boxSizing: 'border-box',
+  },
+  brandRingInner: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    border: '2px solid var(--accent)',
+    position: 'absolute',
+    boxSizing: 'border-box',
   },
   brandText: {
     fontSize: 16,
