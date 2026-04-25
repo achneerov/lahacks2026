@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "db:reset": "node db/reset.js",
+    "db:reset:empty": "node db/reset.js --no-seed",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,6 +15,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "express": "^5.2.1"
   },
   "devDependencies": {

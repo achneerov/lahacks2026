@@ -3,3 +3,7 @@ backend/node_modules/
 frontend/dist/
 **/.env
 **/.env.local
+backend/db/*.db
+backend/db/*.db-journal
+backend/db/*.db-wal
+backend/db/*.db-shm
