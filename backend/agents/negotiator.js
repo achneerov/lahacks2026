@@ -256,7 +256,7 @@ async function runNegotiation(applicationId) {
     });
   }
 
-  // Verdict pass after all 14 turns.
+  // Verdict pass after TOTAL_TURNS negotiation exchanges.
   emit(applicationId, { type: 'verdict-pending' });
   const verdictResp = await withRetry(
     'verdict',

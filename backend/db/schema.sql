@@ -328,7 +328,7 @@ CREATE INDEX idx_applications_status    ON applications(status);
 CREATE INDEX idx_applications_match     ON applications(job_posting_id, match_score DESC);
 
 -- Append-only transcript for the applicant_agent <-> recruiter_agent negotiation.
--- One row per turn (turn_index 0..13, applicant on even, recruiter on odd).
+-- One row per turn (turn_index 0..9 for 10 total turns; applicant on even, recruiter on odd).
 CREATE TABLE negotiation_messages (
   application_id  INTEGER NOT NULL,
   turn_index      INTEGER NOT NULL,
