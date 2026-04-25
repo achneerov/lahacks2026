@@ -117,54 +117,96 @@ export default function SignupWorldId() {
   const verifyDisabled = !ctx || loadingCtx || submitting;
 
   return (
-    <main style={styles.page}>
-      <section style={styles.card}>
-        <span style={styles.eyebrow}>Step 2 of 3</span>
-        <h1 style={styles.title}>Verify with World ID</h1>
-        <p style={styles.subtitle}>
-          You're signing up as <strong>{basics.role}</strong> with username{' '}
-          <strong>{basics.username}</strong>.
-        </p>
-        <p style={styles.note}>
-          {isApplicant
-            ? 'After verifying, you will continue to step 3 to fill out your applicant profile.'
-            : 'After verifying, your recruiter account will be created and you will be taken to your home view.'}
-        </p>
-
-        {!password && (
-          <div role="alert" style={styles.warning}>
-            Your password isn't in this session — go back to step 1 and re-enter it
-            before verifying.
+    <div className="landing-page" style={styles.pageContainer}>
+      <div style={styles.leftPanel}>
+        <div style={styles.leftOverlay} />
+        <div style={styles.leftContent}>
+          <div style={styles.logoRow}>
+            <div style={styles.logoIcon}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <span style={styles.logoText}>AegisTalent</span>
           </div>
-        )}
-
-        {error && (
-          <div role="alert" style={styles.error}>
-            {error}
+          <div style={styles.heroTextContainer}>
+            <h1 style={styles.heroTitle}>Verify once. Hire with confidence.</h1>
+            <p style={styles.heroSubtitle}>
+              World ID ties your account to a unique human, reducing spam and fraud across the network.
+            </p>
           </div>
-        )}
-
-        <div style={styles.actions}>
-          <Link to="/signup" style={styles.back}>
-            ← Back to step 1
-          </Link>
-          <button
-            type="button"
-            onClick={startVerification}
-            disabled={verifyDisabled}
-            style={{
-              ...styles.primary,
-              ...(verifyDisabled ? styles.primaryDisabled : null),
-            }}
-          >
-            {submitting
-              ? 'Creating account…'
-              : loadingCtx
-              ? 'Preparing…'
-              : 'Verify with World ID'}
-          </button>
+          <div style={styles.statsRow}>
+            <div>
+              <div style={styles.statLabel}>VERIFIED USERS</div>
+              <div style={styles.statValue}>42,000+</div>
+            </div>
+            <div>
+              <div style={styles.statLabel}>AI PRECISION</div>
+              <div style={styles.statValue}>99.8%</div>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
+
+      <div style={styles.rightPanel}>
+        <div style={styles.rightContentBox}>
+          <div style={styles.stepRow}>
+            <span style={styles.stepEyebrow}>Step 2 of 3</span>
+            <div style={styles.stepSegments} aria-hidden>
+              <div style={{ ...styles.stepSeg, ...styles.stepSegOn }} />
+              <div style={{ ...styles.stepSeg, ...styles.stepSegCurrent }} />
+              <div style={styles.stepSeg} />
+            </div>
+            <div style={styles.formHeader}>
+              <h1 style={styles.formTitle}>Verify with World ID</h1>
+              <p style={styles.formLead}>
+                You&apos;re signing up as <strong style={{ color: '#0F172A', fontWeight: 600 }}>{basics.role}</strong> with username{' '}
+                <strong style={{ color: '#0F172A', fontWeight: 600 }}>{basics.username}</strong>.
+              </p>
+            </div>
+          </div>
+
+          <p style={styles.callout}>
+            {isApplicant
+              ? 'After verifying, you’ll continue to your applicant profile to finish signup.'
+              : 'After verifying, your recruiter account is created and you’ll go to your home view.'}
+          </p>
+
+          {!password && (
+            <div role="alert" style={styles.warning}>
+              Your password isn&apos;t in this session—go back to step 1 and re-enter it before verifying.
+            </div>
+          )}
+
+          {error && <div role="alert" style={styles.error}>{error}</div>}
+
+          <div style={styles.actionCol}>
+            <button
+              type="button"
+              onClick={startVerification}
+              disabled={verifyDisabled}
+              style={{ ...styles.primary, ...(verifyDisabled ? styles.primaryDisabled : null) }}
+            >
+              {submitting
+                ? 'CREATING ACCOUNT…'
+                : loadingCtx
+                ? 'PREPARING…'
+                : 'VERIFY WITH WORLD ID'}
+            </button>
+            <Link to="/signup" style={styles.back}>
+              ← Back to step 1
+            </Link>
+          </div>
+
+          <div style={styles.footerLinks}>
+            <span>Privacy Policy</span>
+            <span style={styles.dot}>•</span>
+            <span>Service Terms</span>
+            <span style={styles.dot}>•</span>
+            <span>SOC2 Compliance</span>
+          </div>
+        </div>
+      </div>
 
       {ctx && (
         <IDKitRequestWidget
@@ -178,7 +220,7 @@ export default function SignupWorldId() {
           onSuccess={handleSuccess}
         />
       )}
-    </main>
+    </div>
   );
 }
 
@@ -204,93 +246,146 @@ function errorMessage(code: string, detail?: string): string {
 }
 
 const styles: Record<string, CSSProperties> = {
-  page: {
-    flex: 1,
+  pageContainer: {
+    display: 'flex',
+    width: '100vw',
+    height: '100vh',
+    minHeight: '100vh',
+    maxHeight: '100vh',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    margin: 0,
+    overflow: 'hidden',
+  },
+  leftPanel: {
+    flex: '1.2',
+    alignSelf: 'stretch',
+    position: 'relative',
+    backgroundImage: 'url("/images/office.png")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 0,
+  },
+  leftOverlay: { position: 'absolute', inset: 0, backgroundColor: '#000000', opacity: 0.75 },
+  leftContent: {
+    position: 'relative',
+    zIndex: 1,
+    padding: '48px 64px',
+    height: '100%',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    color: 'white',
+  },
+  logoRow: { display: 'flex', alignItems: 'center', gap: '12px' },
+  logoIcon: {
+    width: '32px',
+    height: '32px',
+    backgroundColor: 'white',
+    borderRadius: '8px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '48px 24px',
-    boxSizing: 'border-box',
   },
-  card: {
-    width: '100%',
-    maxWidth: 480,
+  logoText: { fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' },
+  heroTextContainer: { maxWidth: '480px', marginBottom: '80px' },
+  heroTitle: { fontSize: '28px', fontWeight: 400, margin: '0 0 24px', lineHeight: 1.3, color: 'white' },
+  heroSubtitle: { fontSize: '16px', color: '#CBD5E1', lineHeight: 1.6, margin: 0 },
+  statsRow: {
+    display: 'flex',
+    gap: '64px',
+    borderTop: '1px solid rgba(255,255,255,0.1)',
+    paddingTop: '32px',
+  },
+  statLabel: { fontSize: '11px', fontWeight: 600, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' },
+  statValue: { fontSize: '20px', fontWeight: 400 },
+  rightPanel: {
+    flex: '1',
+    minWidth: 0,
+    minHeight: 0,
+    backgroundColor: '#F8FAFC',
     display: 'flex',
     flexDirection: 'column',
-    gap: 16,
-    padding: 32,
-    border: '1px solid var(--border)',
-    borderRadius: 16,
-    background: 'var(--bg)',
-    boxShadow: 'var(--shadow)',
-    textAlign: 'left',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeft: '1px solid #E2E8F0',
+    overflow: 'auto',
   },
-  eyebrow: {
-    alignSelf: 'flex-start',
-    padding: '4px 12px',
-    fontSize: 12,
-    fontWeight: 500,
-    color: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    letterSpacing: 0.4,
+  rightContentBox: { width: '100%', maxWidth: '440px', padding: '40px 32px 48px', boxSizing: 'border-box' },
+  stepRow: { marginBottom: '24px' },
+  stepEyebrow: {
+    display: 'block',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#3B82F6',
+    letterSpacing: '1px',
     textTransform: 'uppercase',
+    marginBottom: '10px',
   },
-  title: { margin: 0, color: 'var(--text-h)', fontSize: 28, lineHeight: 1.15 },
-  subtitle: { margin: 0, color: 'var(--text)', fontSize: 15 },
-  note: {
-    margin: 0,
-    padding: '10px 12px',
-    fontSize: 13,
-    color: 'var(--text)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 8,
+  stepSegments: { display: 'flex', gap: 6, marginBottom: 8 },
+  stepSeg: { flex: 1, height: 3, background: '#E2E8F0', borderRadius: 2 },
+  stepSegOn: { background: '#0F172A' },
+  stepSegCurrent: { background: '#3B82F6' },
+  formHeader: { marginBottom: 0 },
+  formTitle: { fontSize: '22px', fontWeight: 500, color: '#1E293B', margin: '0 0 10px', letterSpacing: '-0.3px' },
+  formLead: { fontSize: '14px', color: '#64748B', margin: 0, lineHeight: 1.6 },
+  callout: {
+    margin: '0 0 20px',
+    padding: '16px 18px',
+    fontSize: '13px',
+    lineHeight: 1.5,
+    color: '#334155',
+    background: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '16px',
   },
   warning: {
-    padding: '10px 12px',
-    fontSize: 13,
-    color: 'var(--text-h)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 8,
+    marginBottom: 16,
+    padding: '14px 16px',
+    fontSize: '13px',
+    lineHeight: 1.45,
+    color: '#92400E',
+    background: '#FFFBEB',
+    border: '1px solid #FCD34D',
+    borderRadius: 12,
   },
   error: {
-    padding: '10px 12px',
-    fontSize: 13,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
-    borderRadius: 8,
+    marginBottom: 16,
+    padding: '12px 14px',
+    fontSize: '13px',
+    color: '#B91C1C',
+    background: '#FEF2F2',
+    border: '1px solid #FECACA',
+    borderRadius: 12,
   },
-  actions: {
-    marginTop: 8,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  back: {
-    fontSize: 14,
-    color: 'var(--accent)',
-    textDecoration: 'underline',
-    textUnderlineOffset: 3,
-  },
+  actionCol: { display: 'flex', flexDirection: 'column', gap: 16, marginTop: 4 },
+  back: { fontSize: '14px', fontWeight: 500, color: '#3B82F6', textAlign: 'center', textDecoration: 'none' },
   primary: {
     appearance: 'none',
+    width: '100%',
     border: 'none',
     cursor: 'pointer',
-    padding: '12px 20px',
-    fontSize: 15,
+    padding: '16px 24px',
+    fontSize: '14px',
     fontWeight: 600,
     color: '#fff',
-    background: 'var(--accent)',
-    borderRadius: 10,
+    background: '#0F172A',
+    borderRadius: '999px',
+    letterSpacing: '0.5px',
+    fontFamily: 'inherit',
   },
-  primaryDisabled: {
-    cursor: 'not-allowed',
-    opacity: 0.55,
+  primaryDisabled: { cursor: 'not-allowed', opacity: 0.5 },
+  footerLinks: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 40,
+    fontSize: 12,
+    color: '#94A3B8',
   },
+  dot: { fontSize: 10 },
 };
