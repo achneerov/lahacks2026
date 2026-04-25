@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -113,21 +114,50 @@ function toProfile(form: FormState): ApplicantProfileInput {
 function validate(form: FormState): FieldErrors {
   const errs: FieldErrors = {};
 
+  // Required text fields
   if (!form.full_name.trim()) {
     errs.full_name = 'Please enter your full name.';
   }
+  if (!form.phone.trim()) {
+    errs.phone = 'Please enter your phone number.';
+  }
+  if (!form.address_line1.trim()) {
+    errs.address_line1 = 'Please enter your street address.';
+  }
+  if (!form.city.trim()) {
+    errs.city = 'Please enter your city.';
+  }
+  if (!form.state.trim()) {
+    errs.state = 'Please enter your state or region.';
+  }
+  if (!form.postal_code.trim()) {
+    errs.postal_code = 'Please enter your postal code.';
+  }
+  if (!form.country.trim()) {
+    errs.country = 'Please enter your country.';
+  }
+  if (!form.headline.trim()) {
+    errs.headline = 'Please enter a headline.';
+  }
+  if (!form.bio.trim()) {
+    errs.bio = 'Please enter a short bio.';
+  }
 
+  // Years of experience — required
+  if (!form.years_experience.trim()) {
+    errs.years_experience = 'Please enter your years of experience.';
+  } else {
+    const n = Number(form.years_experience);
+    if (!Number.isInteger(n) || n < 0 || n > 80) {
+      errs.years_experience = 'Must be a whole number between 0 and 80.';
+    }
+  }
+
+  // URL fields — optional but must be valid if provided
   for (const { key, label } of URL_FIELDS) {
     const v = form[key].trim();
     if (v && !URL_RE.test(v)) {
       errs[key] = `${label} must start with http:// or https://.`;
-    }
-  }
-
-  if (form.years_experience.trim()) {
-    const n = Number(form.years_experience);
-    if (!Number.isInteger(n) || n < 0 || n > 80) {
-      errs.years_experience = 'Must be a whole number between 0 and 80.';
     }
   }
 
@@ -150,6 +180,38 @@ export default function SignupProfile() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [topError, setTopError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function quickFill() {
+    setForm({
+      full_name: 'Alex Chneerov',
+      phone: '555-123-4567',
+      address_line1: '123 Market St',
+      address_line2: 'Apt 4B',
+      city: 'San Francisco',
+      state: 'CA',
+      postal_code: '94103',
+      country: 'USA',
+      headline: 'Full-stack engineer focused on React + Node',
+      bio: 'Passionate developer with experience building scalable web apps. Looking for my next challenge.',
+      resume_url: 'https://example.com/resume.pdf',
+      linkedin_url: 'https://linkedin.com/in/alexchneerov',
+      github_url: 'https://github.com/achneerov',
+      portfolio_url: 'https://alexchneerov.dev',
+      years_experience: '3',
+    });
+    setFieldErrors({});
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        quickFill();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
   const completedRef = useRef(false);

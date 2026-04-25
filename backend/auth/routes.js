@@ -152,6 +152,30 @@ router.post('/signup/check-basics', (req, res) => {
   });
 });
 
+router.post('/signup/check-world-id', async (req, res) => {
+  const { world_id_result } = req.body || {};
+
+  if (!world_id_result) {
+    return res.status(400).json({ error: 'missing_fields' });
+  }
+
+  let nullifier_hash;
+  try {
+    ({ nullifier_hash } = await verifyWorldId(world_id_result));
+  } catch (e) {
+    return res.status(e.status || 400).json({ error: 'world_id_failed', detail: e.message });
+  }
+
+  const existing = db
+    .prepare('SELECT 1 FROM users WHERE worldu_id = ?')
+    .get(nullifier_hash);
+  if (existing) {
+    return res.status(409).json({ error: 'world_id_already_used' });
+  }
+
+  return res.json({ ok: true });
+});
+
 router.post('/register', async (req, res) => {
   const { email, password, username, role, world_id_result, profile } = req.body || {};
 
