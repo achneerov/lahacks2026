@@ -1,0 +1,58 @@
+name: Label merged PR issues
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  add-ready-for-berny:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add "ready for berny" label to linked issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const label = 'ready for berny';
+            const trigger = 'ready for berny';
+
+            const haystack = `${pr.title || ''}\n\n${pr.body || ''}`;
+
+            if (!haystack.toLowerCase().includes(trigger)) {
+              core.info(`PR does not contain "${trigger}" \u2014 nothing to do.`);
+              return;
+            }
+
+            const re = /#(\d+)|https?:\/\/github\.com\/[^\/]+\/[^\/]+\/issues\/(\d+)/gi;
+            const issueNumbers = new Set();
+            let m;
+            while ((m = re.exec(haystack)) !== null) {
+              issueNumbers.add(parseInt(m[1] || m[2], 10));
+            }
+
+            if (issueNumbers.size === 0) {
+              core.info('No issue references found in PR title/body.');
+              return;
+            }
+
+            for (const issue_number of issueNumbers) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number,
+                  labels: [label],
+                });
+                core.info(`Added "${label}" to issue #${issue_number}`);
+              } catch (err) {
+                core.warning(`Failed to label issue #${issue_number}: ${err.message}`);
+              }
+            }

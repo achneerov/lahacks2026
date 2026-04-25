@@ -1,28 +1,28 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import Landing from './Landing';
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
+  const nav = useNavigate();
 
   if (loading) return <div style={styles.container}>Loading…</div>;
 
-  if (!user) {
-    return (
-      <div style={styles.container}>
-        <h1>Welcome</h1>
-        <p>
-          <Link to="/login">Log in</Link> or <Link to="/register">register</Link> to continue.
-        </p>
-      </div>
-    );
-  }
+  if (!user) return <Landing />;
 
   return (
     <div style={styles.container}>
       <h1>Hi, {user.username}</h1>
       <p>Role: {user.role}</p>
       <p>Email: {user.email}</p>
-      <button type="button" onClick={logout} style={styles.button}>
+      <button
+        type="button"
+        onClick={() => {
+          logout();
+          nav('/');
+        }}
+        style={styles.button}
+      >
         Log out
       </button>
     </div>
