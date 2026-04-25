@@ -14,7 +14,7 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE users (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   role            TEXT    NOT NULL CHECK (role IN ('Applicant', 'Recruiter', 'Agent')),
-  worldu_id       TEXT    UNIQUE,
+  worldu_id       TEXT    NOT NULL UNIQUE,
   email           TEXT    NOT NULL UNIQUE,
   username        TEXT    NOT NULL UNIQUE,
   password_hash   TEXT    NOT NULL,
