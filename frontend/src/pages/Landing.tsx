@@ -13,8 +13,8 @@ export default function Landing() {
     return () => clearInterval(interval);
   }, []);
 
-  const spamBlocked = Math.round(monthlyApplicants * 0.35); // 35% spam assumption
-  const hoursSaved = Math.round(spamBlocked * 0.15); // 9 min (0.15 hr) to screen a resume
+  const spamBlocked = Math.round(monthlyApplicants * 0.35); 
+  const hoursSaved = Math.round(spamBlocked * 0.15); 
 
   return (
     <div className="landing-page" style={styles.pageContainer}>
@@ -98,14 +98,16 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ROI CALCULATOR SECTION (Wealthsimple vibe) */}
-        <section style={styles.roiSection}>
-          <div style={styles.roiWrapper}>
-            <h2 style={styles.roiTitle}>Quantify your wasted effort.</h2>
-            <p style={styles.roiSubtitle}>At scale, automated spam buries top talent. See how much time you save when every application is tied to a verified human.</p>
+        {/* ROI CALCULATOR */}
+        <section style={styles.bentoSection}>
+          <div style={styles.bentoGrid}>
             
-            <div style={styles.calculatorCard}>
-              <div style={styles.calcLeft}>
+            {/* ROI Calculator Card */}
+            <div style={{...styles.bentoCard, ...styles.bentoRoiCard}}>
+              <h2 style={styles.bentoRoiTitle}>Quantify your wasted effort.</h2>
+              <p style={styles.bentoRoiSubtitle}>See how much time you save filtering out spam with World ID.</p>
+              
+              <div style={styles.bentoCalcTop}>
                 <label style={styles.calcLabel}>Monthly Applications</label>
                 <div style={styles.calcValueHero}>{monthlyApplicants.toLocaleString()}</div>
                 <input 
@@ -116,52 +118,22 @@ export default function Landing() {
                   value={monthlyApplicants}
                   onChange={(e) => setMonthlyApplicants(Number(e.target.value))}
                   className="wealth-slider"
-                  style={{ marginTop: '24px' }}
+                  style={{ marginTop: '16px' }}
                 />
               </div>
-              <div style={styles.calcRight}>
+
+              <div style={styles.bentoCalcBottom}>
                 <div style={styles.calcResultBlock}>
                   <div style={styles.calcResultLabel}>AI/Bot Spam Filtered</div>
                   <div style={styles.calcResultValue}>{spamBlocked.toLocaleString()}</div>
                 </div>
-                <div style={styles.calcResultDivider}></div>
                 <div style={styles.calcResultBlock}>
                   <div style={styles.calcResultLabel}>Recruiter Hours Saved</div>
                   <div style={{...styles.calcResultValue, color: '#0044FF'}}>{hoursSaved.toLocaleString()} hrs</div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* HOW IT WORKS (World ID vibe) */}
-        <section style={styles.howItWorksSection}>
-          <div style={styles.hiwContent}>
-            <div style={styles.hiwHeader}>
-              <h2 style={styles.hiwTitle}>Cryptographic Trust, Simplified.</h2>
-              <p style={styles.hiwSubtitle}>We utilize Zero-Knowledge Proofs to verify personhood seamlessly. No biometric data is ever stored on Aegis servers.</p>
-            </div>
-
-            <div style={styles.hiwGrid}>
-              <div style={styles.hiwCard}>
-                <div style={styles.hiwStepNum}>01</div>
-                <h3 style={styles.hiwCardTitle}>Candidate Authenticaton</h3>
-                <p style={styles.hiwCardBody}>Candidates connect using the World App. A unique nullifier ensures they can only verify one application per role.</p>
-                <div style={styles.hiwDecorativeLine}></div>
-              </div>
-              <div style={styles.hiwCard}>
-                <div style={styles.hiwStepNum}>02</div>
-                <h3 style={styles.hiwCardTitle}>Zero-Knowledge Proofs</h3>
-                <p style={styles.hiwCardBody}>The protocol cryptographically proves human uniqueness without revealing the candidate's actual identity or biometrics.</p>
-                <div style={styles.hiwDecorativeLine}></div>
-              </div>
-              <div style={styles.hiwCard}>
-                <div style={styles.hiwStepNum}>03</div>
-                <h3 style={styles.hiwCardTitle}>Pristine Pipeline</h3>
-                <p style={styles.hiwCardBody}>Your ATS receives verified profiles instantly. Filters out 100% of LLM-generated spam and mass-application bots.</p>
-                <div style={styles.hiwDecorativeLine}></div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -174,6 +146,15 @@ export default function Landing() {
 
           <div style={styles.cardsGrid}>
             <div style={styles.lightCard}>
+              <div style={styles.fingerprintWatermark}>
+                <svg width="240" height="240" viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12C2 6.48 6.48 2 12 2s10 4.48 10 10-4.48 10-10 10S2 17.52 2 12z"></path>
+                  <path d="M5.5 9.5c1.5-2 4-3.5 6.5-3.5s5 1.5 6.5 3.5"></path>
+                  <path d="M7 13c1-2.5 3.5-4 5-4s4 1.5 5 4"></path>
+                  <path d="M9 16.5c1-1.5 2-2.5 3-2.5s2 1 3 2.5"></path>
+                  <path d="M12 22v-3"></path>
+                </svg>
+              </div>
               <div style={styles.cardTop}>
                 <div style={styles.iconCircleLight}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#101828" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -241,7 +222,7 @@ export default function Landing() {
             </ul>
           </div>
           <div style={styles.darkSplitRight}>
-            <img src="/images/meeting.png" alt="Team Meeting" style={styles.meetingImage} />
+            <img src="/images/office.jpg" alt="Office Space" style={styles.meetingImage} />
           </div>
         </div>
       </section>
@@ -283,7 +264,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     fontFamily: 'Inter, system-ui, sans-serif',
-    backgroundColor: '#FAF9F6', /* off-white warm cream for Wealthsimple premium look */
+    backgroundColor: '#FAF9F6', 
     margin: 0,
     padding: 0,
     overflowX: 'hidden'
@@ -493,174 +474,142 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#D1D5DB',
     margin: '0 64px'
   },
-  roiSection: {
+
+  // BENTO BOX STYLES
+  bentoSection: {
     width: '100%',
-    padding: '120px 24px',
+    padding: '80px 24px',
     display: 'flex',
     justifyContent: 'center',
-    backgroundColor: '#F5F2EA', /* Even warmer tone for wealth simple vibe */
-    borderBottom: '1px solid #EAE5D9'
+    backgroundColor: '#FAF9F6' // Match warm cream
   },
-  roiWrapper: {
-    width: '100%',
-    maxWidth: '1000px',
+  bentoGrid: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center'
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: '1000px'
   },
-  roiTitle: {
-    fontFamily: 'Playfair Display, serif',
-    fontSize: '48px',
-    fontWeight: 500,
-    color: '#111827',
-    margin: '0 0 16px'
-  },
-  roiSubtitle: {
-    fontSize: '18px',
-    color: '#6B7280',
-    maxWidth: '600px',
-    lineHeight: 1.6,
-    margin: '0 0 48px'
-  },
-  calculatorCard: {
+  bentoCard: {
     width: '100%',
     backgroundColor: 'white',
     borderRadius: '32px',
-    padding: '48px',
-    display: 'flex',
-    alignItems: 'stretch',
-    gap: '64px',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.04)',
-    boxSizing: 'border-box',
-    border: '1px solid #F3F4F6'
-  },
-  calcLeft: {
-    flex: 1,
+    padding: '40px',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'flex-start',
-    textAlign: 'left'
+    boxShadow: '0 10px 40px rgba(0,0,0,0.03)',
+    border: '1px solid #F0F0F0',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+  bentoRoiCard: {
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between'
+  },
+  bentoRoiTitle: {
+    fontFamily: 'Playfair Display, serif',
+    fontSize: '44px',
+    fontWeight: 500,
+    color: '#111827',
+    margin: '0 0 12px',
+    lineHeight: 1.1
+  },
+  bentoRoiSubtitle: {
+    fontSize: '16px',
+    color: '#6B7280',
+    marginBottom: '32px'
+  },
+  bentoCalcTop: {
+    marginBottom: '40px'
+  },
+  bentoCalcBottom: {
+    display: 'flex',
+    gap: '40px',
+    paddingTop: '32px',
+    borderTop: '1px solid #F3F4F6'
   },
   calcLabel: {
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: 600,
     color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: '1px',
-    marginBottom: '16px'
+    marginBottom: '12px'
   },
   calcValueHero: {
     fontFamily: 'Playfair Display, serif',
-    fontSize: '64px',
-    fontWeight: 600,
+    fontSize: '72px',
+    fontWeight: 500,
     color: '#111827',
     lineHeight: 1
   },
-  calcRight: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    gap: '32px',
-    backgroundColor: '#FAFAFA',
-    padding: '32px',
-    borderRadius: '16px'
-  },
   calcResultBlock: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start'
+    flexDirection: 'column'
   },
   calcResultLabel: {
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 600,
-    color: '#6B7280',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
     marginBottom: '8px'
   },
   calcResultValue: {
-    fontSize: '32px',
+    fontSize: '28px',
+    fontFamily: 'Playfair Display, serif',
     fontWeight: 600,
     color: '#111827'
   },
-  calcResultDivider: {
-    height: '1px',
-    width: '100%',
-    backgroundColor: '#E5E7EB'
+
+  bentoStepCard1: {
+    gridColumn: 'span 1',
+    gridRow: 'span 1',
+    backgroundColor: '#F8F9FA'
   },
-  howItWorksSection: {
-    width: '100%',
-    padding: '120px 24px',
-    backgroundColor: '#080A0F', /* Absolute deep tech dark */
-    display: 'flex',
-    justifyContent: 'center'
+  bentoStepCard2: {
+    gridColumn: 'span 1',
+    gridRow: 'span 1',
+    backgroundColor: '#F8F9FA'
   },
-  hiwContent: {
-    width: '100%',
-    maxWidth: '1200px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
-  },
-  hiwHeader: {
-    textAlign: 'center',
-    marginBottom: '80px'
-  },
-  hiwTitle: {
-    fontFamily: 'Playfair Display, serif',
-    fontSize: '48px',
-    fontWeight: 500,
-    color: 'white',
-    margin: '0 0 16px'
-  },
-  hiwSubtitle: {
-    fontSize: '18px',
-    color: '#9CA3AF',
-    maxWidth: '600px',
-    margin: '0 auto',
-    lineHeight: 1.6
-  },
-  hiwGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '32px',
-    width: '100%'
-  },
-  hiwCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '40px',
-    backgroundColor: '#11141D',
-    borderRadius: '24px',
-    border: '1px solid #1F2937',
-    position: 'relative'
+  bentoStepCard3: {
+    gridColumn: 'span 2',
+    gridRow: 'span 1',
+    backgroundColor: '#0F1115', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
   hiwStepNum: {
     fontFamily: 'ui-monospace, Consolas, monospace',
     fontSize: '12px',
     fontWeight: 700,
     color: '#0044FF',
-    marginBottom: '24px'
+    marginBottom: '20px'
   },
-  hiwCardTitle: {
-    fontSize: '20px',
+  bentoCardTitle: {
+    fontSize: '18px',
     fontWeight: 600,
-    color: 'white',
-    marginBottom: '16px'
+    color: '#111827',
+    marginBottom: '12px'
   },
-  hiwCardBody: {
-    fontSize: '15px',
-    color: '#9CA3AF',
+  bentoCardBody: {
+    fontSize: '14px',
+    color: '#6B7280',
     lineHeight: 1.6
   },
-  hiwDecorativeLine: {
-    position: 'absolute',
-    top: '50px',
-    right: '0',
-    width: '40px',
-    height: '1px',
-    backgroundColor: '#1F2937'
+  bentoDecorativeCircle: {
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    backgroundColor: '#0044FF',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    boxShadow: '0 10px 20px rgba(0, 68, 255, 0.3)'
   },
+
+  // STANDARDS
   standardsSection: {
     width: '100%',
     maxWidth: '1600px',
@@ -700,6 +649,13 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
     overflow: 'hidden'
   },
+  fingerprintWatermark: {
+    position: 'absolute',
+    bottom: '-40px',
+    right: '-40px',
+    opacity: 0.6,
+    pointerEvents: 'none'
+  },
   darkCard: {
     backgroundColor: '#0F1115',
     borderRadius: '24px',
@@ -712,7 +668,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '32px'
+    marginBottom: '32px',
+    position: 'relative',
+    zIndex: 2
   },
   iconCircleLight: {
     width: '40px',
@@ -750,20 +708,26 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '24px',
     fontWeight: 600,
     color: '#111827',
-    margin: '0 0 16px'
+    margin: '0 0 16px',
+    position: 'relative',
+    zIndex: 2
   },
   cardBody: {
     fontSize: '15px',
     lineHeight: 1.6,
     color: '#4B5563',
     margin: '0 0 40px',
-    flex: 1
+    flex: 1,
+    position: 'relative',
+    zIndex: 2
   },
   cardFooterLight: {
     fontSize: '10px',
     fontWeight: 700,
     letterSpacing: '1px',
-    color: '#0044FF'
+    color: '#0044FF',
+    position: 'relative',
+    zIndex: 2
   },
   cardFooterDark: {
     fontSize: '10px',
