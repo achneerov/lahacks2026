@@ -339,6 +339,20 @@ export interface ApplicantConversationsQuery {
   active?: boolean;
 }
 
+export interface RecruiterConversationsResponse {
+  conversations: ConversationSummary[];
+}
+
+export interface RecruiterConversationMessagesResponse {
+  conversation: ConversationDetail;
+  messages: ConversationMessage[];
+}
+
+export interface RecruiterConversationsQuery {
+  q?: string;
+  active?: boolean;
+}
+
 export interface RecruiterJob {
   id: number;
   title: string;
@@ -668,6 +682,41 @@ export const api = {
     request<RecruiterJobConversationsResponse>(
       `/api/recruiter/jobs/${id}/conversations`,
       {},
+      token,
+    ),
+
+  recruiterConversations: (
+    token: string,
+    query: RecruiterConversationsQuery = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (query.q) params.set('q', query.q);
+    if (typeof query.active === 'boolean') {
+      params.set('active', query.active ? '1' : '0');
+    }
+    const qs = params.toString();
+    return request<RecruiterConversationsResponse>(
+      `/api/recruiter/conversations${qs ? `?${qs}` : ''}`,
+      {},
+      token,
+    );
+  },
+
+  recruiterConversationMessages: (token: string, conversationId: number) =>
+    request<RecruiterConversationMessagesResponse>(
+      `/api/recruiter/conversations/${conversationId}/messages`,
+      {},
+      token,
+    ),
+
+  recruiterSendMessage: (
+    token: string,
+    conversationId: number,
+    content: string,
+  ) =>
+    request<SendMessageResponse>(
+      `/api/recruiter/conversations/${conversationId}/messages`,
+      { method: 'POST', body: JSON.stringify({ content }) },
       token,
     ),
 
