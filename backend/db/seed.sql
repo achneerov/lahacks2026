@@ -1,15 +1,14 @@
--- Sample data. Password hashes are placeholders ("password123" pretend-bcrypt'd).
+-- Sample data. All seeded accounts use password: password123 (bcrypt below).
 
 PRAGMA foreign_keys = ON;
 
--- Users: 3 applicants, 2 recruiters, 1 agent
+-- Users: 3 applicants, 1 recruiter (recruiter@gmail.com), 1 agent
 INSERT INTO users (id, role, worldu_id, email, username, password_hash, verification_level, trust_score) VALUES
-  (1, 'Applicant', 'wu_alice_001',  'alice@example.com',   'alice',   '$2b$10$placeholderhashforalice000000000000', 'orb',    96),
-  (2, 'Applicant', 'wu_bob_002',    'bob@example.com',     'bob',     '$2b$10$placeholderhashforbob0000000000000', 'passport', 88),
-  (3, 'Applicant', 'wu_carol_003',  'carol@example.com',   'carol',   '$2b$10$placeholderhashforcarol00000000000', 'device', 72),
-  (4, 'Recruiter', 'wu_dana_004',   'dana@acme.com',       'dana_r',  '$2b$10$placeholderhashfordana0000000000000', 'orb',    90),
-  (5, 'Recruiter', 'wu_eric_005',   'eric@globex.com',     'eric_r',  '$2b$10$placeholderhashforeric0000000000000', 'orb',    90),
-  (6, 'Agent',     'wu_frank_006',  'frank@agentcorp.com', 'frank_a', '$2b$10$placeholderhashforfrank000000000000', 'device', 85);
+  (1, 'Applicant', 'wu_alice_001',  'alice@example.com',   'alice',   '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'orb',    96),
+  (2, 'Applicant', 'wu_bob_002',    'bob@example.com',     'bob',     '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'passport', 88),
+  (3, 'Applicant', 'wu_carol_003',  'carol@example.com',   'carol',   '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'device', 72),
+  (4, 'Recruiter', 'wu_recruiter_01', 'recruiter@gmail.com', 'recruiter', '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'orb', 90),
+  (5, 'Agent',     'wu_frank_006',  'frank@agentcorp.com', 'frank_a', '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'device', 85);
 
 -- Profiles (personal info + address)
 INSERT INTO user_profiles
@@ -101,7 +100,7 @@ INSERT INTO user_eeo (user_id, gender, race_ethnicity) VALUES
   (2, 'Male', 'White'),
   (3, 'Female', 'Asian');
 
--- Job postings by recruiters
+-- Four listings from junior through CTO (single recruiter)
 INSERT INTO job_postings
   (id, poster_id, title, company, employment_type, salary_min, salary_max, salary_currency,
    is_active, description, location, remote, recruiter_system_prompt,
@@ -109,93 +108,50 @@ INSERT INTO job_postings
    req_years_of_experience, req_technical_skills, req_education_level,
    benefits_overview, paid_time_off_days, company_website, industry, company_size, company_stage)
 VALUES
-  (1, 4, 'Senior Backend Engineer', 'Acme Corp', 'FullTime', 160000, 210000, 'USD',
-   1, 'Own core API services. Node.js + Postgres.', 'San Francisco, CA', 1,
-   'Push hard on real Postgres expertise (query plans, indexing, transactions) — generic SQL knowledge is not enough.',
-   'Engineering', 'Senior', 'remote',
-   'Own and scale our core API services built on Node.js and PostgreSQL.',
-   '["Design and implement RESTful APIs","Optimize database queries and schema","Mentor junior engineers","Participate in on-call rotation"]',
-   5, '["Node.js","PostgreSQL","TypeScript","REST APIs"]', 'Bachelor''s',
-   'Health, dental, vision, 401k match', 20,
-   'https://acme.example.com', 'Technology', 500, 'growth'),
+  (1, 4, 'Junior Software Engineer', 'Lahack Labs', 'FullTime', 95000, 120000, 'USD',
+   1, 'Ship product features and grow with a senior team.', 'Remote', 1,
+   'Favor teachable, collaborative candidates who show growth mindset.',
+   'Product Engineering', 'Junior', 'remote',
+   'Write well-tested code in our TypeScript and React stack with regular mentorship.',
+   '["Implement UI and API features with code review","Fix bugs and add tests","Participate in design and estimation","Learn the codebase with guidance from senior engineers"]',
+   0, '["TypeScript","JavaScript","Git"]', 'Bachelor''s (or strong bootcamp + portfolio)',
+   'Health, dental, vision, learning stipend', 20,
+   'https://lahack-labs.example.com', 'Technology', 120, 'seed'),
 
-  (2, 4, 'Frontend Engineer', 'Acme Corp', 'FullTime', 130000, 170000, 'USD',
-   1, 'Build the new customer dashboard with React.', 'Remote', 1,
-   'Looking for a senior React engineer who has owned a real design system.',
-   'Engineering', 'Mid', 'remote',
-   'Build and own the new customer-facing dashboard using React and TypeScript.',
-   '["Build reusable React components","Implement responsive designs","Write unit and integration tests","Collaborate with design team"]',
-   3, '["React","TypeScript","CSS","Jest"]', 'Bachelor''s',
-   'Health, dental, vision, 401k match', 20,
-   'https://acme.example.com', 'Technology', 500, 'growth'),
+  (2, 4, 'Software Engineer', 'Lahack Labs', 'FullTime', 130000, 160000, 'USD',
+   1, 'Own end-to-end delivery for features across services and the web app.', 'Remote', 1,
+   'We want a mid-level full-stack track record, not a specialist who avoids parts of the stack.',
+   'Product Engineering', 'Mid', 'remote',
+   'Build features, improve reliability, and work cross-functionally with product and design.',
+   '["Design and ship features across React and API layers","Mentor juniors informally","Improve testing and monitoring","Contribute to technical design docs"]',
+   3, '["TypeScript","Node.js","React","SQL"]', 'Bachelor''s',
+   'Health, dental, vision, learning stipend, 401k', 22,
+   'https://lahack-labs.example.com', 'Technology', 120, 'seed'),
 
-  (3, 5, 'Software Engineering Intern', 'Globex', 'Internship', 8000, 10000, 'USD',
-   1, 'Summer 2026 internship on the platform team.', 'New York, NY', 0,
-   'Mandatory: candidate must currently be enrolled in an undergraduate program.',
-   'Platform', 'Junior', 'on-site',
-   'Join the platform team for a 12-week summer internship building internal tools.',
-   '["Build internal developer tools","Write documentation","Participate in code reviews"]',
-   0, '["Python","Git"]', 'Currently enrolled',
-   'Housing stipend, free lunch', 0,
-   'https://globex.example.com', 'Technology', 2000, 'public'),
+  (3, 4, 'Senior Software Engineer', 'Lahack Labs', 'FullTime', 180000, 220000, 'USD',
+   1, 'Lead hard technical work: scale, refactors, and long-term quality.', 'Remote', 1,
+   'Must show ownership of non-trivial systems, not just feature tickets.',
+   'Product Engineering', 'Senior', 'remote',
+   'Drive architecture decisions, unstick complex projects, and set engineering standards.',
+   '["Own design for larger initiatives","Refactor and harden performance-critical areas","Mentor engineers and review architecture","Partner with product on roadmap tradeoffs"]',
+   5, '["TypeScript","Distributed systems","Postgres or similar","System design"]', 'Bachelor''s or equivalent',
+   'Health, dental, vision, equity, 401k, flexible PTO', 25,
+   'https://lahack-labs.example.com', 'Technology', 120, 'seed'),
 
-  (4, 5, 'Staff ML Engineer', 'Globex', 'FullTime', 240000, 320000, 'USD',
-   1, 'Lead ML infra. PyTorch, Ray, k8s.', 'Remote', 1,
-   'Need a true staff-level ML infra engineer. Must have shipped Ray or similar at scale.',
-   'ML Infrastructure', 'Staff', 'remote',
-   'Lead the ML infrastructure team, building scalable training and serving pipelines.',
-   '["Design ML training pipelines","Scale model serving infrastructure","Mentor ML engineers","Drive technical strategy"]',
-   8, '["PyTorch","Ray","Kubernetes","Python","Distributed Systems"]', 'Master''s',
-   'Health, dental, vision, 401k match, equity', 25,
-   'https://globex.example.com', 'Technology', 2000, 'public');
+  (4, 4, 'Chief Technology Officer', 'Lahack Labs', 'FullTime', 250000, 350000, 'USD',
+   1, 'Set technology vision, build the engineering org, and own delivery vs. risk for the product.', 'Remote', 1,
+   'We need a leader with prior exec or VP-level product engineering scope; deep IC-only background is not enough.',
+   'Executive', 'CTO', 'hybrid',
+   'Lead the engineering function: strategy, hiring, delivery, and alignment with the executive team.',
+   '["Set multi-year technology strategy and roadmap","Hire and develop engineering leaders","Oversee security, compliance, and reliability as we scale","Represent engineering to board and customers"]',
+   10, '["Engineering leadership","Hiring and org design","Cloud/platform strategy","Stakeholder communication"]', 'Bachelor''s or higher',
+   'Equity, executive benefits, flexible PTO', 30,
+   'https://lahack-labs.example.com', 'Technology', 120, 'seed');
 
--- Applications submitted by applicants
--- Status reasoning is stored in agent_reasoning to mimic a completed negotiation.
-INSERT INTO applications
-  (id, applicant_id, job_posting_id, status, notes, agent_reasoning, match_score,
-   created_at, updated_at, decided_at)
-VALUES
-  (1, 1, 1, 'SentToRecruiter',
-   'AI screen passed - strong Node.js + Postgres background.',
-   'Candidate explicitly described production Node.js + Postgres ownership, including a TypeScript migration that reduced bugs by 40%. Aligned with recruiter directive on real Postgres expertise.',
-   91,
-   datetime('now', '-7 days'), datetime('now', '-6 days'), datetime('now', '-6 days')),
-  (3, 1, 4, 'Declined',
-   'Looking for more senior ML infra experience.',
-   'Candidate has no ML infra background — primary experience is full-stack web. Fails the staff-level Ray/PyTorch requirement.',
-   18,
-   datetime('now', '-10 days'), datetime('now', '-8 days'), datetime('now', '-8 days')),
-  (4, 2, 4, 'SentToRecruiter',
-   'Distributed systems experience matches role well.',
-   'Strong distributed systems background scaling 100->10k RPS, plus k8s. Lacks explicit Ray, but recruiter accepted equivalent infra depth.',
-   78,
-   datetime('now', '-5 days'), datetime('now', '-4 days'), datetime('now', '-4 days')),
-  (6, 3, 2, 'SentToRecruiter',
-   'Portfolio shows strong design-engineering chops.',
-   'Built a component library used across 5 products; led a design system initiative. Solid match for the senior React + design-system bar.',
-   83,
-   datetime('now', '-3 days'), datetime('now', '-2 days'), datetime('now', '-2 days')),
-  (7, 3, 3, 'Declined',
-   'Internship requires current student status.',
-   'Candidate already graduated UCLA in 2021 and is employed full-time. Fails the mandatory current-undergraduate-enrollment requirement.',
-   12,
-   datetime('now', '-12 days'), datetime('now', '-11 days'), datetime('now', '-11 days'));
-
--- Conversations
+-- One agent thread (applicant 3) — no job posting attached
 INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active) VALUES
-  (1, 1, 4, 1,    1),
-  (2, 2, 5, 4,    1),
-  (3, 3, 6, NULL, 1),
-  (4, 1, 6, 2,    0);
+  (1, 3, 5, NULL, 1);
 
--- Messages
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content) VALUES
-  (1, 0, 4, 'Hi Alice! Saw your profile, interested in chatting about our Senior Backend role?'),
-  (1, 1, 1, 'Hey Dana, yes definitely. Is it remote-friendly?'),
-  (1, 2, 4, 'Yep, remote is fine within US time zones.'),
-  (2, 0, 2, 'Hi Eric, I applied for the Staff ML role last week.'),
-  (2, 1, 5, 'Hey Bob, thanks - reviewing now, will follow up tomorrow.'),
-  (3, 0, 6, 'Carol, I have two design-engineer leads that match your portfolio.'),
-  (3, 1, 3, 'Sweet, send them over!'),
-  (4, 0, 6, 'Alice, closing this thread - the role got filled.'),
-  (4, 1, 1, 'No worries, thanks for letting me know.');
+  (1, 0, 5, 'Carol — I can help match you to roles that fit your design-engineer profile when you are ready to apply widely.'),
+  (1, 1, 3, 'Sounds good, thanks!');

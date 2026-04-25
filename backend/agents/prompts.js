@@ -1,6 +1,6 @@
 const { Type } = require('@google/genai');
 
-const TURNS_PER_AGENT = 7;
+const TURNS_PER_AGENT = 5;
 const TOTAL_TURNS = TURNS_PER_AGENT * 2;
 
 const NO_LIE_RULE = `STRICT NO-FABRICATION RULE: You may ONLY cite facts that are present in the structured applicant profile JSON below. Do NOT invent companies, projects, dates, metrics, technologies, certifications, or anything else. If the profile is silent on a topic the recruiter probes, say so honestly ("the profile does not list that") rather than guessing. Made-up numbers ("improved performance 10x") are forbidden unless that exact metric appears in the profile.`;
@@ -99,7 +99,7 @@ ${safeJson(jobPosting)}`;
 }
 
 // Returns the system prompt for the final verdict pass.
-// Asked AFTER all 14 turns. Returns structured JSON via responseJsonSchema.
+// Asked after the negotiation loop completes (TOTAL_TURNS). Returns structured JSON via responseJsonSchema.
 function verdictSystemPrompt({ jobPosting }) {
   return `You are the verdict judge for a recruiting screening conversation.
 

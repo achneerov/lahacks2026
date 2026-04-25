@@ -15,7 +15,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 
-const TOTAL_TURNS = 14;
+const TOTAL_TURNS = 10;
 
 type Sender = 'applicant_agent' | 'recruiter_agent';
 
