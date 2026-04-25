@@ -127,11 +127,18 @@ const FIELD_LABELS: Record<JobReviewIssue['field'], string> = {
   title: 'Title',
   company: 'Company',
   description: 'Description',
+  summary: 'Summary',
   location: 'Location',
   employment_type: 'Employment type',
   salary_min: 'Min salary',
   salary_max: 'Max salary',
   salary_currency: 'Salary currency',
+  job_level: 'Job level',
+  work_model: 'Work model',
+  key_responsibilities: 'Key responsibilities',
+  req_years_of_experience: 'Required experience',
+  req_technical_skills: 'Required skills',
+  benefits_overview: 'Benefits',
 };
 
 function tryParseJsonArray(val: string | null): string[] {
@@ -293,27 +300,27 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
           title: 'Senior Backend Engineer', company: 'Acme Corp',
           employment_type: 'FullTime', job_id_requisition: 'REQ-2026-042',
           department: 'Engineering', team: 'Platform', reporting_to: 'VP of Engineering',
-          number_of_direct_reports: '2', permanent_or_fixed_term: 'Permanent',
-          contract_duration: '', job_level: 'Senior',
+          number_of_direct_reports: '0', permanent_or_fixed_term: 'Permanent',
+          contract_duration: '', job_level: 'Junior',
           location: 'San Francisco, CA', remote: true, work_model: 'remote',
           office_locations: 'San Francisco, CA', hybrid_days_in_office: '',
           willing_to_hire_internationally: false, travel_required: false,
           travel_percentage: '', relocation_assistance: true,
-          salary_min: '160000', salary_max: '210000', salary_currency: 'USD',
+          salary_min: '65000', salary_max: '85000', salary_currency: 'USD',
           pay_frequency: 'Annual', bonus_commission_structure: '10-15% annual bonus',
           equity_stock_options: '0.05-0.1% equity', benefits_overview: 'Health, dental, vision, 401k match',
           retirement_plan: '401k with 4% match', paid_time_off_days: '20',
           parental_leave_policy: '16 weeks paid', other_perks: 'Gym stipend\nLearning budget\nHome office setup',
-          description: 'This is an entry-level role requiring absolutely no experience. We will train you on everything from scratch.',
-          summary: 'Own and scale our core API services built on Node.js and PostgreSQL.',
-          key_responsibilities: 'Design and implement RESTful APIs\nOptimize database queries\nMentor junior engineers\nParticipate in on-call rotation',
+          description: 'Join our platform team as a junior backend engineer. You will work alongside senior engineers to build and maintain Node.js APIs backed by PostgreSQL. Great opportunity for someone early in their career.',
+          summary: 'Junior backend engineering role supporting our core API services.',
+          key_responsibilities: 'Assist in building RESTful APIs\nWrite unit tests\nParticipate in code reviews\nLearn from senior engineers',
           why_role_is_open: 'New headcount', team_size: '8', team_structure: 'Platform team within Engineering',
           cross_functional_collaborators: 'Product\nDesign\nData Engineering',
-          req_years_of_experience: '5', req_education_level: "Bachelor's",
+          req_years_of_experience: '0', req_education_level: "Bachelor's",
           req_field_of_study: 'Computer Science', req_certifications: '',
-          req_technical_skills: 'Node.js\nPostgreSQL\nTypeScript\nREST APIs\nDocker',
+          req_technical_skills: 'Node.js\nPostgreSQL\nTypeScript',
           req_work_authorization: 'Must be authorized to work in the US',
-          nice_years_of_experience: '7', nice_education: "Master's",
+          nice_years_of_experience: '1', nice_education: "Bachelor's",
           nice_technical_skills: 'Kubernetes\nGraphQL\nRedis', nice_industry_background: 'SaaS / B2B',
           company_website: 'https://acme.example.com', industry: 'Technology',
           company_size: '500', company_stage: 'Series C',
@@ -366,6 +373,10 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
     if (fieldErrors[key]) {
       setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
     }
+    if (issues.length > 0) {
+      setIssues([]);
+      setReviewedAt(null);
+    }
   }
 
   async function handleReview() {
@@ -375,7 +386,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
     try {
       const payload = buildPayload(form);
       const res = await api.recruiterReviewJob(token, payload);
-      setIssues(res.issues);
+      setIssues(res.issues.length > 0 ? [res.issues[0]] : []);
       setReviewSource(res.source);
       setReviewedAt(new Date());
     } catch (err) {
@@ -472,7 +483,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
       <section style={styles.cardCol}>
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Job Basics</legend>
-          <Field label="Title" required issues={issuesByField.get('title')} validationError={fieldErrors.title} input={<input type="text" value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Senior Backend Engineer" style={fieldErrors.title ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
+          <Field label="Title" required issues={issuesByField.get('title')} validationError={fieldErrors.title} input={<input type="text" value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Senior Backend Engineer" style={fieldErrors.title ? { ...styles.input, ...styles.inputError } : issuesByField.has('title') ? { ...styles.input, ...styles.inputWarning } : styles.input} required />} />
           <div style={styles.gridTwo}>
             <Field label="Company" required issues={issuesByField.get('company')} validationError={fieldErrors.company} input={<input type="text" value={form.company} onChange={e => update('company', e.target.value)} placeholder="e.g. Acme Corp" style={fieldErrors.company ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
             <Field label="Employment type" required validationError={fieldErrors.employment_type} input={<select value={form.employment_type} onChange={e => update('employment_type', e.target.value as EmploymentType | '')} style={fieldErrors.employment_type ? { ...styles.input, ...styles.inputError } : styles.input}>{EMPLOYMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>} />
@@ -535,7 +546,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
 
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Role Description</legend>
-          <Field label="Summary" required validationError={fieldErrors.summary} input={<textarea value={form.summary} onChange={e => update('summary', e.target.value)} rows={3} placeholder="Brief overview of the role" style={fieldErrors.summary ? { ...styles.input, ...styles.inputError, resize: 'vertical' as const } : { ...styles.input, resize: 'vertical' as const }} required />} />
+          <Field label="Summary" required validationError={fieldErrors.summary} issues={issuesByField.get('summary')} input={<textarea value={form.summary} onChange={e => update('summary', e.target.value)} rows={3} placeholder="Brief overview of the role" style={fieldErrors.summary ? { ...styles.input, ...styles.inputError, resize: 'vertical' as const } : { ...styles.input, resize: 'vertical' as const }} required />} />
           <Field label="Key responsibilities (one per line)" input={<textarea value={form.key_responsibilities} onChange={e => update('key_responsibilities', e.target.value)} rows={4} placeholder="Design and implement APIs&#10;Mentor junior engineers" style={{ ...styles.input, resize: 'vertical' }} />} />
           <Field label="Full description" issues={issuesByField.get('description')} input={<textarea value={form.description} onChange={e => update('description', e.target.value)} rows={6} placeholder="Detailed role description…" style={{ ...styles.input, minHeight: 140, resize: 'vertical' }} />} />
           <Field label="Why is this role open?" input={<input type="text" value={form.why_role_is_open} onChange={e => update('why_role_is_open', e.target.value)} placeholder="New headcount / Backfill" style={styles.input} />} />
@@ -704,6 +715,7 @@ function Field({
   validationError?: string;
   input: React.ReactNode;
 }) {
+  const hasWarning = issues && issues.length > 0;
   return (
     <label style={styles.field}>
       <span style={styles.fieldLabel}>
@@ -714,14 +726,12 @@ function Field({
       {validationError && (
         <span style={styles.fieldValidationError}>{validationError}</span>
       )}
-      {issues && issues.length > 0 && (
-        <ul style={styles.fieldIssues}>
-          {issues.map((i, idx) => (
-            <li key={idx} style={{ ...styles.fieldIssue, color: severityColor(i.severity) }}>
-              {i.message}
-            </li>
+      {hasWarning && (
+        <div style={styles.fieldWarningBanner}>
+          {issues!.map((i, idx) => (
+            <span key={idx}>{i.message}</span>
           ))}
-        </ul>
+        </div>
       )}
     </label>
   );
@@ -854,6 +864,18 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 500,
     color: '#b00020',
   },
+  fieldWarningBanner: {
+    padding: '8px 12px',
+    fontSize: 13,
+    color: '#7a4a00',
+    background: 'rgba(255, 184, 0, 0.12)',
+    border: '1px solid rgba(255, 184, 0, 0.5)',
+    borderRadius: 8,
+    lineHeight: 1.45,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
   input: {
     padding: '10px 12px',
     fontSize: 14,
@@ -870,6 +892,11 @@ const styles: Record<string, CSSProperties> = {
     borderColor: '#b00020',
     background: 'rgba(176, 0, 32, 0.04)',
     boxShadow: '0 0 0 3px rgba(176, 0, 32, 0.12)',
+  },
+  inputWarning: {
+    borderColor: '#d99e00',
+    background: 'rgba(255, 184, 0, 0.06)',
+    boxShadow: '0 0 0 3px rgba(255, 184, 0, 0.15)',
   },
   toggleRow: {
     display: 'flex',

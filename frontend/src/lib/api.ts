@@ -748,11 +748,18 @@ export interface JobReviewIssue {
     | 'title'
     | 'company'
     | 'description'
+    | 'summary'
     | 'location'
     | 'employment_type'
     | 'salary_min'
     | 'salary_max'
-    | 'salary_currency';
+    | 'salary_currency'
+    | 'job_level'
+    | 'work_model'
+    | 'key_responsibilities'
+    | 'req_years_of_experience'
+    | 'req_technical_skills'
+    | 'benefits_overview';
   severity: JobReviewSeverity;
   message: string;
 }
