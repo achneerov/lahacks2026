@@ -8,7 +8,6 @@
     "start:prod": "node index.js",
     "dev": "nodemon index.js",
     "db:reset": "node db/reset.js",
-    "db:reset:empty": "node db/reset.js --no-seed",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
