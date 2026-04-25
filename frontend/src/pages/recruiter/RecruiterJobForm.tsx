@@ -352,6 +352,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
     if (!form.work_model) errs.work_model = 'Work model is required.';
     if (!form.summary.trim()) errs.summary = 'Role summary is required.';
     if (!form.application_deadline.trim()) errs.application_deadline = 'Application deadline is required.';
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(form.application_deadline)) errs.application_deadline = 'Enter a valid date (YYYY-MM-DD).';
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) return;
     setSaving(true);
@@ -535,7 +536,14 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
         <fieldset style={styles.fieldset} disabled={saving}>
           <legend style={styles.legend}>Application Process</legend>
           <div style={styles.gridTwo}>
-            <Field label="Application deadline" required validationError={fieldErrors.application_deadline} input={<input type="date" value={form.application_deadline} onChange={e => update('application_deadline', e.target.value)} style={fieldErrors.application_deadline ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
+            <Field label="Application deadline" required validationError={fieldErrors.application_deadline} input={<input type="text" value={form.application_deadline} onChange={e => {
+              // Auto-format: only digits, insert dashes after YYYY and MM, max 10 chars
+              const raw = e.target.value.replace(/[^\d]/g, '').slice(0, 8);
+              let formatted = raw;
+              if (raw.length > 4) formatted = raw.slice(0, 4) + '-' + raw.slice(4);
+              if (raw.length > 6) formatted = raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6);
+              update('application_deadline', formatted);
+            }} placeholder="YYYY-MM-DD" maxLength={10} style={fieldErrors.application_deadline ? { ...styles.input, ...styles.inputError } : styles.input} required />} />
             <Field label="Expected time to hire" input={<input type="text" value={form.expected_time_to_hire} onChange={e => update('expected_time_to_hire', e.target.value)} placeholder="e.g. 4-6 weeks" style={styles.input} />} />
           </div>
           <Field label="Documents required (one per line)" input={<textarea value={form.documents_required} onChange={e => update('documents_required', e.target.value)} rows={2} placeholder="Resume&#10;Cover letter" style={{ ...styles.input, resize: 'vertical' }} />} />
