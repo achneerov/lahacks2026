@@ -66,21 +66,20 @@ export interface SignupBasicsResponse {
 }
 
 export interface ApplicantProfileInput {
-  full_name?: string;
-  phone?: string;
-  address_line1?: string;
-  address_line2?: string;
+  first_name?: string;
+  middle_initial?: string;
+  last_name?: string;
+  preferred_name?: string;
+  phone_number?: string;
+  street_address?: string;
+  apt_suite_unit?: string;
   city?: string;
   state?: string;
-  postal_code?: string;
-  country?: string;
-  headline?: string;
-  bio?: string;
-  resume_url?: string;
+  zip_code?: string;
   linkedin_url?: string;
-  github_url?: string;
-  portfolio_url?: string;
-  years_experience?: number | null;
+  website_portfolio?: string;
+  github_or_other_portfolio?: string;
+  anything_else?: string;
 }
 
 export interface ApplicantProfile {
@@ -130,14 +129,14 @@ export interface ApplicantRecentConversation {
 
 export interface ApplicantFeaturedJob {
   id: number;
-  title: string;
-  company: string | null;
-  location: string | null;
-  remote: 0 | 1;
+  job_title: string;
+  company_name: string | null;
+  office_locations_json: string | null;
+  work_model: string | null;
   employment_type: 'FullTime' | 'PartTime' | 'Contract' | 'Internship' | 'Temporary' | null;
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
   created_at: string;
   poster_username: string;
 }
@@ -215,15 +214,15 @@ export type EmploymentType =
 
 export interface JobPosting {
   id: number;
-  title: string;
-  company: string | null;
-  description: string | null;
-  location: string | null;
-  remote: 0 | 1;
+  job_title: string;
+  company_name: string | null;
+  summary: string | null;
+  office_locations_json: string | null;
+  work_model: string | null;
   employment_type: EmploymentType | null;
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
   created_at: string;
   poster_username: string;
 }

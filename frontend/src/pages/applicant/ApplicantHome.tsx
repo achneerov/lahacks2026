@@ -141,28 +141,31 @@ export default function ApplicantHome() {
             <p style={styles.empty}>Loading…</p>
           ) : data && data.featured_jobs.length > 0 ? (
             <ul style={styles.list}>
-              {data.featured_jobs.map((j) => (
-                <li key={j.id} style={styles.listItem}>
-                  <div style={styles.itemTopRow}>
-                    <span style={styles.itemTitle}>{j.title}</span>
-                    {j.employment_type && (
-                      <span style={styles.pill}>{j.employment_type}</span>
-                    )}
-                  </div>
-                  <div style={styles.itemMeta}>
-                    {j.company && (
-                      <span style={styles.itemMetaText}>{j.company}</span>
-                    )}
-                    {j.location && (
-                      <span style={styles.itemMetaMuted}>· {j.location}</span>
-                    )}
-                    {j.remote === 1 && (
-                      <span style={styles.itemMetaMuted}>· Remote</span>
-                    )}
-                  </div>
-                  <p style={styles.itemBody}>{formatSalary(j)}</p>
-                </li>
-              ))}
+              {data.featured_jobs.map((j) => {
+                const loc = parseLocations(j.office_locations_json)[0];
+                return (
+                  <li key={j.id} style={styles.listItem}>
+                    <div style={styles.itemTopRow}>
+                      <span style={styles.itemTitle}>{j.job_title}</span>
+                      {j.employment_type && (
+                        <span style={styles.pill}>{j.employment_type}</span>
+                      )}
+                    </div>
+                    <div style={styles.itemMeta}>
+                      {j.company_name && (
+                        <span style={styles.itemMetaText}>{j.company_name}</span>
+                      )}
+                      {loc && (
+                        <span style={styles.itemMetaMuted}>· {loc}</span>
+                      )}
+                      {j.work_model && (
+                        <span style={styles.itemMetaMuted}>· {j.work_model}</span>
+                      )}
+                    </div>
+                    <p style={styles.itemBody}>{formatSalary(j)}</p>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p style={styles.empty}>No active job postings yet.</p>
@@ -203,12 +206,22 @@ function StatCard({
   );
 }
 
+function parseLocations(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.filter((s) => typeof s === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 function formatSalary(j: {
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
 }) {
-  const cur = j.salary_currency || 'USD';
+  const cur = j.currency || 'USD';
   if (j.salary_min == null && j.salary_max == null) {
     return 'Compensation not disclosed';
   }

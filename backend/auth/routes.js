@@ -14,19 +14,20 @@ const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
 const URL_RE = /^https?:\/\/[^\s]+$/i;
 
 const PROFILE_TEXT_FIELDS = [
-  'full_name',
-  'phone',
-  'address_line1',
-  'address_line2',
+  'first_name',
+  'middle_initial',
+  'last_name',
+  'preferred_name',
+  'phone_number',
+  'street_address',
+  'apt_suite_unit',
   'city',
   'state',
-  'postal_code',
-  'country',
-  'headline',
-  'bio',
+  'zip_code',
+  'anything_else',
 ];
 
-const PROFILE_URL_FIELDS = ['resume_url', 'linkedin_url', 'github_url', 'portfolio_url'];
+const PROFILE_URL_FIELDS = ['linkedin_url', 'website_portfolio', 'github_or_other_portfolio'];
 
 function sanitizeProfile(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -64,18 +65,6 @@ function sanitizeProfile(raw) {
       throw err;
     }
     out[key] = trimmed;
-  }
-
-  if (raw.years_experience !== undefined && raw.years_experience !== null && raw.years_experience !== '') {
-    const n = Number(raw.years_experience);
-    if (!Number.isInteger(n) || n < 0 || n > 80) {
-      const err = new Error('profile.years_experience must be an integer between 0 and 80');
-      err.code = 'invalid_profile_years';
-      throw err;
-    }
-    out.years_experience = n;
-  } else {
-    out.years_experience = null;
   }
 
   return out;
@@ -220,33 +209,36 @@ router.post('/register', async (req, res) => {
       if (role === 'Applicant' && cleanProfile) {
         db.prepare(
           `INSERT INTO user_profiles (
-             user_id, full_name, phone,
-             address_line1, address_line2, city, state, postal_code, country,
-             headline, bio, resume_url, linkedin_url, github_url, portfolio_url,
-             years_experience
+             user_id,
+             first_name, middle_initial, last_name, preferred_name,
+             phone_number,
+             street_address, apt_suite_unit, city, state, zip_code,
+             linkedin_url, website_portfolio, github_or_other_portfolio,
+             anything_else
            ) VALUES (
-             @user_id, @full_name, @phone,
-             @address_line1, @address_line2, @city, @state, @postal_code, @country,
-             @headline, @bio, @resume_url, @linkedin_url, @github_url, @portfolio_url,
-             @years_experience
+             @user_id,
+             @first_name, @middle_initial, @last_name, @preferred_name,
+             @phone_number,
+             @street_address, @apt_suite_unit, @city, @state, @zip_code,
+             @linkedin_url, @website_portfolio, @github_or_other_portfolio,
+             @anything_else
            )`
         ).run({
           user_id: userId,
-          full_name: cleanProfile.full_name ?? null,
-          phone: cleanProfile.phone ?? null,
-          address_line1: cleanProfile.address_line1 ?? null,
-          address_line2: cleanProfile.address_line2 ?? null,
+          first_name: cleanProfile.first_name ?? null,
+          middle_initial: cleanProfile.middle_initial ?? null,
+          last_name: cleanProfile.last_name ?? null,
+          preferred_name: cleanProfile.preferred_name ?? null,
+          phone_number: cleanProfile.phone_number ?? null,
+          street_address: cleanProfile.street_address ?? null,
+          apt_suite_unit: cleanProfile.apt_suite_unit ?? null,
           city: cleanProfile.city ?? null,
           state: cleanProfile.state ?? null,
-          postal_code: cleanProfile.postal_code ?? null,
-          country: cleanProfile.country ?? null,
-          headline: cleanProfile.headline ?? null,
-          bio: cleanProfile.bio ?? null,
-          resume_url: cleanProfile.resume_url ?? null,
+          zip_code: cleanProfile.zip_code ?? null,
           linkedin_url: cleanProfile.linkedin_url ?? null,
-          github_url: cleanProfile.github_url ?? null,
-          portfolio_url: cleanProfile.portfolio_url ?? null,
-          years_experience: cleanProfile.years_experience ?? null,
+          website_portfolio: cleanProfile.website_portfolio ?? null,
+          github_or_other_portfolio: cleanProfile.github_or_other_portfolio ?? null,
+          anything_else: cleanProfile.anything_else ?? null,
         });
       }
 

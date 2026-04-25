@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -14,72 +13,65 @@ import { useSignup } from '../../signup/SignupContext';
 const URL_RE = /^https?:\/\/[^\s]+$/i;
 
 type FormState = {
-  full_name: string;
-  phone: string;
-  address_line1: string;
-  address_line2: string;
+  first_name: string;
+  middle_initial: string;
+  last_name: string;
+  preferred_name: string;
+  phone_number: string;
+  street_address: string;
+  apt_suite_unit: string;
   city: string;
   state: string;
-  postal_code: string;
-  country: string;
-  headline: string;
-  bio: string;
-  resume_url: string;
+  zip_code: string;
   linkedin_url: string;
-  github_url: string;
-  portfolio_url: string;
-  years_experience: string;
+  website_portfolio: string;
+  github_or_other_portfolio: string;
+  anything_else: string;
 };
 
 type FieldKey = keyof FormState;
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
 const EMPTY_FORM: FormState = {
-  full_name: '',
-  phone: '',
-  address_line1: '',
-  address_line2: '',
+  first_name: '',
+  middle_initial: '',
+  last_name: '',
+  preferred_name: '',
+  phone_number: '',
+  street_address: '',
+  apt_suite_unit: '',
   city: '',
   state: '',
-  postal_code: '',
-  country: '',
-  headline: '',
-  bio: '',
-  resume_url: '',
+  zip_code: '',
   linkedin_url: '',
-  github_url: '',
-  portfolio_url: '',
-  years_experience: '',
+  website_portfolio: '',
+  github_or_other_portfolio: '',
+  anything_else: '',
 };
 
 const URL_FIELDS: { key: FieldKey; label: string }[] = [
-  { key: 'resume_url', label: 'Resume URL' },
   { key: 'linkedin_url', label: 'LinkedIn' },
-  { key: 'github_url', label: 'GitHub' },
-  { key: 'portfolio_url', label: 'Portfolio' },
+  { key: 'website_portfolio', label: 'Website / portfolio' },
+  { key: 'github_or_other_portfolio', label: 'GitHub or other portfolio' },
 ];
 
 function fromDraft(draft: ApplicantProfileInput | null): FormState {
   if (!draft) return EMPTY_FORM;
   return {
-    full_name: draft.full_name ?? '',
-    phone: draft.phone ?? '',
-    address_line1: draft.address_line1 ?? '',
-    address_line2: draft.address_line2 ?? '',
+    first_name: draft.first_name ?? '',
+    middle_initial: draft.middle_initial ?? '',
+    last_name: draft.last_name ?? '',
+    preferred_name: draft.preferred_name ?? '',
+    phone_number: draft.phone_number ?? '',
+    street_address: draft.street_address ?? '',
+    apt_suite_unit: draft.apt_suite_unit ?? '',
     city: draft.city ?? '',
     state: draft.state ?? '',
-    postal_code: draft.postal_code ?? '',
-    country: draft.country ?? '',
-    headline: draft.headline ?? '',
-    bio: draft.bio ?? '',
-    resume_url: draft.resume_url ?? '',
+    zip_code: draft.zip_code ?? '',
     linkedin_url: draft.linkedin_url ?? '',
-    github_url: draft.github_url ?? '',
-    portfolio_url: draft.portfolio_url ?? '',
-    years_experience:
-      draft.years_experience === null || draft.years_experience === undefined
-        ? ''
-        : String(draft.years_experience),
+    website_portfolio: draft.website_portfolio ?? '',
+    github_or_other_portfolio: draft.github_or_other_portfolio ?? '',
+    anything_else: draft.anything_else ?? '',
   };
 }
 
@@ -90,23 +82,20 @@ function toProfile(form: FormState): ApplicantProfileInput {
     if (trimmed) (out as Record<string, unknown>)[key] = trimmed;
   };
 
-  setIf('full_name', form.full_name);
-  setIf('phone', form.phone);
-  setIf('address_line1', form.address_line1);
-  setIf('address_line2', form.address_line2);
+  setIf('first_name', form.first_name);
+  setIf('middle_initial', form.middle_initial);
+  setIf('last_name', form.last_name);
+  setIf('preferred_name', form.preferred_name);
+  setIf('phone_number', form.phone_number);
+  setIf('street_address', form.street_address);
+  setIf('apt_suite_unit', form.apt_suite_unit);
   setIf('city', form.city);
   setIf('state', form.state);
-  setIf('postal_code', form.postal_code);
-  setIf('country', form.country);
-  setIf('headline', form.headline);
-  setIf('bio', form.bio);
-  setIf('resume_url', form.resume_url);
+  setIf('zip_code', form.zip_code);
   setIf('linkedin_url', form.linkedin_url);
-  setIf('github_url', form.github_url);
-  setIf('portfolio_url', form.portfolio_url);
-
-  const yrs = form.years_experience.trim();
-  if (yrs) out.years_experience = Number(yrs);
+  setIf('website_portfolio', form.website_portfolio);
+  setIf('github_or_other_portfolio', form.github_or_other_portfolio);
+  setIf('anything_else', form.anything_else);
 
   return out;
 }
@@ -114,46 +103,13 @@ function toProfile(form: FormState): ApplicantProfileInput {
 function validate(form: FormState): FieldErrors {
   const errs: FieldErrors = {};
 
-  // Required text fields
-  if (!form.full_name.trim()) {
-    errs.full_name = 'Please enter your full name.';
+  if (!form.first_name.trim()) {
+    errs.first_name = 'Please enter your first name.';
   }
-  if (!form.phone.trim()) {
-    errs.phone = 'Please enter your phone number.';
-  }
-  if (!form.address_line1.trim()) {
-    errs.address_line1 = 'Please enter your street address.';
-  }
-  if (!form.city.trim()) {
-    errs.city = 'Please enter your city.';
-  }
-  if (!form.state.trim()) {
-    errs.state = 'Please enter your state or region.';
-  }
-  if (!form.postal_code.trim()) {
-    errs.postal_code = 'Please enter your postal code.';
-  }
-  if (!form.country.trim()) {
-    errs.country = 'Please enter your country.';
-  }
-  if (!form.headline.trim()) {
-    errs.headline = 'Please enter a headline.';
-  }
-  if (!form.bio.trim()) {
-    errs.bio = 'Please enter a short bio.';
+  if (!form.last_name.trim()) {
+    errs.last_name = 'Please enter your last name.';
   }
 
-  // Years of experience — required
-  if (!form.years_experience.trim()) {
-    errs.years_experience = 'Please enter your years of experience.';
-  } else {
-    const n = Number(form.years_experience);
-    if (!Number.isInteger(n) || n < 0 || n > 80) {
-      errs.years_experience = 'Must be a whole number between 0 and 80.';
-    }
-  }
-
-  // URL fields — optional but must be valid if provided
   for (const { key, label } of URL_FIELDS) {
     const v = form[key].trim();
     if (v && !URL_RE.test(v)) {
@@ -180,38 +136,6 @@ export default function SignupProfile() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [topError, setTopError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  function quickFill() {
-    setForm({
-      full_name: 'Alex Chneerov',
-      phone: '555-123-4567',
-      address_line1: '123 Market St',
-      address_line2: 'Apt 4B',
-      city: 'San Francisco',
-      state: 'CA',
-      postal_code: '94103',
-      country: 'USA',
-      headline: 'Full-stack engineer focused on React + Node',
-      bio: 'Passionate developer with experience building scalable web apps. Looking for my next challenge.',
-      resume_url: 'https://example.com/resume.pdf',
-      linkedin_url: 'https://linkedin.com/in/alexchneerov',
-      github_url: 'https://github.com/achneerov',
-      portfolio_url: 'https://alexchneerov.dev',
-      years_experience: '3',
-    });
-    setFieldErrors({});
-  }
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
-        e.preventDefault();
-        quickFill();
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
 
   const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
   const completedRef = useRef(false);
@@ -323,8 +247,8 @@ export default function SignupProfile() {
           <span style={styles.eyebrow}>Step 3 of 3</span>
           <h1 style={styles.title}>Build your applicant profile</h1>
           <p style={styles.subtitle}>
-            Add the details recruiters need to consider you for roles. You can update
-            anything later from your profile page.
+            Add the basics recruiters need to consider you for roles. You can fill in
+            the rest of your profile later from your profile page.
           </p>
         </header>
 
@@ -344,119 +268,134 @@ export default function SignupProfile() {
           <fieldset style={styles.section}>
             <legend style={styles.legend}>About you</legend>
 
-            <label style={styles.label}>
-              <span style={styles.labelText}>Full name</span>
-              <input
-                ref={setRef('full_name')}
-                type="text"
-                value={form.full_name}
-                onChange={(e) => update('full_name', e.target.value)}
-                placeholder="Alex Chneerov"
-                maxLength={120}
-                style={inputStyle('full_name')}
-                aria-invalid={!!fieldErrors.full_name}
-              />
-              {fieldError('full_name')}
-            </label>
-
-            <label style={styles.label}>
-              <span style={styles.labelText}>Headline</span>
-              <input
-                ref={setRef('headline')}
-                type="text"
-                value={form.headline}
-                onChange={(e) => update('headline', e.target.value)}
-                placeholder="Full-stack engineer focused on React + Postgres"
-                maxLength={140}
-                style={inputStyle('headline')}
-                aria-invalid={!!fieldErrors.headline}
-              />
-              {fieldError('headline') ?? (
-                <span style={styles.hint}>One short line. Shown at the top of your profile.</span>
-              )}
-            </label>
-
-            <label style={styles.label}>
-              <span style={styles.labelText}>Bio</span>
-              <textarea
-                ref={setRef('bio')}
-                value={form.bio}
-                onChange={(e) => update('bio', e.target.value)}
-                placeholder="A few sentences about your experience, interests, and what you're looking for."
-                maxLength={1000}
-                rows={4}
-                style={inputStyle('bio', { resize: 'vertical', minHeight: 96 })}
-                aria-invalid={!!fieldErrors.bio}
-              />
-              {fieldError('bio')}
-            </label>
+            <div style={styles.row3}>
+              <label style={styles.label}>
+                <span style={styles.labelText}>First name</span>
+                <input
+                  ref={setRef('first_name')}
+                  type="text"
+                  autoComplete="given-name"
+                  value={form.first_name}
+                  onChange={(e) => update('first_name', e.target.value)}
+                  placeholder="Alex"
+                  maxLength={80}
+                  style={inputStyle('first_name')}
+                  aria-invalid={!!fieldErrors.first_name}
+                />
+                {fieldError('first_name')}
+              </label>
+              <label style={styles.label}>
+                <span style={styles.labelText}>Middle initial</span>
+                <input
+                  ref={setRef('middle_initial')}
+                  type="text"
+                  autoComplete="additional-name"
+                  value={form.middle_initial}
+                  onChange={(e) => update('middle_initial', e.target.value)}
+                  placeholder="J"
+                  maxLength={4}
+                  style={inputStyle('middle_initial')}
+                />
+                {fieldError('middle_initial')}
+              </label>
+              <label style={styles.label}>
+                <span style={styles.labelText}>Last name</span>
+                <input
+                  ref={setRef('last_name')}
+                  type="text"
+                  autoComplete="family-name"
+                  value={form.last_name}
+                  onChange={(e) => update('last_name', e.target.value)}
+                  placeholder="Chneerov"
+                  maxLength={80}
+                  style={inputStyle('last_name')}
+                  aria-invalid={!!fieldErrors.last_name}
+                />
+                {fieldError('last_name')}
+              </label>
+            </div>
 
             <div style={styles.row2}>
               <label style={styles.label}>
-                <span style={styles.labelText}>Years of experience</span>
+                <span style={styles.labelText}>Preferred name</span>
                 <input
-                  ref={setRef('years_experience')}
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={80}
-                  step={1}
-                  value={form.years_experience}
-                  onChange={(e) => update('years_experience', e.target.value)}
-                  placeholder="3"
-                  style={inputStyle('years_experience')}
-                  aria-invalid={!!fieldErrors.years_experience}
+                  ref={setRef('preferred_name')}
+                  type="text"
+                  autoComplete="nickname"
+                  value={form.preferred_name}
+                  onChange={(e) => update('preferred_name', e.target.value)}
+                  placeholder="Alex"
+                  maxLength={80}
+                  style={inputStyle('preferred_name')}
                 />
-                {fieldError('years_experience')}
+                {fieldError('preferred_name') ?? (
+                  <span style={styles.hint}>How you'd like recruiters to address you.</span>
+                )}
               </label>
               <label style={styles.label}>
                 <span style={styles.labelText}>Phone</span>
                 <input
-                  ref={setRef('phone')}
+                  ref={setRef('phone_number')}
                   type="tel"
-                  value={form.phone}
-                  onChange={(e) => update('phone', e.target.value)}
+                  autoComplete="tel"
+                  value={form.phone_number}
+                  onChange={(e) => update('phone_number', e.target.value)}
                   placeholder="+1 555 123 4567"
                   maxLength={32}
-                  style={inputStyle('phone')}
-                  aria-invalid={!!fieldErrors.phone}
+                  style={inputStyle('phone_number')}
                 />
-                {fieldError('phone')}
+                {fieldError('phone_number')}
               </label>
             </div>
+
+            <label style={styles.label}>
+              <span style={styles.labelText}>Anything else</span>
+              <textarea
+                ref={setRef('anything_else')}
+                value={form.anything_else}
+                onChange={(e) => update('anything_else', e.target.value)}
+                placeholder="A short note recruiters should see — what you're looking for, what you're not, anything that doesn't fit elsewhere."
+                maxLength={1000}
+                rows={4}
+                style={inputStyle('anything_else', { resize: 'vertical', minHeight: 96 })}
+              />
+              {fieldError('anything_else') ?? (
+                <span style={styles.hint}>Optional. You can fill in your full bio, work history, and education later.</span>
+              )}
+            </label>
           </fieldset>
 
           <fieldset style={styles.section}>
-            <legend style={styles.legend}>Location</legend>
+            <legend style={styles.legend}>Address</legend>
 
             <label style={styles.label}>
-              <span style={styles.labelText}>Address line 1</span>
+              <span style={styles.labelText}>Street address</span>
               <input
-                ref={setRef('address_line1')}
+                ref={setRef('street_address')}
                 type="text"
                 autoComplete="address-line1"
-                value={form.address_line1}
-                onChange={(e) => update('address_line1', e.target.value)}
+                value={form.street_address}
+                onChange={(e) => update('street_address', e.target.value)}
                 placeholder="123 Market St"
                 maxLength={120}
-                style={inputStyle('address_line1')}
+                style={inputStyle('street_address')}
               />
-              {fieldError('address_line1')}
+              {fieldError('street_address')}
             </label>
 
             <label style={styles.label}>
-              <span style={styles.labelText}>Address line 2</span>
+              <span style={styles.labelText}>Apt / suite / unit</span>
               <input
-                ref={setRef('address_line2')}
+                ref={setRef('apt_suite_unit')}
                 type="text"
                 autoComplete="address-line2"
-                value={form.address_line2}
-                onChange={(e) => update('address_line2', e.target.value)}
+                value={form.apt_suite_unit}
+                onChange={(e) => update('apt_suite_unit', e.target.value)}
                 placeholder="Apt 4B"
-                maxLength={120}
-                style={inputStyle('address_line2')}
+                maxLength={60}
+                style={inputStyle('apt_suite_unit')}
               />
-              {fieldError('address_line2')}
+              {fieldError('apt_suite_unit')}
             </label>
 
             <div style={styles.row2}>
@@ -490,56 +429,24 @@ export default function SignupProfile() {
               </label>
             </div>
 
-            <div style={styles.row2}>
-              <label style={styles.label}>
-                <span style={styles.labelText}>Postal code</span>
-                <input
-                  ref={setRef('postal_code')}
-                  type="text"
-                  autoComplete="postal-code"
-                  value={form.postal_code}
-                  onChange={(e) => update('postal_code', e.target.value)}
-                  placeholder="94103"
-                  maxLength={20}
-                  style={inputStyle('postal_code')}
-                />
-                {fieldError('postal_code')}
-              </label>
-              <label style={styles.label}>
-                <span style={styles.labelText}>Country</span>
-                <input
-                  ref={setRef('country')}
-                  type="text"
-                  autoComplete="country-name"
-                  value={form.country}
-                  onChange={(e) => update('country', e.target.value)}
-                  placeholder="USA"
-                  maxLength={80}
-                  style={inputStyle('country')}
-                />
-                {fieldError('country')}
-              </label>
-            </div>
+            <label style={styles.label}>
+              <span style={styles.labelText}>ZIP code</span>
+              <input
+                ref={setRef('zip_code')}
+                type="text"
+                autoComplete="postal-code"
+                value={form.zip_code}
+                onChange={(e) => update('zip_code', e.target.value)}
+                placeholder="94103"
+                maxLength={20}
+                style={inputStyle('zip_code')}
+              />
+              {fieldError('zip_code')}
+            </label>
           </fieldset>
 
           <fieldset style={styles.section}>
             <legend style={styles.legend}>Links</legend>
-
-            <label style={styles.label}>
-              <span style={styles.labelText}>Resume URL</span>
-              <input
-                ref={setRef('resume_url')}
-                type="url"
-                value={form.resume_url}
-                onChange={(e) => update('resume_url', e.target.value)}
-                placeholder="https://example.com/resume.pdf"
-                style={inputStyle('resume_url')}
-                aria-invalid={!!fieldErrors.resume_url}
-              />
-              {fieldError('resume_url') ?? (
-                <span style={styles.hint}>Link to a hosted PDF or doc.</span>
-              )}
-            </label>
 
             <label style={styles.label}>
               <span style={styles.labelText}>LinkedIn</span>
@@ -556,31 +463,31 @@ export default function SignupProfile() {
             </label>
 
             <label style={styles.label}>
-              <span style={styles.labelText}>GitHub</span>
+              <span style={styles.labelText}>Website / portfolio</span>
               <input
-                ref={setRef('github_url')}
+                ref={setRef('website_portfolio')}
                 type="url"
-                value={form.github_url}
-                onChange={(e) => update('github_url', e.target.value)}
-                placeholder="https://github.com/your-handle"
-                style={inputStyle('github_url')}
-                aria-invalid={!!fieldErrors.github_url}
+                value={form.website_portfolio}
+                onChange={(e) => update('website_portfolio', e.target.value)}
+                placeholder="https://yourname.dev"
+                style={inputStyle('website_portfolio')}
+                aria-invalid={!!fieldErrors.website_portfolio}
               />
-              {fieldError('github_url')}
+              {fieldError('website_portfolio')}
             </label>
 
             <label style={styles.label}>
-              <span style={styles.labelText}>Portfolio</span>
+              <span style={styles.labelText}>GitHub or other portfolio</span>
               <input
-                ref={setRef('portfolio_url')}
+                ref={setRef('github_or_other_portfolio')}
                 type="url"
-                value={form.portfolio_url}
-                onChange={(e) => update('portfolio_url', e.target.value)}
-                placeholder="https://yourname.dev"
-                style={inputStyle('portfolio_url')}
-                aria-invalid={!!fieldErrors.portfolio_url}
+                value={form.github_or_other_portfolio}
+                onChange={(e) => update('github_or_other_portfolio', e.target.value)}
+                placeholder="https://github.com/your-handle"
+                style={inputStyle('github_or_other_portfolio')}
+                aria-invalid={!!fieldErrors.github_or_other_portfolio}
               />
-              {fieldError('portfolio_url')}
+              {fieldError('github_or_other_portfolio')}
             </label>
           </fieldset>
 
@@ -623,7 +530,6 @@ function errorMessage(code: string, detail?: string): string {
       return detail || 'World ID verification failed. Please try step 2 again.';
     case 'invalid_profile':
     case 'invalid_profile_url':
-    case 'invalid_profile_years':
       return detail || 'One of the profile fields is invalid.';
     case 'missing_fields':
       return 'Some required fields are missing. Please review and try again.';
@@ -747,6 +653,11 @@ const styles: Record<string, CSSProperties> = {
   row2: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
+    gap: 12,
+  },
+  row3: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 100px 1fr',
     gap: 12,
   },
   error: {

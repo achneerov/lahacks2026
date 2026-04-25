@@ -246,6 +246,7 @@ export default function ApplicantJobs() {
           ) : (
             jobs.map((j) => {
               const isSelected = selectedJob?.id === j.id;
+              const loc = parseLocations(j.office_locations_json)[0];
               return (
                 <button
                   key={j.id}
@@ -257,7 +258,7 @@ export default function ApplicantJobs() {
                   }}
                 >
                   <div style={styles.jobCardTopRow}>
-                    <span style={styles.jobTitle}>{j.title}</span>
+                    <span style={styles.jobTitle}>{j.job_title}</span>
                     {j.employment_type && (
                       <span style={styles.pill}>
                         {EMPLOYMENT_LABELS[j.employment_type]}
@@ -265,14 +266,14 @@ export default function ApplicantJobs() {
                     )}
                   </div>
                   <div style={styles.jobMeta}>
-                    {j.company && (
-                      <span style={styles.jobMetaStrong}>{j.company}</span>
+                    {j.company_name && (
+                      <span style={styles.jobMetaStrong}>{j.company_name}</span>
                     )}
-                    {j.location && (
-                      <span style={styles.jobMetaMuted}>· {j.location}</span>
+                    {loc && (
+                      <span style={styles.jobMetaMuted}>· {loc}</span>
                     )}
-                    {j.remote === 1 && (
-                      <span style={styles.jobMetaMuted}>· Remote</span>
+                    {j.work_model && (
+                      <span style={styles.jobMetaMuted}>· {j.work_model}</span>
                     )}
                   </div>
                   <div style={styles.jobFooter}>
@@ -340,13 +341,14 @@ function JobDetail({
   applying: boolean;
   onApply: () => void;
 }) {
+  const locations = parseLocations(job.office_locations_json);
   return (
     <div style={styles.detailInner}>
       <header style={styles.detailHeader}>
-        <h2 style={styles.detailTitle}>{job.title}</h2>
+        <h2 style={styles.detailTitle}>{job.job_title}</h2>
         <div style={styles.detailMetaRow}>
-          {job.company && (
-            <span style={styles.detailCompany}>{job.company}</span>
+          {job.company_name && (
+            <span style={styles.detailCompany}>{job.company_name}</span>
           )}
           {job.employment_type && (
             <span style={styles.pill}>
@@ -355,11 +357,11 @@ function JobDetail({
           )}
         </div>
         <div style={styles.detailMetaRow}>
-          {job.location && (
-            <span style={styles.detailMetaText}>{job.location}</span>
+          {locations.length > 0 && (
+            <span style={styles.detailMetaText}>{locations.join(' · ')}</span>
           )}
-          {job.remote === 1 && (
-            <span style={styles.detailMetaMuted}>· Remote-friendly</span>
+          {job.work_model && (
+            <span style={styles.detailMetaMuted}>· {job.work_model}</span>
           )}
         </div>
         <div style={styles.detailMetaRow}>
@@ -373,7 +375,7 @@ function JobDetail({
       <div style={styles.detailBody}>
         <h3 style={styles.detailSectionTitle}>About the role</h3>
         <p style={styles.detailDescription}>
-          {job.description?.trim() || 'No description provided.'}
+          {job.summary?.trim() || 'No description provided.'}
         </p>
       </div>
 
@@ -394,12 +396,22 @@ function JobDetail({
   );
 }
 
+function parseLocations(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.filter((s) => typeof s === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 function formatSalary(j: {
   salary_min: number | null;
   salary_max: number | null;
-  salary_currency: string | null;
+  currency: string | null;
 }) {
-  const cur = j.salary_currency || 'USD';
+  const cur = j.currency || 'USD';
   if (j.salary_min == null && j.salary_max == null) {
     return 'Compensation not disclosed';
   }
