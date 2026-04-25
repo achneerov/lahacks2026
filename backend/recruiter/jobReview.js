@@ -26,7 +26,7 @@ function heuristicReview(posting) {
   if (title.length < 4) {
     issues.push({
       field: 'title',
-      severity: 'error',
+      severity: 'warning',
       message: 'Title is very short — give a clear role name (e.g. "Senior Backend Engineer").',
     });
   }
@@ -77,7 +77,7 @@ function heuristicReview(posting) {
   ) {
     issues.push({
       field: 'salary_max',
-      severity: 'error',
+      severity: 'warning',
       message: 'Maximum salary is lower than the minimum.',
     });
   }
@@ -114,9 +114,10 @@ Look for:
 For each issue, return one entry. Use the field name that most directly relates to the issue.
 
 Return STRICT JSON of the form:
-{"issues": [{"field": "<field>", "severity": "info|warning|error", "message": "<short, specific suggestion>"}]}
+{"issues": [{"field": "<field>", "severity": "info|warning", "message": "<short, specific suggestion>"}]}
 
 Allowed fields: title, company, description, location, employment_type, salary_min, salary_max, salary_currency.
+Severity must be either "info" (minor suggestion) or "warning" (should fix before publishing).
 If the posting looks good, return {"issues": []}. Keep messages concise (under 160 chars).`;
 
   const prompt = `Job posting draft:\n${JSON.stringify(safe, null, 2)}`;
@@ -156,6 +157,7 @@ If the posting looks good, return {"issues": []}. Keep messages concise (under 1
       const message = typeof item.message === 'string' ? item.message.trim() : '';
       let severity = typeof item.severity === 'string' ? item.severity.toLowerCase() : 'info';
       if (!SEVERITIES.has(severity)) severity = 'info';
+      if (severity === 'error') severity = 'warning';
       if (!field || !message) continue;
       out.push({ field, severity, message: message.slice(0, 240) });
     }
