@@ -5,6 +5,7 @@ PRAGMA foreign_keys = ON;
 DROP TRIGGER IF EXISTS trg_user_profiles_insert_applicant_only;
 DROP TRIGGER IF EXISTS trg_user_profiles_update_applicant_only;
 
+DROP TABLE IF EXISTS conversation_read_states;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS conversations;
 DROP TABLE IF EXISTS negotiation_messages;
@@ -410,6 +411,20 @@ CREATE TABLE messages (
 );
 
 CREATE INDEX idx_messages_user ON messages(user_id);
+
+CREATE TABLE conversation_read_states (
+  conversation_id  INTEGER NOT NULL,
+  user_id          INTEGER NOT NULL,
+  -- Highest conversation_index the user has seen in this thread.
+  last_read_index  INTEGER NOT NULL DEFAULT -1,
+  read_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (conversation_id, user_id),
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)         REFERENCES users(id)         ON DELETE CASCADE
+);
+
+CREATE INDEX idx_conversation_read_states_user
+  ON conversation_read_states(user_id, conversation_id);
 
 -- Append-only audit log of every attempted critical-field profile change.
 -- "Critical" = links (linkedin_url, website_portfolio, github_or_other_portfolio),

@@ -1,5 +1,22 @@
 const db = require('../db');
 
+// Back-compat migration for existing local DBs that predate unread tracking.
+db.prepare(
+  `CREATE TABLE IF NOT EXISTS conversation_read_states (
+     conversation_id  INTEGER NOT NULL,
+     user_id          INTEGER NOT NULL,
+     last_read_index  INTEGER NOT NULL DEFAULT -1,
+     read_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+     PRIMARY KEY (conversation_id, user_id),
+     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+     FOREIGN KEY (user_id)         REFERENCES users(id)         ON DELETE CASCADE
+   )`
+).run();
+db.prepare(
+  `CREATE INDEX IF NOT EXISTS idx_conversation_read_states_user
+     ON conversation_read_states(user_id, conversation_id)`
+).run();
+
 const ALLOWED_KINDS = new Set([
   'text',
   'interview_request',
@@ -156,6 +173,23 @@ function applyTrustFeedbackDelta(userId, scores) {
   return next;
 }
 
+// Mark a thread as read through the provided message index.
+function markConversationReadThrough(conversationId, userId, readThroughIndex) {
+  const idx = Number(readThroughIndex);
+  if (!Number.isFinite(idx) || idx < 0) return;
+  db.prepare(
+    `INSERT INTO conversation_read_states (conversation_id, user_id, last_read_index, read_at)
+     VALUES (?, ?, ?, datetime('now'))
+     ON CONFLICT(conversation_id, user_id) DO UPDATE SET
+       last_read_index = CASE
+         WHEN excluded.last_read_index > conversation_read_states.last_read_index
+           THEN excluded.last_read_index
+         ELSE conversation_read_states.last_read_index
+       END,
+       read_at = datetime('now')`
+  ).run(conversationId, userId, idx);
+}
+
 module.exports = {
   ALLOWED_KINDS,
   insertMessage,
@@ -164,4 +198,5 @@ module.exports = {
   googleCalendarUrl,
   applyTrustFeedbackDelta,
   ratedUserIdForClosure,
+  markConversationReadThrough,
 };

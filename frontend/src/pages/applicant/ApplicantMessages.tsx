@@ -27,6 +27,7 @@ import { renderSpecialBubble } from '../../components/InterviewCards';
 type ActiveFilter = 'any' | 'open' | 'closed';
 
 const POLL_INTERVAL_MS = 5000;
+const UNREAD_REFRESH_EVENT = 'impulse:conversations-read-updated';
 
 export default function ApplicantMessages() {
   const { token } = useAuth();
@@ -129,6 +130,9 @@ export default function ApplicantMessages() {
           }
           return data;
         });
+        if (!opts.silent) {
+          window.dispatchEvent(new Event(UNREAD_REFRESH_EVENT));
+        }
       } catch (err) {
         if (opts.silent) return;
         const msg =

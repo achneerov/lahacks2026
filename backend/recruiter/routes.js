@@ -9,6 +9,7 @@ const {
   googleCalendarUrl,
   applyTrustFeedbackDelta,
   ratedUserIdForClosure,
+  markConversationReadThrough,
 } = require('../messaging');
 const { TRUST_QUESTIONS } = require('../messaging/trustQuestions');
 
@@ -1121,7 +1122,18 @@ router.get('/conversations', requireAuth, requireRecruiter, (req, res) => {
               FROM messages m
              WHERE m.conversation_id = c.id
              ORDER BY m.conversation_index DESC
-             LIMIT 1)                                       AS last_message_user_id
+             LIMIT 1)                                       AS last_message_user_id,
+           (SELECT COUNT(*)
+              FROM messages um
+             WHERE um.conversation_id = c.id
+               AND um.user_id <> ?
+               AND um.conversation_index > COALESCE(
+                 (SELECT crs.last_read_index
+                    FROM conversation_read_states crs
+                   WHERE crs.conversation_id = c.id
+                     AND crs.user_id = ?),
+                 -1
+               ))                                           AS unread_count
          FROM conversations c
          LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
          ${whereSql}
@@ -1132,7 +1144,7 @@ router.get('/conversations', requireAuth, requireRecruiter, (req, res) => {
            c.created_at
          ) DESC`
       )
-      .all(userId, ...params);
+      .all(userId, userId, userId, ...params);
 
     const otherIds = [...new Set(rows.map((r) => r.other_user_id))];
     const otherUsers = otherIds.length
@@ -1159,6 +1171,9 @@ router.get('/conversations', requireAuth, requireRecruiter, (req, res) => {
         r.last_message_user_id != null
           ? r.last_message_user_id === userId
           : null,
+      unread_count: Number.isFinite(Number(r.unread_count))
+        ? Number(r.unread_count)
+        : 0,
       other_party: otherById.get(r.other_user_id) || {
         id: r.other_user_id,
         username: 'unknown',
@@ -1278,6 +1293,13 @@ router.get(
           created_at: m.created_at,
           from_me: m.user_id === userId,
         }));
+      if (messages.length > 0) {
+        markConversationReadThrough(
+          conversationId,
+          userId,
+          messages[messages.length - 1].index
+        );
+      }
 
       let closureResponses = null;
       try {

@@ -32,6 +32,7 @@ function navForRole(role: Role | string): NavItem[] {
 }
 
 const POLL_INTERVAL_MS = 15000;
+const UNREAD_REFRESH_EVENT = 'impulse:conversations-read-updated';
 
 function useUnreadCount(role: Role | string | undefined, token: string | null) {
   const [count, setCount] = useState(0);
@@ -58,9 +59,11 @@ function useUnreadCount(role: Role | string | undefined, token: string | null) {
       try {
         const { conversations } = await fetcher();
         if (cancelled) return;
-        const unread = conversations.filter(
-          (c) => c.active === 1 && c.last_message_from_me === false,
-        ).length;
+        const unread = conversations.reduce((total, c) => {
+          if (c.active !== 1) return total;
+          const n = Number(c.unread_count ?? 0);
+          return total + (Number.isFinite(n) && n > 0 ? n : 0);
+        }, 0);
         setCount(unread);
       } catch {
         // Silent — badge isn't critical and shouldn't surface auth errors.
@@ -68,9 +71,14 @@ function useUnreadCount(role: Role | string | undefined, token: string | null) {
     };
 
     void refresh();
+    const onUnreadRefresh = () => {
+      void refresh();
+    };
+    window.addEventListener(UNREAD_REFRESH_EVENT, onUnreadRefresh);
     const id = setInterval(refresh, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
+      window.removeEventListener(UNREAD_REFRESH_EVENT, onUnreadRefresh);
       clearInterval(id);
     };
   }, [role, token, location.pathname]);

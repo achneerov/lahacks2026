@@ -10,7 +10,12 @@ const {
   lockUser,
 } = require('./criticalChange');
 const { reviewCriticalChange } = require('../agents/profile-credibility');
-const { insertMessage, setInterviewStatus, applyTrustFeedbackDelta } = require('../messaging');
+const {
+  insertMessage,
+  setInterviewStatus,
+  applyTrustFeedbackDelta,
+  markConversationReadThrough,
+} = require('../messaging');
 const { RECRUITER_RATING_QUESTIONS } = require('../messaging/trustQuestions');
 
 const router = express.Router();
@@ -624,10 +629,21 @@ router.get('/conversations', requireAuth, requireApplicant, (req, res) => {
               jp.title AS job_title, jp.company AS job_company,
               (SELECT m.conversation_content FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1) AS last_message,
               (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1) AS last_message_at,
-              (SELECT m.user_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1) AS last_message_user_id
+              (SELECT m.user_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1) AS last_message_user_id,
+              (SELECT COUNT(*)
+                 FROM messages um
+                WHERE um.conversation_id = c.id
+                  AND um.user_id <> ?
+                  AND um.conversation_index > COALESCE(
+                    (SELECT crs.last_read_index
+                       FROM conversation_read_states crs
+                      WHERE crs.conversation_id = c.id
+                        AND crs.user_id = ?),
+                    -1
+                  )) AS unread_count
          FROM conversations c LEFT JOIN job_postings jp ON jp.id = c.job_posting_id ${whereSql}
          ORDER BY COALESCE((SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.conversation_index DESC LIMIT 1), c.created_at) DESC`
-    ).all(userId, ...params);
+    ).all(userId, userId, userId, ...params);
     const otherIds = [...new Set(rows.map(r => r.other_user_id))];
     const otherUsers = otherIds.length ? db.prepare(`SELECT id, username, role FROM users WHERE id IN (${otherIds.map(() => '?').join(',')})`).all(...otherIds) : [];
     const otherById = new Map(otherUsers.map(u => [u.id, u]));
@@ -635,6 +651,7 @@ router.get('/conversations', requireAuth, requireApplicant, (req, res) => {
       id: r.id, job_posting_id: r.job_posting_id, job_title: r.job_title, job_company: r.job_company,
       active: r.active, created_at: r.created_at, last_message: r.last_message, last_message_at: r.last_message_at,
       last_message_from_me: r.last_message_user_id != null ? r.last_message_user_id === userId : null,
+      unread_count: Number.isFinite(Number(r.unread_count)) ? Number(r.unread_count) : 0,
       other_party: otherById.get(r.other_user_id) || { id: r.other_user_id, username: 'unknown', role: 'Unknown' },
     }));
     if (q && typeof q === 'string' && q.trim() !== '') {
@@ -708,6 +725,9 @@ router.get('/conversations/:id/messages', requireAuth, requireApplicant, (req, r
       created_at: m.created_at,
       from_me: m.user_id === userId,
     }));
+    if (messages.length > 0) {
+      markConversationReadThrough(conversationId, userId, messages[messages.length - 1].index);
+    }
     return res.json({
       conversation: {
         id: convo.id,

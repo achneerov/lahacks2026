@@ -155,3 +155,103 @@ INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active) VAL
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content) VALUES
   (1, 0, 5, 'Carol — I can help match you to roles that fit your design-engineer profile when you are ready to apply widely.'),
   (1, 1, 3, 'Sounds good, thanks!');
+
+-- Recruiter inbox seed: 3 active chats with randomized message text so each
+-- reset feels like a "live" inbox.
+INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active) VALUES
+  (2, 1, 4, 1, 1),
+  (3, 2, 4, 2, 1),
+  (4, 3, 4, 3, 1);
+
+INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content)
+VALUES
+  (2, 0, 1,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Hi recruiter! I just applied for the Junior SWE role and wanted to introduce myself.'
+      WHEN 1 THEN 'Hey team, I submitted my application for Junior SWE today.'
+      WHEN 2 THEN 'Hello! Excited about the Junior opening - happy to share more about my projects.'
+      WHEN 3 THEN 'Good afternoon, I applied for Junior SWE and would love to chat.'
+      ELSE 'Hi! I sent my application for the Junior role and I am very interested.'
+    END
+  ),
+  (2, 1, 4,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Great to meet you, Alice. I reviewed your profile and would like to learn more.'
+      WHEN 1 THEN 'Thanks for reaching out, Alice. Your stack looks like a strong match.'
+      WHEN 2 THEN 'Appreciate the intro! I liked your TypeScript background.'
+      WHEN 3 THEN 'Nice to connect, Alice - your resume stood out to our team.'
+      ELSE 'Happy you applied, Alice. I have a couple of follow-up questions.'
+    END
+  ),
+  (2, 2, 1,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Awesome! I can also share code samples if that helps.'
+      WHEN 1 THEN 'Great, I am happy to walk through my recent React work.'
+      WHEN 2 THEN 'Thanks! Let me know what details would be most useful.'
+      WHEN 3 THEN 'Perfect - I can send over examples from my last project.'
+      ELSE 'Sounds good, I am available anytime this week for a quick chat.'
+    END
+  ),
+  (3, 0, 4,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Hi Bob, thanks for applying to our Software Engineer role.'
+      WHEN 1 THEN 'Hey Bob - appreciate your application for the mid-level role.'
+      WHEN 2 THEN 'Hi Bob, we reviewed your profile and wanted to reach out.'
+      WHEN 3 THEN 'Thanks for applying, Bob. I had a few questions about your backend work.'
+      ELSE 'Great to connect, Bob - your experience looks relevant for our team.'
+    END
+  ),
+  (3, 1, 2,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Thanks! I would love to discuss my distributed systems experience.'
+      WHEN 1 THEN 'Appreciate the note - happy to share details on recent Go services.'
+      WHEN 2 THEN 'Thanks for reaching out. I am excited about the role.'
+      WHEN 3 THEN 'Great to hear from you. I can share specifics on scaling work I have done.'
+      ELSE 'Glad to connect. Let me know what you would like to dig into.'
+    END
+  ),
+  (3, 2, 4,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Perfect, I will send next steps after our team sync tomorrow.'
+      WHEN 1 THEN 'Sounds great. I will follow up with timeline details shortly.'
+      WHEN 2 THEN 'Excellent - I will queue up the next interview stage.'
+      WHEN 3 THEN 'Great, I will share process details and expected timing soon.'
+      ELSE 'Awesome. I will send the next step update later today.'
+    END
+  ),
+  (4, 0, 3,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Hi! I am interested in the Senior SWE role and just applied.'
+      WHEN 1 THEN 'Hello recruiter - excited about the Senior Engineer opening.'
+      WHEN 2 THEN 'Hey there, I submitted my Senior SWE application this morning.'
+      WHEN 3 THEN 'Good morning! I would love to be considered for the Senior role.'
+      ELSE 'Hi team, I applied for Senior SWE and wanted to say hello.'
+    END
+  ),
+  (4, 1, 4,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Thanks Carol, your design-system work is very relevant for us.'
+      WHEN 1 THEN 'Great to hear from you, Carol. Your background looks compelling.'
+      WHEN 2 THEN 'Appreciate the intro - your portfolio caught our eye.'
+      WHEN 3 THEN 'Thanks for applying, Carol. We think your profile could be a fit.'
+      ELSE 'Nice to meet you, Carol. I am reviewing your application now.'
+    END
+  ),
+  (4, 2, 3,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Happy to hear that. I can share details about my architecture work.'
+      WHEN 1 THEN 'Thanks! I would love to talk through my recent frontend platform project.'
+      WHEN 2 THEN 'Great - I am glad my portfolio was helpful.'
+      WHEN 3 THEN 'Appreciate it. I am available this week if you want to chat.'
+      ELSE 'Awesome, thank you! I can provide more project context anytime.'
+    END
+  ),
+  (4, 3, 4,
+    CASE (abs(random()) % 5)
+      WHEN 0 THEN 'Perfect. I will follow up with interview options shortly.'
+      WHEN 1 THEN 'Great. I will send the next-step details soon.'
+      WHEN 2 THEN 'Sounds good - expect a scheduling message from me shortly.'
+      WHEN 3 THEN 'Excellent. I will reach back out with timing options.'
+      ELSE 'Thanks Carol, I will share next steps after internal review.'
+    END
+  );

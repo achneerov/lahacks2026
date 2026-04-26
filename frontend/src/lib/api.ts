@@ -450,6 +450,7 @@ export interface ConversationSummary {
   last_message: string | null;
   last_message_at: string | null;
   last_message_from_me: boolean | null;
+  unread_count?: number;
   other_party: ConversationParty;
 }
 

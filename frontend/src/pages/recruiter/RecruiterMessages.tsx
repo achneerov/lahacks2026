@@ -29,6 +29,7 @@ import {
 type ActiveFilter = 'any' | 'open' | 'closed';
 
 const POLL_INTERVAL_MS = 5000;
+const UNREAD_REFRESH_EVENT = 'impulse:conversations-read-updated';
 
 export default function RecruiterMessages() {
   const { token } = useAuth();
@@ -145,6 +146,9 @@ export default function RecruiterMessages() {
           }
           return data;
         });
+        if (!opts.silent) {
+          window.dispatchEvent(new Event(UNREAD_REFRESH_EVENT));
+        }
       } catch (err) {
         if (opts.silent) return;
         const msg =
