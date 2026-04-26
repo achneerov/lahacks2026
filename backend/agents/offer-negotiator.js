@@ -4,7 +4,7 @@ const { insertMessage } = require('../messaging');
 const { emitOffer } = require('./bus');
 
 const MODEL = 'gemini-2.5-flash';
-const OFFER_TURNS = 5;
+const OFFER_TURNS = 6;
 const API_KEY = process.env.GEMINI_API_KEY;
 const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
