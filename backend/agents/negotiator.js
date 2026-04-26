@@ -10,7 +10,7 @@ const {
   VERDICT_SCHEMA,
 } = require('./prompts');
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const MODEL = 'gemini-2.5-flash';
 const API_KEY = process.env.GEMINI_API_KEY;
 const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
@@ -234,7 +234,6 @@ async function runNegotiation(applicationId) {
     }),
     recruiter_agent: recruiterAgentSystemPrompt({ jobPosting }),
   };
-
   const transcript = []; // shared in-memory: [{ turnIndex, sender, content }]
 
   emit(applicationId, {
@@ -319,14 +318,6 @@ async function runNegotiation(applicationId) {
                 applicantBundle.user.id,
                 c,
               );
-              emit(applicationId, {
-                type: 'applicant-tool-call',
-                turnIndex: turn,
-                name: c.name,
-                args: c.args || null,
-                ok: !!response.ok,
-                error: response.ok ? null : response.error,
-              });
               return { functionResponse: { name: c.name, response } };
             });
             dialogContents.push({ role: 'user', parts: responseParts });
