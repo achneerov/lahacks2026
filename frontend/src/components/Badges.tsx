@@ -5,10 +5,9 @@ const VERIFICATION_META: Record<
   VerificationLevel,
   { label: string; tone: 'high' | 'mid' | 'low'; icon: string }
 > = {
-  orb: { label: 'Orb verified', tone: 'high', icon: '◉' },
-  iris: { label: 'Iris verified', tone: 'high', icon: '◉' },
-  passport: { label: 'Passport verified', tone: 'high', icon: '✦' },
+  orb: { label: 'Proof of Human', tone: 'high', icon: '◉' },
   document: { label: 'Document verified', tone: 'mid', icon: '◊' },
+  face: { label: 'Selfie Face verified', tone: 'mid', icon: '☺' },
   device: { label: 'Device verified', tone: 'low', icon: '◇' },
 };
 

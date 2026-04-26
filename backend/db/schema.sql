@@ -34,10 +34,10 @@ CREATE TABLE users (
   password_hash        TEXT    NOT NULL,
   created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
   -- World ID credential strength as reported by the verify response.
-  -- 'device' = phone-bound proof, 'orb' = in-person biometric, 'document' /
-  -- 'passport' / 'iris' = enhanced credentials the demo surfaces in the UI.
+  -- 'orb' = Proof of Human (Orb), 'document' = NFC document, 'face' = Selfie
+  -- Check, 'device' = phone-bound legacy proof.
   verification_level   TEXT    NOT NULL DEFAULT 'device'
-                          CHECK (verification_level IN ('device','document','passport','orb','iris')),
+                          CHECK (verification_level IN ('orb','document','face','device')),
   -- 0..100 trust score. Starts at 85 on signup; recruiter feedback after
   -- interviews can move it up or down. Surfaced to recruiters when ranking
   -- candidates so they can weigh past-interview honesty.
@@ -316,6 +316,11 @@ CREATE TABLE job_postings (
   location              TEXT,
   remote                INTEGER NOT NULL DEFAULT 0 CHECK (remote IN (0, 1)),
   recruiter_system_prompt TEXT,
+
+  -- Minimum World ID verification level required to apply.
+  -- 'device' (default) = no restriction; ranks are device < face < document < orb.
+  min_verification_level TEXT NOT NULL DEFAULT 'device'
+                          CHECK (min_verification_level IN ('orb','document','face','device')),
 
   FOREIGN KEY (poster_id) REFERENCES users(id) ON DELETE CASCADE,
   CHECK (salary_min IS NULL OR salary_max IS NULL OR salary_min <= salary_max)

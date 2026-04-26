@@ -5,12 +5,7 @@ export const API_BASE_URL = API_BASE;
 export type Role = 'Applicant' | 'Recruiter' | 'Agent';
 export type SignupRole = 'Applicant' | 'Recruiter';
 
-export type VerificationLevel =
-  | 'device'
-  | 'document'
-  | 'passport'
-  | 'orb'
-  | 'iris';
+export type VerificationLevel = 'orb' | 'document' | 'face' | 'device';
 
 export interface User {
   id: number;
@@ -366,6 +361,7 @@ export interface JobPosting {
   salary_currency: string | null;
   created_at: string;
   poster_username: string;
+  min_verification_level: VerificationLevel;
 }
 
 export interface ApplicantJobsQuery {
@@ -590,6 +586,7 @@ export interface RecruiterJob {
   salary_currency: string | null;
   is_active: 0 | 1;
   created_at: string;
+  min_verification_level: VerificationLevel;
   // Job basics
   job_id_requisition: string | null;
   department: string | null;
@@ -681,6 +678,7 @@ export interface RecruiterJobInput {
   salary_max?: number | null;
   salary_currency?: string | null;
   is_active?: boolean;
+  min_verification_level?: VerificationLevel;
   // Job basics
   job_id_requisition?: string | null;
   department?: string | null;

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import {
   IDKitRequestWidget,
-  CredentialRequest,
   type IDKitResult,
 } from '@worldcoin/idkit';
 import { ApiError, api, type WorldIdContext } from '../../lib/api';
@@ -218,8 +217,7 @@ export default function SignupWorldId() {
           app_id={ctx.app_id}
           action={ctx.action}
           rp_context={ctx.rp_context}
-          allow_legacy_proofs={false}
-          constraints={CredentialRequest('proof_of_human')}
+          allow_legacy_proofs={true}
           open={open}
           onOpenChange={setOpen}
           onSuccess={handleSuccess}

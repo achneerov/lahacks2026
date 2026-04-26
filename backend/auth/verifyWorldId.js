@@ -1,12 +1,5 @@
 const RP_ID = process.env.WORLD_ID_RP_ID;
-
-const ALLOWED_LEVELS = ['device', 'document', 'passport', 'orb', 'iris'];
-
-function normalizeLevel(raw) {
-  if (typeof raw !== 'string') return 'device';
-  const s = raw.toLowerCase();
-  return ALLOWED_LEVELS.includes(s) ? s : 'device';
-}
+const { normalizeLevel } = require('./verificationLevels');
 
 async function verifyWorldId(idkitResult) {
   if (!RP_ID) throw new Error('WORLD_ID_RP_ID not set');

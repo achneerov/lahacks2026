@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../auth/jwt');
 const { reviewJobPosting } = require('./jobReview');
+const { isValidLevel } = require('../auth/verificationLevels');
 const {
   insertMessage,
   findOrCreateConversation,
@@ -172,6 +173,19 @@ function sanitizeJobPayload(raw, { partial = false } = {}) {
       throw err;
     }
     out[key] = Math.round(n);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(raw, 'min_verification_level')) {
+    const v = raw.min_verification_level;
+    if (v === null || v === undefined || v === '') {
+      out.min_verification_level = 'device';
+    } else if (typeof v === 'string' && isValidLevel(v)) {
+      out.min_verification_level = v;
+    } else {
+      const err = new Error('job.min_verification_level is invalid');
+      err.code = 'invalid_job';
+      throw err;
+    }
   }
 
   if (Object.prototype.hasOwnProperty.call(raw, 'is_active')) {
@@ -437,7 +451,7 @@ router.get('/jobs', requireAuth, requireRecruiter, (req, res) => {
         `SELECT
            jp.id, jp.title, jp.company, jp.description, jp.location, jp.remote,
            jp.employment_type, jp.salary_min, jp.salary_max, jp.salary_currency,
-           jp.is_active, jp.created_at,
+           jp.is_active, jp.created_at, jp.min_verification_level,
            (SELECT COUNT(*) FROM applications a
               WHERE a.job_posting_id = jp.id) AS applicant_count,
            (SELECT COUNT(*) FROM applications a
