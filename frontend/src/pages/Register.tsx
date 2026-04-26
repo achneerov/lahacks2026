@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   IDKitRequestWidget,
+  CredentialRequest,
   type IDKitResult,
 } from '@worldcoin/idkit';
 import { api, ApiError, type Role, type WorldIdContext } from '../lib/api';
@@ -136,6 +137,7 @@ export default function Register() {
           action={ctx.action}
           rp_context={ctx.rp_context}
           allow_legacy_proofs={true}
+          constraints={CredentialRequest('proof_of_human')}
           open={open}
           onOpenChange={setOpen}
           onSuccess={handleWorldIdSuccess}

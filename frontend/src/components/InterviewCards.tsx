@@ -278,13 +278,16 @@ function OfferSettledCard({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (negoId == null || !authToken) return;
+    if (negoId == null) return;
+    if (authToken == null || authToken === '') return;
+    const token: string = authToken;
+    const id: number = negoId;
     let cancel = false;
     async function load() {
       try {
         const { negotiation: n } = await api.getOfferNegotiation(
-          authToken,
-          negoId,
+          token,
+          id,
         );
         if (!cancel) setRemote(n);
       } catch {
@@ -313,7 +316,7 @@ function OfferSettledCard({
       ? Boolean(remote?.applicant_confirmed_at)
       : Boolean(remote?.recruiter_confirmed_at);
   const termsReady =
-    Boolean(remote) &&
+    remote != null &&
     (remote.status === 'complete' || remote.status === 'accepted_initial') &&
     !remote.error_message;
   const showBtn =
@@ -420,13 +423,16 @@ function OfferProposalCard({
   const [remote, setRemote] = useState<OfferNegotiationDetail | null>(null);
 
   useEffect(() => {
-    if (negoId == null || !authToken) return;
+    if (negoId == null) return;
+    if (authToken == null || authToken === '') return;
+    const token: string = authToken;
+    const id: number = negoId;
     let cancel = false;
     async function load() {
       try {
         const { negotiation: n } = await api.getOfferNegotiation(
-          authToken,
-          negoId,
+          token,
+          id,
         );
         if (!cancel) setRemote(n);
       } catch {
