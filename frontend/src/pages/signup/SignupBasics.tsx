@@ -387,7 +387,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-block',
     fontSize: '11px',
     fontWeight: 700,
-    color: 'var(--accent)',
+    color: 'var(--accent-warm)',
     letterSpacing: '1px',
     textTransform: 'uppercase',
     marginBottom: '8px'

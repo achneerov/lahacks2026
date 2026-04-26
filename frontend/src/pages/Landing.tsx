@@ -290,7 +290,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '8px',
     backgroundColor: 'var(--accent)',
     borderRadius: '50%',
-    boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)'
+    boxShadow: '0 0 8px rgba(116, 183, 181, 0.55)'
   },
   counterText: {
     fontSize: '12px',
@@ -358,7 +358,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   primaryBtn: {
     backgroundColor: 'var(--brand-ink)',
-    color: '#fff',
+    color: 'white',
     border: 'none',
     borderRadius: '999px',
     padding: '16px 28px',

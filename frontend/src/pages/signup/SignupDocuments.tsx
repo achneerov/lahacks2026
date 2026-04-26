@@ -413,7 +413,7 @@ const s: Record<string, CSSProperties> = {
     display: 'block',
     fontSize: '11px',
     fontWeight: 700,
-    color: 'var(--accent)',
+    color: 'var(--accent-warm)',
     letterSpacing: '1px',
     textTransform: 'uppercase',
     marginBottom: 10,
@@ -421,7 +421,7 @@ const s: Record<string, CSSProperties> = {
   stepSegments: { display: 'flex', gap: 6, marginBottom: 12 },
   stepSeg: { flex: 1, height: 3, background: 'var(--border)', borderRadius: 2 },
   stepSegOn: { background: 'var(--brand-ink)' },
-  stepSegCurrent: { background: 'var(--accent)' },
+  stepSegCurrent: { background: 'var(--accent-warm)' },
   panelTitle: {
     fontSize: '22px',
     fontWeight: 500,
