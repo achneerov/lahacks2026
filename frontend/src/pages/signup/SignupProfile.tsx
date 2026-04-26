@@ -7,8 +7,6 @@ import {
 } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import {
-  ApiError,
-  api,
   type ApplicantProfileInput,
   type WorkExperienceInput,
   type EducationInput,
@@ -17,7 +15,6 @@ import {
   type LegalInput,
   type EeoInput,
 } from '../../lib/api';
-import { useAuth } from '../../auth/AuthContext';
 import { useSignup } from '../../signup/SignupContext';
 
 const URL_RE = /^https?:\/\/[^\s]+$/i;
@@ -683,24 +680,11 @@ function IntegrityNotice() {
   );
 }
 
-function errorMessage(code: string, detail?: string): string {
-  switch (code) {
-    case 'email_taken': return 'That email is already registered.';
-    case 'username_taken': return 'That username is taken.';
-    case 'world_id_already_used': return 'This World ID has already been used to register an account.';
-    case 'world_id_failed': return detail || 'World ID verification failed. Please try step 2 again.';
-    case 'invalid_profile': case 'invalid_profile_url': return detail || 'One of the profile fields is invalid.';
-    case 'missing_fields': return 'Some required fields are missing.';
-    default: return detail || 'Something went wrong. Please try again.';
-  }
-}
-
 type Phase = 'idle' | 'exiting' | 'entering';
 
 export default function SignupProfile() {
   const nav = useNavigate();
-  const { setAuth } = useAuth();
-  const { basics, password, worldIdResult, setApplicantProfile, reset } = useSignup();
+  const { basics, setApplicantProfile } = useSignup();
 
   const [form, setForm] = useState<FormState>(() => EMPTY_FORM);
   const [stepIndex, setStepIndex] = useState(0);
@@ -709,8 +693,6 @@ export default function SignupProfile() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [topError, setTopError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const completedRef = useRef(false);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const enterTimerRef = useRef<number | null>(null);
@@ -768,10 +750,8 @@ export default function SignupProfile() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  if (!completedRef.current) {
-    if (!basics) return <Navigate to="/signup" replace />;
-    if (basics.role !== 'Applicant') return <Navigate to="/" replace />;
-  }
+  if (!basics) return <Navigate to="/signup" replace />;
+  if (basics.role !== 'Applicant') return <Navigate to="/" replace />;
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm(f => ({ ...f, [key]: value }));
@@ -984,35 +964,18 @@ export default function SignupProfile() {
     }
   }
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (stepIndex !== PROFILE_STEPS - 1) return;
     setTopError(null);
     const errs = validate(form);
     setErrors(errs);
     if (errs.length > 0) { setTopError('Please fix the errors below.'); return; }
-    if (!basics || !password) { setTopError('Session expired. Go back to step 1.'); return; }
-    if (!worldIdResult) { setTopError('World ID verification required. Go back to step 2.'); return; }
-
-    setSubmitting(true);
-    try {
-      const profile = toProfile(form);
-      const { token, user } = await api.register({
-        email: basics.email, username: basics.username, password, role: basics.role,
-        world_id_result: worldIdResult, profile,
-      });
-      completedRef.current = true;
-      setAuth(token, user);
-      reset();
-      nav('/', { replace: true });
-    } catch (err) {
-      setTopError(err instanceof ApiError ? errorMessage(err.code, err.detail) : 'Something went wrong. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
+    setApplicantProfile(toProfile(form));
+    nav('/signup/documents');
   }
 
-  const canNavigate = phase === 'idle' && !submitting;
+  const canNavigate = phase === 'idle';
   const isLastStep = stepIndex === PROFILE_STEPS - 1;
   const progressPercent = ((stepIndex + 1) / PROFILE_STEPS) * 100;
   const showFinalErrors = isLastStep && (errors.length > 0 || topError);
@@ -1070,7 +1033,7 @@ export default function SignupProfile() {
         <div style={layout.rightContentBox}>
           <div style={s.panelHeader}>
             <span style={s.panelStepCounter}>
-              Step 3 of 3 · Part {stepIndex + 1} of {PROFILE_STEPS}
+              Step 3 of 4 · Part {stepIndex + 1} of {PROFILE_STEPS}
             </span>
             <div style={s.progressTrack} aria-hidden>
               <div style={{ ...s.progressFill, width: `${progressPercent}%` }} />
@@ -1112,7 +1075,7 @@ export default function SignupProfile() {
                 style={{ ...s.primary, ...s.primaryFlex, ...(!canNavigate ? s.primaryDisabled : null) }}
                 onClick={isLastStep ? undefined : () => moveStep('next')}
               >
-                {submitting ? 'CREATING ACCOUNT...' : isLastStep ? 'CREATE ACCOUNT' : 'Continue'}
+                {isLastStep ? 'Continue to documents' : 'Continue'}
               </button>
             </div>
           </form>

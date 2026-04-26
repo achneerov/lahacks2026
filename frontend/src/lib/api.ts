@@ -117,6 +117,21 @@ export interface DocumentsInput {
   other_documents?: string[];
 }
 
+export type ApplicantDocumentKind =
+  | 'transcript'
+  | 'letter_of_recommendation'
+  | 'other';
+
+export interface ApplicantDocument {
+  id: number;
+  kind: ApplicantDocumentKind;
+  title: string | null;
+  filename: string;
+  byte_size: number;
+  has_text: boolean;
+  created_at: string;
+}
+
 export interface WorkExperienceInput {
   job_title?: string;
   company?: string;
@@ -1124,6 +1139,54 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ content }) },
       token,
     ),
+
+  applicantListDocuments: (token: string) =>
+    request<{ documents: ApplicantDocument[] }>(
+      '/api/applicant/documents',
+      {},
+      token,
+    ),
+
+  applicantUploadDocument: async (
+    token: string,
+    file: File,
+    kind: ApplicantDocumentKind,
+    title?: string,
+  ): Promise<{ document: ApplicantDocument }> => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('kind', kind);
+    if (title && title.trim() !== '') form.append('title', title.trim());
+    const res = await fetch(`${API_BASE}/api/applicant/documents`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(res.status, data.error || 'request_failed', data.detail);
+    return data as { document: ApplicantDocument };
+  },
+
+  applicantDeleteDocument: (token: string, id: number) =>
+    request<{ ok: true }>(
+      `/api/applicant/documents/${id}`,
+      { method: 'DELETE' },
+      token,
+    ),
+
+  applicantOpenDocument: async (token: string, id: number): Promise<void> => {
+    const res = await fetch(`${API_BASE}/api/applicant/documents/${id}/file`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new ApiError(res.status, data.error || 'request_failed', data.detail);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
 
   recruiterListJobs: (
     token: string,

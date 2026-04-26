@@ -22,6 +22,7 @@ import {
   type EeoInput,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
+import UploadedDocsManager from '../../components/UploadedDocsManager';
 
 type WorkExpItem = WorkExperienceInput & { _key: number; _expanded: boolean };
 type EduItem = EducationInput & { _key: number; _expanded: boolean };
@@ -674,6 +675,10 @@ export default function ApplicantProfile() {
             onChange={setOtherDocuments}
             rows={2}
           />
+        </Section>
+
+        <Section title="Uploaded PDFs (transcripts & letters of recommendation)">
+          <UploadedDocsManager variant="plain" />
         </Section>
 
         <Section

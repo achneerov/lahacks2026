@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import SignupBasics from './pages/signup/SignupBasics';
 import SignupWorldId from './pages/signup/SignupWorldId';
 import SignupProfile from './pages/signup/SignupProfile';
+import SignupDocuments from './pages/signup/SignupDocuments';
 import ApplicantMessages from './pages/applicant/ApplicantMessages';
 import ApplicantJobs from './pages/applicant/ApplicantJobs';
 import ApplicantApplications from './pages/applicant/ApplicantApplications';
@@ -39,6 +40,7 @@ function App() {
             <Route path="/signup" element={<SignupBasics />} />
             <Route path="/signup/world-id" element={<SignupWorldId />} />
             <Route path="/signup/profile" element={<SignupProfile />} />
+            <Route path="/signup/documents" element={<SignupDocuments />} />
 
             <Route
               path="/applicant/messages"
