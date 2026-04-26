@@ -607,6 +607,8 @@ export interface OfferNegotiationDetail {
   status: OfferNegotiationStatus;
   initial_terms: string;
   applicant_counter: string | null;
+  /** Short phrases the candidate asked to watch; optional. */
+  intervention_topics: string[];
   final_terms: string | null;
   final_summary: string | null;
   key_points: string[];
@@ -1457,6 +1459,8 @@ export const api = {
       negotiation_id: number;
       action: 'accept' | 'counter';
       counter?: string;
+      /** Optional. If set when action is counter, each non-empty string is checked (LLM) before candidate-side agent turns. */
+      intervention_topics?: string[];
     },
   ) =>
     request<
@@ -1477,6 +1481,18 @@ export const api = {
       {},
       token,
     ),
+
+  applicantOfferIntervene: (
+    token: string,
+    negotiationId: number,
+    body: { turn_index: number; use_agent: true } | { turn_index: number; message: string },
+  ) =>
+    request<
+      { ok: true; outcome: 'agent' } | { ok: true; outcome: 'human' }
+    >(`/api/offer-negotiations/${negotiationId}/intervene`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }, token),
 
   applicantConfirmOfferTerms: (
     token: string,

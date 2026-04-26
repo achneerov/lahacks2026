@@ -24,6 +24,7 @@ export default function OfferCounterModal({
 }: Props) {
   const { token } = useAuth();
   const [counter, setCounter] = useState('');
+  const [interventionWatchlist, setInterventionWatchlist] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,11 +48,16 @@ export default function OfferCounterModal({
     }
     setSubmitting(true);
     setErr(null);
+    const topics = interventionWatchlist
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
     try {
       await api.applicantOfferRespond(token, conversationId, {
         negotiation_id: negotiationId,
         action: 'counter',
         counter: t,
+        ...(topics.length > 0 ? { intervention_topics: topics } : {}),
       });
       onCounterSubmitted(negotiationId);
       onClose();
@@ -97,6 +103,25 @@ export default function OfferCounterModal({
             onChange={(e) => setCounter(e.target.value)}
             style={styles.textarea}
             rows={10}
+            disabled={submitting}
+          />
+          <label style={styles.label} htmlFor="intervention-topics">
+            When to nudge you (optional)
+          </label>
+          <p style={styles.hintSub}>
+            One line per short phrase. If a candidate-side turn touches one of
+            these topics, you’ll be asked if you want to type the reply in the
+            live negotiation (instead of the model).
+          </p>
+          <textarea
+            id="intervention-topics"
+            value={interventionWatchlist}
+            onChange={(e) => setInterventionWatchlist(e.target.value)}
+            style={styles.textareaSm}
+            rows={4}
+            placeholder={
+              'e.g. immigration / visa support\non-call or weekend work\nnon-compete scope'
+            }
             disabled={submitting}
           />
           {err && (
@@ -174,12 +199,31 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: 0.4,
     marginBottom: 6,
   },
+  hintSub: {
+    margin: '0 0 6px',
+    fontSize: 12,
+    lineHeight: 1.45,
+    color: 'var(--text)',
+  },
   textarea: {
     width: '100%',
     boxSizing: 'border-box',
     fontSize: 14,
     lineHeight: 1.5,
     padding: 12,
+    borderRadius: 10,
+    border: '1px solid var(--border)',
+    background: 'var(--bg)',
+    color: 'var(--text-h)',
+    fontFamily: 'inherit',
+    resize: 'vertical' as const,
+  },
+  textareaSm: {
+    width: '100%',
+    boxSizing: 'border-box',
+    fontSize: 13,
+    lineHeight: 1.5,
+    padding: 10,
     borderRadius: 10,
     border: '1px solid var(--border)',
     background: 'var(--bg)',

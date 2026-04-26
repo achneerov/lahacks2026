@@ -1061,11 +1061,38 @@ router.post(
         return res.status(400).json({ error: 'counter_too_long' });
       }
 
+      let interventionTopicsJson = '[]';
+      if (req.body != null && req.body.intervention_topics != null) {
+        const raw = req.body.intervention_topics;
+        if (!Array.isArray(raw)) {
+          return res.status(400).json({ error: 'invalid_intervention_topics' });
+        }
+        const cleaned = [];
+        for (const s of raw) {
+          if (typeof s !== 'string') {
+            return res.status(400).json({ error: 'invalid_intervention_topics' });
+          }
+          const t = s.trim();
+          if (t) cleaned.push(t);
+          if (cleaned.length > 20) {
+            return res.status(400).json({ error: 'intervention_topics_too_many' });
+          }
+        }
+        for (const t of cleaned) {
+          if (t.length > 400) {
+            return res.status(400).json({ error: 'intervention_topic_too_long' });
+          }
+        }
+        interventionTopicsJson = JSON.stringify(cleaned);
+      }
+
       db.prepare(
         `UPDATE offer_negotiations
-            SET status = 'running', applicant_counter = ?, updated_at = datetime('now')
+            SET status = 'running', applicant_counter = ?,
+                intervention_topics = ?,
+                updated_at = datetime('now')
           WHERE id = ?`,
-      ).run(counter, negotiationId);
+      ).run(counter, interventionTopicsJson, negotiationId);
 
       insertMessage({
         conversationId,

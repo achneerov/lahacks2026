@@ -14,12 +14,24 @@ function negotiationToPublic(row) {
   } catch {
     /* */
   }
+  let intervention_topics = [];
+  try {
+    if (row.intervention_topics) {
+      const t = JSON.parse(row.intervention_topics);
+      if (Array.isArray(t)) {
+        intervention_topics = t.map((s) => String(s).trim()).filter(Boolean);
+      }
+    }
+  } catch {
+    /* */
+  }
   return {
     id: row.id,
     conversation_id: row.conversation_id,
     status: row.status,
     initial_terms: row.initial_terms,
     applicant_counter: row.applicant_counter,
+    intervention_topics,
     final_terms: row.final_terms,
     final_summary: row.final_summary,
     key_points,

@@ -4,11 +4,28 @@ const { insertMessage } = require('../messaging');
 const { emitOffer } = require('./bus');
 
 const MODEL = 'gemini-2.5-flash';
-const OFFER_TURNS = 5;
+const OFFER_TURNS = 6;
 const API_KEY = process.env.GEMINI_API_KEY;
 const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
 const running = new Set();
+
+const BATCH_INTERVENTION_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    matched_indices: {
+      type: Type.ARRAY,
+      items: { type: Type.INTEGER },
+      description:
+        '0-based indices of candidate sensitive topics that the negotiation text touches or plausibly implicates. Include a topic on tangential, thematic, or paraphrased connection. Empty array if none. Err on the side of more matches if unsure.',
+    },
+  },
+  required: ['matched_indices'],
+};
+
+/** @type {Map<number, { turnIndex: number, matchedTopics: string[], resolve: (v: { type: 'agent' } | { type: 'human', text: string }) => void, timeoutId: ReturnType<typeof setTimeout> }>} */
+const interventionWaiters = new Map();
+const INTERVENTION_WAIT_MS = 10 * 60 * 1000;
 
 const SETTLEMENT_SCHEMA = {
   type: Type.OBJECT,
@@ -82,6 +99,164 @@ function buildTurnContents(transcript, currentSender) {
     `\nYou are ${currentSender.toUpperCase()}. Produce only your next message — no preamble, no labels, just the message content.`,
   );
   return [{ role: 'user', parts: [{ text: lines.join('\n\n') }] }];
+}
+
+function buildContextForIntervention({ transcript, initialTerms, counterTerms }) {
+  if (transcript.length === 0) {
+    return `This is the very start of the offer negotiation. No agent messages have been written yet.
+
+Company's written offer:
+${initialTerms}
+
+The candidate's counter and priorities (what the candidate is asking to change or secure):
+${counterTerms}`;
+  }
+  const parts = ['Negotiation transcript so far:'];
+  for (const m of transcript) {
+    parts.push(`[${m.sender.toUpperCase()}]:\n${m.content}`);
+  }
+  return parts.join('\n\n');
+}
+
+function getInterventionPending(negotiationId) {
+  const w = interventionWaiters.get(negotiationId);
+  if (!w) return null;
+  return { turnIndex: w.turnIndex, matched_topics: w.matchedTopics };
+}
+
+/**
+ * @returns {{ ok: true } | { ok: false, error: string }}
+ */
+function submitInterventionChoice(negotiationId, turnIndex, { useAgent, message }) {
+  const w = interventionWaiters.get(negotiationId);
+  if (!w || w.turnIndex !== turnIndex) {
+    return { ok: false, error: 'not_waiting' };
+  }
+  if (useAgent) {
+    clearTimeout(w.timeoutId);
+    interventionWaiters.delete(negotiationId);
+    w.resolve({ type: 'agent' });
+    return { ok: true };
+  }
+  if (typeof message === 'string' && message.trim() !== '') {
+    const t = message.trim();
+    if (t.length > 8000) {
+      return { ok: false, error: 'message_too_long' };
+    }
+    clearTimeout(w.timeoutId);
+    interventionWaiters.delete(negotiationId);
+    w.resolve({ type: 'human', text: t });
+    return { ok: true };
+  }
+  return { ok: false, error: 'invalid_body' };
+}
+
+function waitForInterventionChoice(negotiationId, turnIndex, matchedTopics) {
+  return new Promise((resolve) => {
+    const timeoutId = setTimeout(() => {
+      const cur = interventionWaiters.get(negotiationId);
+      if (cur && cur.turnIndex === turnIndex) {
+        interventionWaiters.delete(negotiationId);
+        console.warn(`[offer-negotiator] intervention wait timed out for negotiation ${negotiationId}`);
+        resolve({ type: 'agent' });
+      }
+    }, INTERVENTION_WAIT_MS);
+    interventionWaiters.set(negotiationId, {
+      turnIndex,
+      matchedTopics,
+      resolve,
+      timeoutId,
+    });
+  });
+}
+
+/**
+ * One LLM call with the full list of user-supplied topics + the negotiation
+ * so far. No string-matching; indices map back to the same phrases the user saved.
+ */
+async function findMatchingInterventionTopics(negotiationId, contextText, topics) {
+  const cleaned = topics
+    .map((t) => (typeof t === 'string' ? t.trim() : ''))
+    .filter(Boolean);
+  if (cleaned.length === 0) {
+    return [];
+  }
+
+  const listBlock = cleaned.map((t, i) => `[${i}] ${t}`).join('\n');
+  const lastIdx = cleaned.length - 1;
+
+  const prompt = `You are helping a job candidate. They pre-registered **sensitive topics** (short phrases) they may want to type themselves instead of an AI agent, if the negotiation implicates any of them.
+
+CANDIDATE SENSITIVE TOPICS (0-based index on the left; use only these when returning matched_indices):
+${listBlock}
+
+NEGOTIATION CONTEXT (initial offer, counter, and any agent lines so far):
+${String(contextText)}
+
+Task: Return "matched_indices": an array of integers from 0 to ${lastIdx} inclusive, **only** for topics where the text above (including related themes, paraphrases, or *tangential* links) plausibly touches that concern. Be **inclusive**: if a reasonable person could connect a thread in the conversation to a listed topic, include that index. Return an **empty** array if nothing applies.
+
+The candidate told you which themes matter; err on the side of offering them a say.`;
+
+  const matched = await withRetry(
+    'intervention batch check',
+    async () => {
+      const r = await ai.models.generateContent({
+        model: MODEL,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: 'application/json',
+          responseJsonSchema: BATCH_INTERVENTION_SCHEMA,
+        },
+      });
+      const raw = typeof r.text === 'string' ? r.text : '';
+      const p = JSON.parse(raw);
+      const out = new Set();
+      if (Array.isArray(p.matched_indices)) {
+        for (const idx of p.matched_indices) {
+          const n = Math.trunc(Number(idx));
+          if (n >= 0 && n < cleaned.length) out.add(n);
+        }
+      }
+      return [...out].sort((a, b) => a - b).map((i) => cleaned[i]);
+    },
+    negotiationId,
+  );
+
+  if (matched.length) {
+    console.log(
+      `[offer-intervention] N=${negotiationId} batch LLM matched: ${JSON.stringify(
+        matched.map((m) => m.slice(0, 64)),
+      )}`,
+    );
+  } else {
+    console.log(
+      `[offer-intervention] N=${negotiationId} batch LLM: no index matched (${cleaned.length} topic(s) in one pass)`,
+    );
+  }
+  return matched;
+}
+
+async function runStreamingModelTurn(negotiationId, turn, sender, systemInstruction, dialogContents) {
+  const stream = await ai.models.generateContentStream({
+    model: MODEL,
+    contents: dialogContents,
+    config: { systemInstruction },
+  });
+  let acc = '';
+  emitOffer(negotiationId, { type: 'turn-start', turnIndex: turn, sender });
+  for await (const chunk of stream) {
+    const delta = typeof chunk.text === 'string' ? chunk.text : '';
+    if (delta) {
+      acc += delta;
+      emitOffer(negotiationId, {
+        type: 'delta',
+        turnIndex: turn,
+        sender,
+        delta,
+      });
+    }
+  }
+  return acc.trim() || '(no response)';
 }
 
 function applicantOfferPrompt({ initialTerms, counterTerms }) {
@@ -237,6 +412,28 @@ async function runOfferNegotiation(negotiationId) {
   const counterTerms = String(row.applicant_counter);
   const job = loadJobPosting(row.job_posting_id);
 
+  let interventionTopics = [];
+  try {
+    if (row.intervention_topics) {
+      const t = JSON.parse(row.intervention_topics);
+      if (Array.isArray(t)) {
+        interventionTopics = t.map((s) => String(s).trim()).filter(Boolean);
+      }
+    }
+  } catch {
+    /* */
+  }
+  if (interventionTopics.length > 20) {
+    interventionTopics = interventionTopics.slice(0, 20);
+  }
+  if (interventionTopics.length > 0) {
+    console.log(
+      `[offer-intervention] N=${negotiationId} start with ${interventionTopics.length} watch phrase(s): ${JSON.stringify(
+        interventionTopics,
+      )}`,
+    );
+  }
+
   const sysPrompts = {
     applicant_agent: applicantOfferPrompt({ initialTerms, counterTerms }),
     recruiter_agent: recruiterOfferPrompt({ initialTerms, counterTerms, jobContext: job }),
@@ -254,33 +451,78 @@ async function runOfferNegotiation(negotiationId) {
     const sender = senderForTurn(turn);
     const systemInstruction = sysPrompts[sender];
 
-    const result = await withRetry(
-      `turn ${turn} (${sender})`,
-      async () => {
-        const dialogContents = buildTurnContents(transcript, sender);
-        const stream = await ai.models.generateContentStream({
-          model: MODEL,
-          contents: dialogContents,
-          config: { systemInstruction },
-        });
-        let acc = '';
-        emitOffer(negotiationId, { type: 'turn-start', turnIndex: turn, sender });
-        for await (const chunk of stream) {
-          const delta = typeof chunk.text === 'string' ? chunk.text : '';
-          if (delta) {
-            acc += delta;
-            emitOffer(negotiationId, {
-              type: 'delta',
-              turnIndex: turn,
+    let result;
+    if (sender === 'applicant_agent' && interventionTopics.length > 0) {
+      const ctx = buildContextForIntervention({ transcript, initialTerms, counterTerms });
+      console.log(
+        `[offer-intervention] N=${negotiationId} scanning applicant turn ${turn} (transcript len ${transcript.length} chars, context ${ctx.length} chars)`,
+      );
+      const matched = await findMatchingInterventionTopics(negotiationId, ctx, interventionTopics);
+      if (matched.length === 0) {
+        result = await withRetry(
+          `turn ${turn} (${sender})`,
+          () =>
+            runStreamingModelTurn(
+              negotiationId,
+              turn,
               sender,
-              delta,
-            });
-          }
+              systemInstruction,
+              buildTurnContents(transcript, sender),
+            ),
+          negotiationId,
+        );
+      } else {
+        console.log(
+          `[offer-intervention] N=${negotiationId} pausing for candidate at turn ${turn}; matches=${JSON.stringify(
+            matched,
+          )}`,
+        );
+        const choicePromise = waitForInterventionChoice(negotiationId, turn, matched);
+        emitOffer(negotiationId, {
+          type: 'intervention-detected',
+          turnIndex: turn,
+          matched_topics: matched,
+        });
+        const choice = await choicePromise;
+        console.log(
+          `[offer-intervention] N=${negotiationId} turn ${turn} choice=${choice.type}${
+            choice.type === 'human' ? ' (len ' + (choice.text && choice.text.length) + ')' : ''
+          }`,
+        );
+        if (choice.type === 'human') {
+          const text = choice.text;
+          emitOffer(negotiationId, { type: 'turn-start', turnIndex: turn, sender });
+          emitOffer(negotiationId, { type: 'delta', turnIndex: turn, sender, delta: text });
+          result = text;
+        } else {
+          result = await withRetry(
+            `turn ${turn} (${sender})`,
+            () =>
+              runStreamingModelTurn(
+                negotiationId,
+                turn,
+                sender,
+                systemInstruction,
+                buildTurnContents(transcript, sender),
+              ),
+            negotiationId,
+          );
         }
-        return acc.trim() || '(no response)';
-      },
-      negotiationId,
-    );
+      }
+    } else {
+      result = await withRetry(
+        `turn ${turn} (${sender})`,
+        () =>
+          runStreamingModelTurn(
+            negotiationId,
+            turn,
+            sender,
+            systemInstruction,
+            buildTurnContents(transcript, sender),
+          ),
+        negotiationId,
+      );
+    }
 
     persistTurn(negotiationId, turn, sender, result);
     transcript.push({ turnIndex: turn, sender, content: result });
@@ -427,4 +669,6 @@ module.exports = {
   isConfigured,
   loadJobPosting,
   loadMessages,
+  getInterventionPending,
+  submitInterventionChoice,
 };

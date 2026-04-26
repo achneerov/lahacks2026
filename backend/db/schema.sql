@@ -461,6 +461,7 @@ CREATE TABLE offer_negotiations (
   error_message      TEXT,
   recruiter_confirmed_at TEXT,
   applicant_confirmed_at TEXT,
+  intervention_topics  TEXT,
   created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at         TEXT    NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (conversation_id)  REFERENCES conversations(id)  ON DELETE CASCADE,

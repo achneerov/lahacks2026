@@ -99,6 +99,7 @@ db.exec(`
 
 ensureColumn('offer_negotiations', 'recruiter_confirmed_at', 'TEXT');
 ensureColumn('offer_negotiations', 'applicant_confirmed_at', 'TEXT');
+ensureColumn('offer_negotiations', 'intervention_topics', 'TEXT');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS offer_negotiation_messages (

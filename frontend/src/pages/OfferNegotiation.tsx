@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, API_BASE_URL, type OfferNegotiationDetail } from '../lib/api';
+import { api, API_BASE_URL, ApiError, type OfferNegotiationDetail } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 import {
   AgentBubble,
@@ -15,9 +15,20 @@ const OFFER_TURNS = 5;
 
 type NegMsg = { turn_index: number; sender: AgentSender; content: string };
 
+type StateIntervention = {
+  turnIndex: number;
+  matched_topics: string[];
+} | null;
+
 type IncomingEvent =
-  | { type: 'state'; negotiation: OfferNegotiationDetail; messages: NegMsg[] }
+  | {
+      type: 'state';
+      negotiation: OfferNegotiationDetail;
+      messages: NegMsg[];
+      intervention_pending?: StateIntervention;
+    }
   | { type: 'started'; negotiationId: number; totalTurns: number }
+  | { type: 'intervention-detected'; turnIndex: number; matched_topics: string[] }
   | { type: 'turn-start'; turnIndex: number; sender: AgentSender }
   | { type: 'delta'; turnIndex: number; sender: AgentSender; delta: string }
   | { type: 'turn-complete'; turnIndex: number; sender: AgentSender; content: string }
@@ -34,6 +45,15 @@ type IncomingEvent =
 
 const APPLICANT_LABEL = 'Candidate-side agent';
 const RECRUITER_LABEL = 'Company-side agent';
+
+const OI = '[offer-intervention]';
+function oiLog(message: string, data?: Record<string, unknown>) {
+  if (data) {
+    console.info(OI, message, data);
+  } else {
+    console.info(OI, message);
+  }
+}
 
 export default function OfferNegotiation() {
   const { id } = useParams<{ id: string }>();
@@ -60,8 +80,17 @@ export default function OfferNegotiation() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [streamClosed, setStreamClosed] = useState(false);
+  const [intervention, setIntervention] = useState<{
+    turnIndex: number;
+    matchedTopics: string[];
+  } | null>(null);
+  const [interventionComposing, setInterventionComposing] = useState(false);
+  const [interventionInput, setInterventionInput] = useState('');
+  const [interventionErr, setInterventionErr] = useState<string | null>(null);
+  const [interventionSubmitting, setInterventionSubmitting] = useState(false);
 
   const transcriptRef = useRef<HTMLDivElement | null>(null);
+  const interventionInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const messageList = useMemo(
     () => Object.values(messages).sort((a, b) => a.turnIndex - b.turnIndex),
@@ -77,6 +106,7 @@ export default function OfferNegotiation() {
 
   useEffect(() => {
     if (!negotiationId || !token) return;
+    oiLog('Opening SSE', { negotiationId, url: `${API_BASE_URL}/api/offer-negotiations/${negotiationId}/stream?…` });
     const url = `${API_BASE_URL}/api/offer-negotiations/${negotiationId}/stream?token=${encodeURIComponent(token)}`;
     const es = new EventSource(url);
     const nid = negotiationId;
@@ -85,6 +115,13 @@ export default function OfferNegotiation() {
     function handleEvent(event: IncomingEvent) {
       switch (event.type) {
         case 'state': {
+          oiLog('Event: state', {
+            status: event.negotiation.status,
+            watchPhrases: event.negotiation.intervention_topics?.length ?? 0,
+            topics: event.negotiation.intervention_topics,
+            interventionPending: event.intervention_pending,
+            messageCount: event.messages.length,
+          });
           setNegotiation(event.negotiation);
           const seeded: Record<number, AgentMessage> = {};
           for (const m of event.messages) {
@@ -96,6 +133,16 @@ export default function OfferNegotiation() {
             };
           }
           setMessages(seeded);
+          const pending = event.intervention_pending;
+          if (pending && Array.isArray(pending.matched_topics) && pending.matched_topics.length > 0) {
+            setIntervention({ turnIndex: pending.turnIndex, matchedTopics: pending.matched_topics });
+            setInterventionComposing(false);
+            setInterventionInput('');
+            setInterventionErr(null);
+          } else {
+            setIntervention(null);
+            setInterventionComposing(false);
+          }
           if (event.negotiation.status === 'complete' && event.negotiation.final_terms) {
             setSettlement({
               final_terms: event.negotiation.final_terms,
@@ -105,7 +152,22 @@ export default function OfferNegotiation() {
           }
           return;
         }
+        case 'intervention-detected': {
+          oiLog('Event: intervention-detected (show nudge UI)', {
+            turnIndex: event.turnIndex,
+            matched_topics: event.matched_topics,
+          });
+          setInterventionComposing(false);
+          setInterventionInput('');
+          setIntervention({
+            turnIndex: event.turnIndex,
+            matchedTopics: event.matched_topics,
+          });
+          setInterventionErr(null);
+          return;
+        }
         case 'started':
+          oiLog('Event: started', { totalTurns: event.totalTurns, negotiationId: event.negotiationId });
           return;
         case 'turn-start': {
           setMessages((prev) => ({
@@ -139,6 +201,21 @@ export default function OfferNegotiation() {
           return;
         }
         case 'turn-complete': {
+          if (event.sender === 'applicant_agent') {
+            setIntervention((prev) => {
+              if (prev && prev.turnIndex === event.turnIndex) {
+                oiLog('Applicant turn complete; clearing nudge if same turn', {
+                  turn: event.turnIndex,
+                  wasAwaiting: true,
+                });
+                return null;
+              }
+              return prev;
+            });
+            setInterventionComposing(false);
+            setInterventionInput('');
+            setInterventionErr(null);
+          }
           setMessages((prev) => ({
             ...prev,
             [event.turnIndex]: {
@@ -159,6 +236,7 @@ export default function OfferNegotiation() {
           return;
         }
         case 'verdict-pending': {
+          oiLog('Event: verdict-pending (settlement running)');
           setVerdictPending(true);
           setRetry(null);
           return;
@@ -186,6 +264,7 @@ export default function OfferNegotiation() {
           return;
         }
         case 'done': {
+          oiLog('Event: done (stream ending)');
           setStreamClosed(true);
           return;
         }
@@ -213,6 +292,79 @@ export default function OfferNegotiation() {
       es.close();
     };
   }, [negotiationId, token]);
+
+  const isApplicant = user?.role === 'Applicant';
+
+  useEffect(() => {
+    if (!interventionComposing) return;
+    oiLog('Composing: textarea focused (yes → type path)');
+    const id = requestAnimationFrame(() => {
+      interventionInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [interventionComposing]);
+
+  async function onInterventionUseAgent() {
+    if (!token || !negotiationId || !intervention) return;
+    oiLog('POST /intervene: use model for turn', { turn: intervention.turnIndex, negotiationId });
+    setInterventionErr(null);
+    setInterventionSubmitting(true);
+    try {
+      await api.applicantOfferIntervene(token, negotiationId, {
+        turn_index: intervention.turnIndex,
+        use_agent: true,
+      });
+      oiLog('use_agent OK; resuming model stream for turn', { turn: intervention.turnIndex });
+      setIntervention(null);
+      setInterventionComposing(false);
+      setInterventionInput('');
+    } catch (e) {
+      oiLog('use_agent failed', { error: e instanceof Error ? e.message : String(e) });
+      setInterventionErr(
+        e instanceof ApiError
+          ? e.detail || e.code
+          : 'Could not continue with the agent. Try again.',
+      );
+    } finally {
+      setInterventionSubmitting(false);
+    }
+  }
+
+  async function onInterventionSend() {
+    const text = interventionInput.trim();
+    if (!token || !negotiationId || !intervention) return;
+    if (!text) {
+      oiLog('Send blocked: empty message');
+      setInterventionErr('Type your reply below, or choose the model to respond.');
+      return;
+    }
+    oiLog('POST /intervene: human message', {
+      turn: intervention.turnIndex,
+      negotiationId,
+      length: text.length,
+    });
+    setInterventionErr(null);
+    setInterventionSubmitting(true);
+    try {
+      await api.applicantOfferIntervene(token, negotiationId, {
+        turn_index: intervention.turnIndex,
+        message: text,
+      });
+      oiLog('Human message sent OK');
+      setInterventionInput('');
+      setInterventionComposing(false);
+      setIntervention(null);
+    } catch (e) {
+      oiLog('Human message failed', { error: e instanceof Error ? e.message : String(e) });
+      setInterventionErr(
+        e instanceof ApiError
+          ? e.detail || e.code
+          : 'Could not send. Try again.',
+      );
+    } finally {
+      setInterventionSubmitting(false);
+    }
+  }
 
   const completedTurns = messageList.filter((m) => m.done).length;
   const progress = Math.min(1, completedTurns / OFFER_TURNS);
@@ -299,6 +451,77 @@ export default function OfferNegotiation() {
         </div>
       )}
 
+      {isApplicant && inFlight && intervention && (
+        <div role="alert" style={styles.interventionBar}>
+          <div style={styles.interventionMark} aria-hidden>
+            !
+          </div>
+          <div style={styles.interventionBody}>
+            <p style={styles.interventionKicker}>
+              {interventionComposing
+                ? 'Type your own candidate-side line below'
+                : 'A topic you listed came up in the negotiation flow'}
+            </p>
+            {!interventionComposing && (
+              <>
+                <p style={styles.interventionList}>
+                  {intervention.matchedTopics.map((x) => (
+                    <span key={x} style={styles.interventionPill}>
+                      {x}
+                    </span>
+                  ))}
+                </p>
+                <p style={styles.interventionAsk}>
+                  Intervene and type this turn yourself, instead of the candidate
+                  agent?
+                </p>
+                <div style={styles.interventionRow}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      oiLog('User: Yes, I will type the reply');
+                      setInterventionComposing(true);
+                      setInterventionErr(null);
+                    }}
+                    disabled={interventionSubmitting}
+                  >
+                    Yes, I’ll type it
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={onInterventionUseAgent}
+                    disabled={interventionSubmitting}
+                  >
+                    No, keep the agent
+                  </button>
+                </div>
+              </>
+            )}
+            {interventionComposing && (
+              <p style={styles.interventionNote}>
+                Use the field and send at the bottom — it’s a one-off message for
+                this turn, like chat. You can also{' '}
+                <button
+                  type="button"
+                  onClick={onInterventionUseAgent}
+                  className="btn-link"
+                  style={styles.interventionLinkBtn}
+                  disabled={interventionSubmitting}
+                >
+                  switch to the model
+                </button>{' '}
+                instead.
+              </p>
+            )}
+            {interventionErr && (
+              <p style={styles.interventionError}>{interventionErr}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       <section
         style={styles.transcript}
         ref={transcriptRef}
@@ -341,14 +564,59 @@ export default function OfferNegotiation() {
         )}
       </section>
 
-      <footer style={styles.footer}>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => navigate(backHref())}
-        >
-          {settlement ? 'Done' : 'Run in the background'}
-        </button>
+      <footer
+        style={{
+          ...styles.footer,
+          ...((isApplicant && inFlight && interventionComposing) ? styles.footerWithComposer : null),
+        }}
+      >
+        {isApplicant && inFlight && interventionComposing && intervention && (
+          <div style={styles.composerBlock}>
+            <label htmlFor="intervention-reply" style={styles.composerLabel}>
+              Your message for this turn
+            </label>
+            <div style={styles.composerRow}>
+              <textarea
+                ref={interventionInputRef}
+                id="intervention-reply"
+                value={interventionInput}
+                onChange={(e) => setInterventionInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' || e.shiftKey) return;
+                  if (e.metaKey || e.ctrlKey) {
+                    e.preventDefault();
+                    void onInterventionSend();
+                  }
+                }}
+                style={styles.composerInput}
+                rows={2}
+                placeholder="Same place you’d type in chat—send when ready."
+                disabled={interventionSubmitting}
+                aria-label="Intervention message for this negotiation turn"
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void onInterventionSend()}
+                disabled={interventionSubmitting}
+              >
+                {interventionSubmitting ? 'Sending…' : 'Send'}
+              </button>
+            </div>
+            <p style={styles.composerHint}>
+              <kbd>⌃</kbd> or <kbd>⌘</kbd> + <kbd>Enter</kbd> to send
+            </p>
+          </div>
+        )}
+        <div style={styles.footerActions}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => navigate(backHref())}
+          >
+            {settlement ? 'Done' : 'Run in the background'}
+          </button>
+        </div>
       </footer>
     </div>
   );
@@ -417,6 +685,45 @@ const styles: Record<string, CSSProperties> = {
     border: '1px solid var(--danger-strong-border)',
     borderRadius: 10,
   },
+  interventionBar: {
+    display: 'flex',
+    gap: 12,
+    alignItems: 'flex-start',
+    padding: '14px 16px',
+    fontSize: 14,
+    color: 'var(--text-h)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
+    borderRadius: 12,
+  },
+  interventionMark: {
+    flexShrink: 0,
+    width: 28,
+    height: 28,
+    lineHeight: '28px',
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 800,
+    color: 'var(--bg)',
+    background: 'var(--danger-strong)',
+    borderRadius: '50%',
+  },
+  interventionBody: { flex: 1, minWidth: 0 },
+  interventionKicker: { margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--text-h)' },
+  interventionList: { margin: '0 0 6px', display: 'flex', flexWrap: 'wrap' as const, gap: 6 },
+  interventionPill: {
+    fontSize: 12,
+    padding: '2px 8px',
+    borderRadius: 6,
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-h)',
+  },
+  interventionAsk: { margin: '0 0 8px', fontSize: 13, lineHeight: 1.45, color: 'var(--text)' },
+  interventionRow: { display: 'flex', flexWrap: 'wrap' as const, gap: 10, alignItems: 'center' },
+  interventionNote: { margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text)' },
+  interventionError: { margin: '6px 0 0', fontSize: 13, color: 'var(--danger-strong)' },
+  interventionLinkBtn: { display: 'inline', padding: 0, minHeight: 0, verticalAlign: 'baseline' },
   transcript: {
     minHeight: 280,
     maxHeight: '58vh',
@@ -450,5 +757,35 @@ const styles: Record<string, CSSProperties> = {
   },
   kpList: { margin: '4px 0 0', paddingLeft: 18, fontSize: 14, lineHeight: 1.5 },
   metaNote: { fontSize: 12, color: 'var(--text)', fontStyle: 'italic', marginTop: 4 },
-  footer: { display: 'flex', justifyContent: 'flex-end' },
+  footer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'stretch',
+    gap: 12,
+  },
+  footerWithComposer: { position: 'sticky' as const, bottom: 0, paddingTop: 8, marginTop: 8, background: 'var(--app-bg, var(--bg))' },
+  footerActions: { display: 'flex', justifyContent: 'flex-end' },
+  composerBlock: { display: 'flex', flexDirection: 'column' as const, gap: 6, width: '100%' },
+  composerLabel: { fontSize: 12, fontWeight: 600, textTransform: 'uppercase' as const, color: 'var(--text-h)' },
+  composerRow: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: 10,
+    alignItems: 'flex-end' as const,
+  },
+  composerInput: {
+    flex: 1,
+    minWidth: 200,
+    boxSizing: 'border-box',
+    padding: 12,
+    fontSize: 14,
+    lineHeight: 1.45,
+    fontFamily: 'inherit',
+    borderRadius: 12,
+    border: '1px solid var(--border)',
+    background: 'var(--bg)',
+    color: 'var(--text-h)',
+    resize: 'vertical' as const,
+  },
+  composerHint: { margin: 0, fontSize: 12, color: 'var(--text)' },
 };
