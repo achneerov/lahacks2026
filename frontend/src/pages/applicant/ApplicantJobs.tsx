@@ -393,13 +393,6 @@ function JobDetail({
         >
           {applying ? 'Starting agent screen…' : 'Apply'}
         </button>
-        <button
-          type="button"
-          style={{ ...styles.secondaryBtn, cursor: 'not-allowed' }}
-          disabled
-        >
-          Message recruiter
-        </button>
       </div>
     </div>
   );
