@@ -7,7 +7,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   api,
   ApiError,
@@ -21,6 +21,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { renderSpecialBubble } from '../../components/InterviewCards';
 import CalendarInviteModal from '../../components/CalendarInviteModal';
 import CloseChatModal from '../../components/CloseChatModal';
+import ExtendOfferModal from '../../components/ExtendOfferModal';
 import {
   TrustScoreBadge,
   VerificationLevelBadge,
@@ -33,6 +34,7 @@ const UNREAD_REFRESH_EVENT = 'impulse:conversations-read-updated';
 
 export default function RecruiterMessages() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -61,6 +63,7 @@ export default function RecruiterMessages() {
 
   const [inviteSlot, setInviteSlot] = useState<AvailabilitySlot | null>(null);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [extendOfferOpen, setExtendOfferOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -250,6 +253,33 @@ export default function RecruiterMessages() {
         : prev,
     );
     void loadConversations({ silent: true });
+  }
+
+  async function handleConfirmOfferTerms(negotiationId: number) {
+    if (!token || selectedId == null) return;
+    setSendError(null);
+    try {
+      const data = await api.recruiterConfirmOfferTerms(
+        token,
+        selectedId,
+        negotiationId,
+      );
+      if (data.system_message) {
+        setThread((prev) =>
+          prev && prev.conversation.id === selectedId
+            ? { ...prev, messages: [...prev.messages, data.system_message!] }
+            : prev,
+        );
+      }
+      await loadThread(selectedId);
+      void loadConversations({ silent: true });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.detail || err.code
+          : 'Could not save your confirmation.';
+      setSendError(msg);
+    }
   }
 
   function handleClosed(newTrustScore: number | null) {
@@ -456,15 +486,25 @@ export default function RecruiterMessages() {
                     </div>
                   </div>
                   {thread.conversation.active === 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setCloseOpen(true)}
-                      style={styles.closeChatBtn}
-                      title="Close conversation — rate trust first"
-                      aria-label="Close conversation"
-                    >
-                      ✕
-                    </button>
+                    <div style={styles.threadHeaderActions}>
+                      <button
+                        type="button"
+                        onClick={() => setExtendOfferOpen(true)}
+                        style={styles.extendOfferBtn}
+                        title="Send a written offer the candidate can accept or counter"
+                      >
+                        Extend offer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCloseOpen(true)}
+                        style={styles.closeChatBtn}
+                        title="Close conversation — rate trust first"
+                        aria-label="Close conversation"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   )}
                 </div>
               </header>
@@ -486,6 +526,10 @@ export default function RecruiterMessages() {
                           interviewGateState:
                             thread.conversation.interview_gate_state,
                           onSendInvite: (slot) => setInviteSlot(slot),
+                          authToken: token,
+                          onWatchOfferNegotiation: (negoId) =>
+                            navigate(`/offers/${negoId}`),
+                          onConfirmOfferTerms: handleConfirmOfferTerms,
                         });
                         if (special) return <div key={m.index}>{special}</div>;
                         return (
@@ -595,6 +639,17 @@ export default function RecruiterMessages() {
               }
               onClose={() => setInviteSlot(null)}
               onSubmit={handleSendCalendarInvite}
+            />
+          )}
+
+          {extendOfferOpen && thread && (
+            <ExtendOfferModal
+              conversationId={thread.conversation.id}
+              onClose={() => setExtendOfferOpen(false)}
+              onSent={() => {
+                void loadThread(thread.conversation.id);
+                void loadConversations({ silent: true });
+              }}
             />
           )}
 
@@ -1216,6 +1271,28 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     background: 'currentColor',
     animation: 'wsDots 950ms ease-in-out infinite',
+  },
+  threadHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
+  extendOfferBtn: {
+    appearance: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--accent)',
+    background: 'var(--accent-bg)',
+    border: '1px solid var(--accent-border)',
+    borderRadius: 10,
+    padding: '0 12px',
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    whiteSpace: 'nowrap',
   },
   closeChatBtn: {
     appearance: 'none',

@@ -490,7 +490,9 @@ export type MessageKind =
   | 'interview_request'
   | 'availability_proposal'
   | 'calendar_invite'
-  | 'system';
+  | 'system'
+  | 'offer_proposal'
+  | 'offer_settled';
 
 export interface AvailabilitySlot {
   label: string;
@@ -591,6 +593,36 @@ export interface RecruiterConversationMessagesResponse {
 export interface RecruiterConversationsQuery {
   q?: string;
   active?: boolean;
+}
+
+export type OfferNegotiationStatus =
+  | 'awaiting_applicant'
+  | 'running'
+  | 'complete'
+  | 'accepted_initial';
+
+export interface OfferNegotiationDetail {
+  id: number;
+  conversation_id: number;
+  status: OfferNegotiationStatus;
+  initial_terms: string;
+  applicant_counter: string | null;
+  final_terms: string | null;
+  final_summary: string | null;
+  key_points: string[];
+  error_message: string | null;
+  recruiter_confirmed_at: string | null;
+  applicant_confirmed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConfirmOfferTermsResponse {
+  ok: true;
+  already: boolean;
+  both_confirmed: boolean;
+  negotiation: OfferNegotiationDetail;
+  system_message: ConversationMessage | null;
 }
 
 export interface RecruiterJob {
@@ -1406,6 +1438,65 @@ export const api = {
     request<SendMessageResponse>(
       `/api/recruiter/conversations/${conversationId}/messages`,
       { method: 'POST', body: JSON.stringify({ content }) },
+      token,
+    ),
+
+  recruiterExtendOffer: (token: string, conversationId: number, terms: string) =>
+    request<{
+      negotiation_id: number;
+      message: ConversationMessage;
+    }>(`/api/recruiter/conversations/${conversationId}/extend-offer`, {
+      method: 'POST',
+      body: JSON.stringify({ terms }),
+    }, token),
+
+  applicantOfferRespond: (
+    token: string,
+    conversationId: number,
+    body: {
+      negotiation_id: number;
+      action: 'accept' | 'counter';
+      counter?: string;
+    },
+  ) =>
+    request<
+      | {
+          ok: true;
+          outcome: 'accepted_initial';
+          message: ConversationMessage;
+        }
+      | { ok: true; outcome: 'counter'; negotiation_id: number }
+    >(`/api/applicant/conversations/${conversationId}/offer-respond`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }, token),
+
+  getOfferNegotiation: (token: string, negotiationId: number) =>
+    request<{ negotiation: OfferNegotiationDetail }>(
+      `/api/offer-negotiations/${negotiationId}`,
+      {},
+      token,
+    ),
+
+  applicantConfirmOfferTerms: (
+    token: string,
+    conversationId: number,
+    negotiationId: number,
+  ) =>
+    request<ConfirmOfferTermsResponse>(
+      `/api/applicant/conversations/${conversationId}/confirm-offer-terms`,
+      { method: 'POST', body: JSON.stringify({ negotiation_id: negotiationId }) },
+      token,
+    ),
+
+  recruiterConfirmOfferTerms: (
+    token: string,
+    conversationId: number,
+    negotiationId: number,
+  ) =>
+    request<ConfirmOfferTermsResponse>(
+      `/api/recruiter/conversations/${conversationId}/confirm-offer-terms`,
+      { method: 'POST', body: JSON.stringify({ negotiation_id: negotiationId }) },
       token,
     ),
 

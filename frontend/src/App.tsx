@@ -20,6 +20,7 @@ import RecruiterJobForm from './pages/recruiter/RecruiterJobForm';
 import RecruiterJobDetail from './pages/recruiter/RecruiterJobDetail';
 import RecruiterMessages from './pages/recruiter/RecruiterMessages';
 import Negotiation from './pages/Negotiation';
+import OfferNegotiation from './pages/OfferNegotiation';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -140,6 +141,16 @@ function App() {
                 <RequireAuth>
                   <AppShell>
                     <Negotiation />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/offers/:id"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <OfferNegotiation />
                   </AppShell>
                 </RequireAuth>
               }

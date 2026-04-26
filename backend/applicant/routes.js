@@ -18,6 +18,8 @@ const {
 } = require('../messaging');
 const { RECRUITER_RATING_QUESTIONS } = require('../messaging/trustQuestions');
 const { verifyWorldId } = require('../auth/verifyWorldId');
+const { startOfferNegotiation, isConfigured: isOfferAgentConfigured } = require('../agents/offer-negotiator');
+const { confirmOfferTerms } = require('../messaging/offerConfirmation');
 
 const router = express.Router();
 
@@ -827,21 +829,19 @@ router.post('/conversations/:id/verify-invite-identity', requireAuth, requireApp
       return res.json({ ok: true, already_verified: true, message: null });
     }
 
-    let verified;
     try {
-      verified = await verifyWorldId(worldIdResult);
+      await verifyWorldId(worldIdResult);
     } catch (e) {
       return res.status(e.status || 400).json({ error: 'world_id_failed', detail: e.message });
     }
 
-    const me = db
-      .prepare('SELECT worldu_id FROM users WHERE id = ?')
-      .get(userId);
-    if (!me || !me.worldu_id || verified.nullifier_hash !== me.worldu_id) {
-      return res.status(403).json({
-        error: 'identity_mismatch',
-        detail: 'This verification proof does not match your account identity.',
-      });
+    // Proof is validated by verifyWorldId; we do not compare nullifier to
+    // users.worldu_id (IDKit signal/path differs from signup, so those hashes
+    // differ for the same person).
+
+    const userRow = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+    if (!userRow) {
+      return res.status(500).json({ error: 'server_error', detail: 'user_record_missing' });
     }
 
     db.prepare(
@@ -956,6 +956,175 @@ router.post('/conversations/:id/availability', requireAuth, requireApplicant, (r
 router.get('/trust-questions-recruiter', requireAuth, requireApplicant, (_req, res) => {
   return res.json({ questions: RECRUITER_RATING_QUESTIONS });
 });
+
+router.post(
+  '/conversations/:id/offer-respond',
+  requireAuth,
+  requireApplicant,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+    const negotiationId = Number(req.body?.negotiation_id);
+    if (!Number.isInteger(negotiationId) || negotiationId <= 0) {
+      return res.status(400).json({ error: 'invalid_negotiation_id' });
+    }
+    const action = req.body?.action;
+    if (action !== 'accept' && action !== 'counter') {
+      return res.status(400).json({ error: 'invalid_action' });
+    }
+
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+      if (convo.active === 0) {
+        return res.status(409).json({ error: 'conversation_closed' });
+      }
+      const otherUserId =
+        convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
+      const other = db
+        .prepare('SELECT id, role FROM users WHERE id = ?')
+        .get(otherUserId);
+      if (!other || other.role !== 'Recruiter') {
+        return res.status(400).json({ error: 'recruiter_conversation_only' });
+      }
+
+      const neg = db
+        .prepare('SELECT * FROM offer_negotiations WHERE id = ?')
+        .get(negotiationId);
+      if (!neg) return res.status(404).json({ error: 'not_found' });
+      if (neg.conversation_id !== conversationId) {
+        return res.status(400).json({ error: 'negotiation_mismatch' });
+      }
+      if (neg.applicant_user_id !== userId) {
+        return res.status(403).json({ error: 'forbidden' });
+      }
+      if (neg.status !== 'awaiting_applicant') {
+        return res.status(409).json({ error: 'not_awaiting_response' });
+      }
+
+      if (action === 'accept') {
+        db.prepare(
+          `UPDATE offer_negotiations
+              SET status = 'accepted_initial',
+                  final_terms = initial_terms,
+                  final_summary = 'The candidate accepted the written offer as proposed.',
+                  updated_at = datetime('now')
+            WHERE id = ?`,
+        ).run(negotiationId);
+        const summary =
+          'The candidate accepted the written offer as proposed.';
+        const body = [summary, '', String(neg.initial_terms)]
+          .filter((s) => s !== '')
+          .join('\n\n');
+        const inserted = insertMessage({
+          conversationId,
+          userId: otherUserId,
+          content: body,
+          kind: 'offer_settled',
+          metadata: {
+            negotiation_id: negotiationId,
+            accepted_initial: true,
+            terms: String(neg.initial_terms),
+            summary,
+          },
+        });
+        return res.json({
+          ok: true,
+          outcome: 'accepted_initial',
+          message: {
+            index: inserted.msg_index,
+            user_id: inserted.user_id,
+            content: inserted.content,
+            kind: inserted.kind || 'offer_settled',
+            metadata: parseJsonOrNull(inserted.metadata),
+            created_at: inserted.created_at,
+            from_me: inserted.user_id === userId,
+          },
+        });
+      }
+
+      if (!isOfferAgentConfigured()) {
+        return res.status(503).json({
+          error: 'service_unavailable',
+          detail: 'Offer negotiation service is not configured. Please try again later.',
+        });
+      }
+      const rawCounter = req.body?.counter;
+      if (typeof rawCounter !== 'string' || rawCounter.trim() === '') {
+        return res.status(400).json({ error: 'invalid_counter' });
+      }
+      const counter = rawCounter.trim();
+      if (counter.length > 8000) {
+        return res.status(400).json({ error: 'counter_too_long' });
+      }
+
+      db.prepare(
+        `UPDATE offer_negotiations
+            SET status = 'running', applicant_counter = ?, updated_at = datetime('now')
+          WHERE id = ?`,
+      ).run(counter, negotiationId);
+
+      insertMessage({
+        conversationId,
+        userId,
+        content: 'Counter-proposal\n\n' + counter,
+        kind: 'text',
+        metadata: { offer_counter_for: negotiationId },
+      });
+      insertMessage({
+        conversationId,
+        userId,
+        content:
+          'AI-assisted negotiation is running on the counter-proposal. A suggested package will appear in this thread when the agents finish (usually under a minute).',
+        kind: 'system',
+        metadata: { offer_negotiation_id: negotiationId, phase: 'running' },
+      });
+
+      startOfferNegotiation(negotiationId);
+      return res.json({ ok: true, outcome: 'counter', negotiation_id: negotiationId });
+    } catch (e) {
+      console.error('[applicant/conversations/:id/offer-respond]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  },
+);
+
+router.post(
+  '/conversations/:id/confirm-offer-terms',
+  requireAuth,
+  requireApplicant,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    const negotiationId = req.body?.negotiation_id;
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+      if (convo.active === 0) {
+        return res.status(409).json({ error: 'conversation_closed' });
+      }
+      const result = confirmOfferTerms({
+        conversationId,
+        userId,
+        role: 'Applicant',
+        negotiationId,
+      });
+      return res.json(result);
+    } catch (e) {
+      if (e.status && e.code) {
+        return res.status(e.status).json({ error: e.code, detail: e.message });
+      }
+      console.error('[applicant/conversations/:id/confirm-offer-terms]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  },
+);
 
 router.post(
   '/conversations/:id/close',

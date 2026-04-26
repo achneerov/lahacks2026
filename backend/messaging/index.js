@@ -23,6 +23,8 @@ const ALLOWED_KINDS = new Set([
   'availability_proposal',
   'calendar_invite',
   'system',
+  'offer_proposal',
+  'offer_settled',
 ]);
 
 // Insert a message with optional kind/metadata. Returns the row in the same

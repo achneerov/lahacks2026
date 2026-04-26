@@ -1,12 +1,14 @@
-import type { CSSProperties, ReactNode } from 'react';
-import type {
-  AvailabilityMetadata,
-  AvailabilitySlot,
-  CalendarInviteMetadata,
-  ConversationMessage,
-  InterviewGateState,
-  InterviewRequestMetadata,
-  Role,
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  api,
+  type AvailabilityMetadata,
+  type AvailabilitySlot,
+  type CalendarInviteMetadata,
+  type ConversationMessage,
+  type InterviewGateState,
+  type InterviewRequestMetadata,
+  type OfferNegotiationDetail,
+  type Role,
 } from '../lib/api';
 
 type Viewer = 'applicant' | 'recruiter';
@@ -18,6 +20,11 @@ interface InterviewCardProps {
   onProposeAvailability?: () => void;
   onVerifyIdentity?: () => void;
   onSendInvite?: (slot: AvailabilitySlot) => void;
+  authToken?: string | null;
+  onOfferAccept?: (negotiationId: number) => void;
+  onOfferCounterOpen?: (negotiationId: number) => void;
+  onWatchOfferNegotiation?: (negotiationId: number) => void;
+  onConfirmOfferTerms?: (negotiationId: number) => void | Promise<void>;
 }
 
 export function renderSpecialBubble(
@@ -28,6 +35,11 @@ export function renderSpecialBubble(
     onProposeAvailability?: () => void;
     onVerifyIdentity?: () => void;
     onSendInvite?: (slot: AvailabilitySlot) => void;
+    authToken?: string | null;
+    onOfferAccept?: (negotiationId: number) => void;
+    onOfferCounterOpen?: (negotiationId: number) => void;
+    onWatchOfferNegotiation?: (negotiationId: number) => void;
+    onConfirmOfferTerms?: (negotiationId: number) => void | Promise<void>;
   },
 ): ReactNode | null {
   if (!message.kind || message.kind === 'text') return null;
@@ -39,6 +51,11 @@ export function renderSpecialBubble(
       onProposeAvailability={handlers.onProposeAvailability}
       onVerifyIdentity={handlers.onVerifyIdentity}
       onSendInvite={handlers.onSendInvite}
+      authToken={handlers.authToken}
+      onOfferAccept={handlers.onOfferAccept}
+      onOfferCounterOpen={handlers.onOfferCounterOpen}
+      onWatchOfferNegotiation={handlers.onWatchOfferNegotiation}
+      onConfirmOfferTerms={handlers.onConfirmOfferTerms}
     />
   );
 }
@@ -50,6 +67,11 @@ export function InterviewCard({
   onProposeAvailability,
   onVerifyIdentity,
   onSendInvite,
+  authToken,
+  onOfferAccept,
+  onOfferCounterOpen,
+  onWatchOfferNegotiation,
+  onConfirmOfferTerms,
 }: InterviewCardProps) {
   if (message.kind === 'system') {
     return (
@@ -197,7 +219,289 @@ export function InterviewCard({
     );
   }
 
+  if (message.kind === 'offer_proposal') {
+    return (
+      <div style={message.from_me ? styles.cardRowMine : styles.cardRowTheirs}>
+        <OfferProposalCard
+          message={message}
+          viewer={viewer}
+          authToken={authToken}
+          onOfferAccept={onOfferAccept}
+          onOfferCounterOpen={onOfferCounterOpen}
+          onWatchOfferNegotiation={onWatchOfferNegotiation}
+        />
+      </div>
+    );
+  }
+
+  if (message.kind === 'offer_settled') {
+    return (
+      <div style={message.from_me ? styles.cardRowMine : styles.cardRowTheirs}>
+        <OfferSettledCard
+          message={message}
+          viewer={viewer}
+          authToken={authToken}
+          onConfirmOfferTerms={onConfirmOfferTerms}
+        />
+      </div>
+    );
+  }
+
   return null;
+}
+
+function OfferSettledCard({
+  message,
+  viewer,
+  authToken,
+  onConfirmOfferTerms,
+}: {
+  message: ConversationMessage;
+  viewer: Viewer;
+  authToken?: string | null;
+  onConfirmOfferTerms?: (negotiationId: number) => void | Promise<void>;
+}) {
+  const meta = (message.metadata || {}) as {
+    negotiation_id?: number;
+    error?: boolean;
+    key_points?: string[];
+  };
+  const isErr = meta.error === true;
+  const rawId = meta.negotiation_id;
+  const negoId =
+    typeof rawId === 'number' && rawId > 0
+      ? rawId
+      : typeof rawId === 'string' && Number.isFinite(Number(rawId)) && Number(rawId) > 0
+        ? Number(rawId)
+        : null;
+  const [remote, setRemote] = useState<OfferNegotiationDetail | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (negoId == null || !authToken) return;
+    let cancel = false;
+    async function load() {
+      try {
+        const { negotiation: n } = await api.getOfferNegotiation(
+          authToken,
+          negoId,
+        );
+        if (!cancel) setRemote(n);
+      } catch {
+        if (!cancel) setRemote(null);
+      }
+    }
+    void load();
+    const t = setInterval(() => {
+      void load();
+    }, 4000);
+    return () => {
+      cancel = true;
+      clearInterval(t);
+    };
+  }, [authToken, negoId]);
+
+  const both =
+    Boolean(remote?.recruiter_confirmed_at) &&
+    Boolean(remote?.applicant_confirmed_at);
+  const myDone =
+    viewer === 'recruiter'
+      ? Boolean(remote?.recruiter_confirmed_at)
+      : Boolean(remote?.applicant_confirmed_at);
+  const otherDone =
+    viewer === 'recruiter'
+      ? Boolean(remote?.applicant_confirmed_at)
+      : Boolean(remote?.recruiter_confirmed_at);
+  const termsReady =
+    Boolean(remote) &&
+    (remote.status === 'complete' || remote.status === 'accepted_initial') &&
+    !remote.error_message;
+  const showBtn =
+    !isErr &&
+    negoId != null &&
+    onConfirmOfferTerms &&
+    !myDone &&
+    termsReady;
+
+  return (
+    <div
+      style={{
+        ...styles.card,
+        borderColor: isErr
+          ? 'var(--danger-border)'
+          : 'var(--success-border)',
+        background: isErr ? 'var(--danger-bg)' : 'var(--success-bg)',
+      }}
+    >
+      <span style={styles.cardEyebrow}>
+        {isErr ? 'Offer negotiation' : 'Agreed terms (summary)'}
+      </span>
+      <p style={styles.cardBody}>{message.content}</p>
+      {Array.isArray(meta.key_points) && meta.key_points.length > 0 && (
+        <ul style={styles.slotList}>
+          {meta.key_points.map((k, i) => (
+            <li key={i} style={{ ...styles.slotItem, display: 'block' }}>
+              {k}
+            </li>
+          ))}
+        </ul>
+      )}
+      {remote && !isErr && termsReady && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            marginTop: 4,
+          }}
+        >
+          {both ? (
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--success)',
+              }}
+            >
+              You both confirmed these terms in the app.
+            </span>
+          ) : myDone ? (
+            <span style={styles.stateNote}>
+              You’ve confirmed. Waiting for the other party to confirm.
+            </span>
+          ) : otherDone ? (
+            <span style={styles.stateNote}>
+              The other party has confirmed. Please confirm to complete.
+            </span>
+          ) : null}
+        </div>
+      )}
+      {showBtn && negoId != null && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onConfirmOfferTerms(negoId);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          style={styles.primaryActionBtn}
+        >
+          {busy ? 'Saving…' : 'Confirm — I agree to these terms'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function OfferProposalCard({
+  message,
+  viewer,
+  authToken,
+  onOfferAccept,
+  onOfferCounterOpen,
+  onWatchOfferNegotiation,
+}: {
+  message: ConversationMessage;
+  viewer: Viewer;
+  authToken?: string | null;
+  onOfferAccept?: (negotiationId: number) => void;
+  onOfferCounterOpen?: (negotiationId: number) => void;
+  onWatchOfferNegotiation?: (negotiationId: number) => void;
+}) {
+  const meta = (message.metadata || {}) as { negotiation_id?: number };
+  const negoId =
+    typeof meta.negotiation_id === 'number' && meta.negotiation_id > 0
+      ? meta.negotiation_id
+      : null;
+  const [remote, setRemote] = useState<OfferNegotiationDetail | null>(null);
+
+  useEffect(() => {
+    if (negoId == null || !authToken) return;
+    let cancel = false;
+    async function load() {
+      try {
+        const { negotiation: n } = await api.getOfferNegotiation(
+          authToken,
+          negoId,
+        );
+        if (!cancel) setRemote(n);
+      } catch {
+        if (!cancel) setRemote(null);
+      }
+    }
+    void load();
+    const t = setInterval(() => {
+      void load();
+    }, 3500);
+    return () => {
+      cancel = true;
+      clearInterval(t);
+    };
+  }, [authToken, negoId]);
+
+  const displayBody = message.content.startsWith('Offer extended')
+    ? message.content.replace(/^Offer extended\s*(\n)*/i, '').trimStart()
+    : message.content;
+
+  const status = remote?.status;
+  const showApplicantActions =
+    viewer === 'applicant' &&
+    (status == null || status === 'awaiting_applicant') &&
+    onOfferAccept &&
+    onOfferCounterOpen;
+  const waitingRecruiter =
+    viewer === 'recruiter' && status === 'awaiting_applicant';
+  const runningRecruiter = viewer === 'recruiter' && status === 'running';
+
+  return (
+    <div style={styles.card}>
+      <span style={styles.cardEyebrow}>📝 Offer package</span>
+      <p style={styles.cardBody}>{displayBody}</p>
+      {waitingRecruiter && (
+        <span style={styles.stateNote}>
+          Awaiting the candidate’s response to this offer.
+        </span>
+      )}
+      {runningRecruiter && (
+        <span style={styles.stateNote}>
+          AI negotiators are working on a counter-proposal.
+        </span>
+      )}
+      {showApplicantActions && negoId != null && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => onOfferAccept(negoId)}
+            style={styles.primaryActionBtn}
+          >
+            Accept as written
+          </button>
+          <button
+            type="button"
+            onClick={() => onOfferCounterOpen(negoId)}
+            style={styles.slotActionBtn}
+          >
+            Send a counter
+          </button>
+        </div>
+      )}
+      {negoId != null &&
+        status === 'running' &&
+        onWatchOfferNegotiation && (
+        <button
+          type="button"
+          onClick={() => onWatchOfferNegotiation(negoId)}
+          style={styles.primaryActionBtn}
+        >
+          Watch live negotiation
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function senderLabel(party: { username: string; role: Role | string }): string {

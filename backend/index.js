@@ -9,6 +9,7 @@ const applicantDocumentsRoutes = require('./applicant/documents');
 const recruiterRoutes = require('./recruiter/routes');
 const applicationsRoutes = require('./applications/routes');
 const jobsRoutes = require('./jobs/routes');
+const offerNegotiationRoutes = require('./offer-negotiations/routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ app.use('/api/applicant', applicantRoutes);
 app.use('/api/recruiter', recruiterRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/offer-negotiations', offerNegotiationRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

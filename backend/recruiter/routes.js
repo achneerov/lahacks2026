@@ -13,6 +13,7 @@ const {
   markConversationReadThrough,
 } = require('../messaging');
 const { TRUST_QUESTIONS } = require('../messaging/trustQuestions');
+const { confirmOfferTerms } = require('../messaging/offerConfirmation');
 
 const router = express.Router();
 
@@ -1594,6 +1595,132 @@ router.post(
       return res.status(500).json({ error: 'server_error' });
     }
   }
+);
+
+router.post(
+  '/conversations/:id/extend-offer',
+  requireAuth,
+  requireRecruiter,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+    const raw = req.body?.terms;
+    if (typeof raw !== 'string' || raw.trim() === '') {
+      return res.status(400).json({ error: 'invalid_terms' });
+    }
+    const terms = raw.trim();
+    if (terms.length > 8000) {
+      return res.status(400).json({ error: 'terms_too_long' });
+    }
+
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+      if (convo.active === 0) {
+        return res.status(409).json({ error: 'conversation_closed' });
+      }
+      const otherUserId =
+        convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
+      const other = db
+        .prepare('SELECT id, role FROM users WHERE id = ?')
+        .get(otherUserId);
+      if (!other || other.role !== 'Applicant') {
+        return res.status(400).json({ error: 'applicant_conversation_only' });
+      }
+
+      const pending = db
+        .prepare(
+          `SELECT id FROM offer_negotiations
+            WHERE conversation_id = ?
+              AND status IN ('awaiting_applicant', 'running')
+            LIMIT 1`,
+        )
+        .get(conversationId);
+      if (pending) {
+        return res.status(409).json({ error: 'offer_already_pending' });
+      }
+
+      const ins = db
+        .prepare(
+          `INSERT INTO offer_negotiations
+            (conversation_id, job_posting_id, recruiter_user_id, applicant_user_id, initial_terms, status)
+           VALUES (?, ?, ?, ?, ?, 'awaiting_applicant')`,
+        )
+        .run(
+          conversationId,
+          convo.job_posting_id ?? null,
+          userId,
+          otherUserId,
+          terms,
+        );
+      const negotiationId = ins.lastInsertRowid;
+
+      const content = `Offer extended\n\n${terms}`;
+      const inserted = insertMessage({
+        conversationId,
+        userId,
+        content,
+        kind: 'offer_proposal',
+        metadata: {
+          negotiation_id: negotiationId,
+          state: 'awaiting_response',
+        },
+      });
+
+      return res.status(201).json({
+        negotiation_id: negotiationId,
+        message: {
+          index: inserted.msg_index,
+          user_id: inserted.user_id,
+          content: inserted.content,
+          kind: inserted.kind || 'offer_proposal',
+          metadata: parseJsonOrNull(inserted.metadata),
+          created_at: inserted.created_at,
+          from_me: true,
+        },
+      });
+    } catch (e) {
+      console.error('[recruiter/conversations/:id/extend-offer]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  },
+);
+
+router.post(
+  '/conversations/:id/confirm-offer-terms',
+  requireAuth,
+  requireRecruiter,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    const negotiationId = req.body?.negotiation_id;
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+      if (convo.active === 0) {
+        return res.status(409).json({ error: 'conversation_closed' });
+      }
+      const result = confirmOfferTerms({
+        conversationId,
+        userId,
+        role: 'Recruiter',
+        negotiationId,
+      });
+      return res.json(result);
+    } catch (e) {
+      if (e.status && e.code) {
+        return res.status(e.status).json({ error: e.code, detail: e.message });
+      }
+      console.error('[recruiter/conversations/:id/confirm-offer-terms]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  },
 );
 
 router.get('/trust-questions', requireAuth, requireRecruiter, (_req, res) => {

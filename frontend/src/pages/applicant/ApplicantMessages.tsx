@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   IDKitRequestWidget,
   selfieCheckLegacy,
@@ -24,6 +25,7 @@ import {
 import { useAuth } from '../../auth/AuthContext';
 import AvailabilityModal from '../../components/AvailabilityModal';
 import CloseChatModal from '../../components/CloseChatModal';
+import OfferCounterModal from '../../components/OfferCounterModal';
 import {
   TrustScoreBadge,
   VerificationLevelBadge,
@@ -37,6 +39,7 @@ const UNREAD_REFRESH_EVENT = 'impulse:conversations-read-updated';
 
 export default function ApplicantMessages() {
   const { token } = useAuth();
+  const navigate = useNavigate();
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
@@ -66,6 +69,8 @@ export default function ApplicantMessages() {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifySubmitting, setVerifySubmitting] = useState(false);
+
+  const [counterNegoId, setCounterNegoId] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -249,6 +254,52 @@ export default function ApplicantMessages() {
         : prev,
     );
     void loadConversations({ silent: true });
+  }
+
+  async function handleOfferAccept(negotiationId: number) {
+    if (!token || selectedId == null) return;
+    setSendError(null);
+    try {
+      await api.applicantOfferRespond(token, selectedId, {
+        negotiation_id: negotiationId,
+        action: 'accept',
+      });
+      await loadThread(selectedId);
+      void loadConversations({ silent: true });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.detail || err.code
+          : 'Could not record acceptance.';
+      setSendError(msg);
+    }
+  }
+
+  async function handleConfirmOfferTerms(negotiationId: number) {
+    if (!token || selectedId == null) return;
+    setSendError(null);
+    try {
+      const data = await api.applicantConfirmOfferTerms(
+        token,
+        selectedId,
+        negotiationId,
+      );
+      if (data.system_message) {
+        setThread((prev) =>
+          prev && prev.conversation.id === selectedId
+            ? { ...prev, messages: [...prev.messages, data.system_message!] }
+            : prev,
+        );
+      }
+      await loadThread(selectedId);
+      void loadConversations({ silent: true });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.detail || err.code
+          : 'Could not save your confirmation.';
+      setSendError(msg);
+    }
   }
 
   async function handleOpenVerifyIdentity(conversationIdOverride?: number) {
@@ -535,6 +586,13 @@ export default function ApplicantMessages() {
                           onProposeAvailability: () =>
                             setAvailabilityOpen(true),
                           onVerifyIdentity: handleOpenVerifyIdentity,
+                          authToken: token,
+                          onOfferAccept: handleOfferAccept,
+                          onOfferCounterOpen: (negoId) =>
+                            setCounterNegoId(negoId),
+                          onWatchOfferNegotiation: (negoId) =>
+                            navigate(`/offers/${negoId}`),
+                          onConfirmOfferTerms: handleConfirmOfferTerms,
                         });
                         if (special) return <div key={m.index}>{special}</div>;
                         return (
@@ -661,6 +719,19 @@ export default function ApplicantMessages() {
                 onClosed={handleClosed}
               />
             )}
+
+          {counterNegoId != null && selectedId != null && (
+            <OfferCounterModal
+              conversationId={selectedId}
+              negotiationId={counterNegoId}
+              onClose={() => setCounterNegoId(null)}
+              onCounterSubmitted={(negoId) => {
+                void loadThread(selectedId);
+                void loadConversations({ silent: true });
+                navigate(`/offers/${negoId}`);
+              }}
+            />
+          )}
 
           {selectedConversation && !thread && !threadLoading && !threadError && (
             <div style={styles.threadEmpty}>

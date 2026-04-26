@@ -5,6 +5,10 @@ PRAGMA foreign_keys = ON;
 DROP TRIGGER IF EXISTS trg_user_profiles_insert_applicant_only;
 DROP TRIGGER IF EXISTS trg_user_profiles_update_applicant_only;
 
+-- Offer flow (migrated + schema); must drop before conversations / job_postings.
+DROP TABLE IF EXISTS offer_negotiation_messages;
+DROP TABLE IF EXISTS offer_negotiations;
+
 DROP TABLE IF EXISTS conversation_read_states;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS conversations;
@@ -406,8 +410,8 @@ CREATE TABLE messages (
   conversation_content TEXT   NOT NULL,
   -- 'text' = plain message; the rest are interactive cards rendered by the
   -- chat UI. 'system' is a non-author note (e.g. "Conversation closed").
-  kind                TEXT    NOT NULL DEFAULT 'text'
-    CHECK (kind IN ('text','interview_request','availability_proposal','calendar_invite','system')),
+  -- Valid kinds are enforced in application code; keep DB flexible.
+  kind                TEXT    NOT NULL DEFAULT 'text',
   -- JSON payload, kind-specific:
   --   interview_request:     { prompt, suggested_format }
   --   availability_proposal: { slots: [{label, start_iso, end_iso}] }
@@ -435,6 +439,52 @@ CREATE TABLE conversation_read_states (
 
 CREATE INDEX idx_conversation_read_states_user
   ON conversation_read_states(user_id, conversation_id);
+
+CREATE TABLE offer_negotiations (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id   INTEGER NOT NULL,
+  job_posting_id     INTEGER,
+  recruiter_user_id INTEGER NOT NULL,
+  applicant_user_id INTEGER NOT NULL,
+  initial_terms     TEXT    NOT NULL,
+  applicant_counter   TEXT,
+  status             TEXT    NOT NULL
+    CHECK (status IN (
+      'awaiting_applicant',
+      'running',
+      'complete',
+      'accepted_initial'
+    )),
+  final_terms        TEXT,
+  final_summary      TEXT,
+  final_key_points   TEXT,
+  error_message      TEXT,
+  recruiter_confirmed_at TEXT,
+  applicant_confirmed_at TEXT,
+  created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+  updated_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (conversation_id)  REFERENCES conversations(id)  ON DELETE CASCADE,
+  FOREIGN KEY (job_posting_id)  REFERENCES job_postings(id)    ON DELETE SET NULL,
+  FOREIGN KEY (recruiter_user_id) REFERENCES users(id)         ON DELETE CASCADE,
+  FOREIGN KEY (applicant_user_id) REFERENCES users(id)         ON DELETE CASCADE
+);
+
+CREATE INDEX idx_offer_negotiations_conversation
+  ON offer_negotiations(conversation_id, status);
+
+CREATE TABLE offer_negotiation_messages (
+  offer_negotiation_id  INTEGER NOT NULL,
+  turn_index            INTEGER NOT NULL,
+  sender                TEXT    NOT NULL
+    CHECK (sender IN ('applicant_agent', 'recruiter_agent')),
+  content               TEXT    NOT NULL,
+  created_at            TEXT    NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (offer_negotiation_id, turn_index),
+  FOREIGN KEY (offer_negotiation_id) REFERENCES offer_negotiations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_offer_neg_msgs_neg
+  ON offer_negotiation_messages(offer_negotiation_id, turn_index);
 
 -- Append-only audit log of every attempted critical-field profile change.
 -- "Critical" = links (linkedin_url, website_portfolio, github_or_other_portfolio),

@@ -7,8 +7,16 @@ function channel(applicationId) {
   return `app:${applicationId}`;
 }
 
+function offerChannel(negotiationId) {
+  return `offer:${negotiationId}`;
+}
+
 function emit(applicationId, event) {
   bus.emit(channel(applicationId), event);
+}
+
+function emitOffer(negotiationId, event) {
+  bus.emit(offerChannel(negotiationId), event);
 }
 
 function subscribe(applicationId, listener) {
@@ -17,4 +25,10 @@ function subscribe(applicationId, listener) {
   return () => bus.off(ch, listener);
 }
 
-module.exports = { emit, subscribe };
+function subscribeOffer(negotiationId, listener) {
+  const ch = offerChannel(negotiationId);
+  bus.on(ch, listener);
+  return () => bus.off(ch, listener);
+}
+
+module.exports = { emit, subscribe, emitOffer, subscribeOffer };
