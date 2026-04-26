@@ -174,7 +174,31 @@ VALUES
    10, '["Engineering leadership","Hiring and org design","Cloud/platform strategy","Stakeholder communication"]', 'Bachelor''s or higher',
    'Equity, executive benefits, flexible PTO', 30,
    'https://greenfield.example.com', 'FinTech', 45, 'Series A',
-   datetime('now', '-7 days'));
+   datetime('now', '-7 days')),
+
+  -- Posted 3 days ago (left unapplied in seed on purpose)
+  (4, 4, 'Senior CTO', 'Helix Dynamics', 'FullTime', 320000, 420000, 'USD',
+   1, 'Lead multi-product engineering strategy while still driving deep technical execution across platform and AI infrastructure.', 'San Francisco, CA', 1,
+   'Need a hands-on executive who has scaled teams and architecture through hypergrowth.',
+   'Executive', 'Senior Executive', 'hybrid',
+   'Own technology direction, org design, and delivery quality across all engineering functions.',
+   '["Set company-wide architecture standards","Hire and mentor engineering directors","Own reliability/security roadmap","Partner with CEO and board on strategy"]',
+   12, '["Executive engineering leadership","Platform architecture","Org scaling","Cloud cost and reliability"]', 'Bachelor''s or higher',
+   'Executive equity package, health, 401k, flexible PTO', 30,
+   'https://helix-dynamics.example.com', 'Enterprise Software', 220, 'Series C',
+   datetime('now', '-3 days')),
+
+  -- Posted 1 day ago (left unapplied in seed on purpose)
+  (5, 6, 'Chief Executive Officer (CEO)', 'Orbit Forge', 'FullTime', 380000, 550000, 'USD',
+   1, 'Define company strategy, lead the executive team, and drive growth across product, go-to-market, and operations.', 'Remote', 1,
+   'Founder-market fit plus prior P&L ownership and team-building experience are required.',
+   'Executive', 'C-Level', 'remote',
+   'Own company vision and execution while building a durable leadership team and operating cadence.',
+   '["Set company strategy and annual operating plan","Lead fundraising and investor communications","Build and coach executive leadership team","Own business outcomes and organizational health"]',
+   15, '["Executive leadership","Fundraising","P&L ownership","Organizational design"]', 'Bachelor''s or equivalent',
+   'Executive benefits, equity, performance bonus, flexible PTO', 30,
+   'https://orbit-forge.example.com', 'Climate Tech', 60, 'Series A',
+   datetime('now', '-1 days'));
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Applications
