@@ -7,6 +7,8 @@ INSERT INTO users (id, role, worldu_id, email, username, password_hash, verifica
   (1, 'Applicant', 'wu_alice_001',  'applicant@gmail.com',   'applicant',   '$2b$10$x2iS5NjBj/JUgPB630EwKO0RL/Hk66DJetWJ2e2iOdRRnMoWOBtPC', 'orb',    96),
   (2, 'Applicant', 'wu_bob_002',    'bob@example.com',     'bob',     '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'document', 88),
   (3, 'Applicant', 'wu_carol_003',  'carol@example.com',   'carol',   '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'device', 72),
+  (7, 'Applicant', 'wu_dave_007',   'dave@example.com',    'dave',    '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'orb', 91),
+  (8, 'Applicant', 'wu_eve_008',    'eve@example.com',     'eve',     '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'document', 85),
   (4, 'Recruiter', 'wu_recruiter_01', 'recruiter@gmail.com', 'recruiter', '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'orb', 90),
   (5, 'Agent',     'wu_frank_006',  'frank@agentcorp.com', 'frank_a', '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'device', 85),
   (6, 'Recruiter', 'wu_recruiter_02', 'recruiter2@gmail.com', 'recruiter2', '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'orb', 88);
@@ -25,13 +27,20 @@ VALUES
    'https://linkedin.com/in/bob', 'https://github.com/bob'),
   (3, 'Carol', 'Chen', 'she/her', '1998-11-08', '+1-310-555-0103',
    '789 Sunset Blvd', 'Los Angeles', 'CA', '90028',
-   'https://linkedin.com/in/carol', 'https://github.com/carol');
+   'https://linkedin.com/in/carol', 'https://github.com/carol'),
+  (7, 'Dave', 'Dawson', 'he/him', '1990-01-20', '+1-617-555-0104',
+   '321 Beacon St', 'Boston', 'MA', '02116',
+   'https://linkedin.com/in/dave-dawson', 'https://github.com/ddawson'),
+  (8, 'Eve', 'Evans', 'she/her', '1994-06-12', '+1-312-555-0105',
+   '555 Michigan Ave', 'Chicago', 'IL', '60611',
+   'https://linkedin.com/in/eve-evans', 'https://github.com/eevans');
 
--- Documents
 INSERT INTO user_documents (user_id, resume) VALUES
   (1, 'https://example.com/alice/resume.pdf'),
   (2, 'https://example.com/bob/resume.pdf'),
-  (3, 'https://example.com/carol/resume.pdf');
+  (3, 'https://example.com/carol/resume.pdf'),
+  (7, 'https://example.com/dave/resume.pdf'),
+  (8, 'https://example.com/eve/resume.pdf');
 
 -- Work experience
 INSERT INTO user_work_experience
@@ -44,7 +53,15 @@ VALUES
   (2, 'Backend Engineer', 'DistributedCo', 'New York', 'NY', 'FullTime', '2019-03', '', 1,
    'Design and scale distributed systems', 'Reduced API latency by 60% through caching layer'),
   (3, 'Frontend Engineer', 'DesignStudio', 'Los Angeles', 'CA', 'FullTime', '2021-09', '', 1,
-   'React, animations, design systems', 'Built component library used across 5 products');
+   'React, animations, design systems', 'Built component library used across 5 products'),
+  (7, 'VP of Engineering', 'ScaleUp Corp', 'Boston', 'MA', 'FullTime', '2020-01', '', 1,
+   'Lead engineering org of 40, own technical strategy and delivery', 'Grew team from 12 to 40, shipped platform rebuild on time'),
+  (7, 'Engineering Director', 'MidStage Inc', 'Boston', 'MA', 'FullTime', '2016-03', '2019-12', 0,
+   'Managed 3 teams across backend, infra, and data', 'Reduced infrastructure costs by 35% through cloud migration'),
+  (8, 'Senior Software Engineer', 'CloudScale', 'Chicago', 'IL', 'FullTime', '2021-01', '', 1,
+   'Lead backend services team, own API platform', 'Migrated monolith to microservices, 99.99% uptime'),
+  (8, 'Software Engineer', 'DataFlow Inc', 'Chicago', 'IL', 'FullTime', '2018-06', '2020-12', 0,
+   'Built data pipelines and internal tools', 'Automated reporting pipeline saving 20 hours/week');
 
 -- Education
 INSERT INTO user_education
@@ -53,7 +70,10 @@ VALUES
   (1, 'UC Berkeley', 'Berkeley', 'CA', 'B.S.', 'Computer Science', '2020-05', 1, '3.7'),
   (2, 'Columbia University', 'New York', 'NY', 'M.S.', 'Computer Science', '2019-01', 1, '3.9'),
   (2, 'NYU', 'New York', 'NY', 'B.A.', 'Mathematics', '2016-05', 1, '3.6'),
-  (3, 'UCLA', 'Los Angeles', 'CA', 'B.A.', 'Design Media Arts', '2021-06', 1, '3.8');
+  (3, 'UCLA', 'Los Angeles', 'CA', 'B.A.', 'Design Media Arts', '2021-06', 1, '3.8'),
+  (7, 'MIT', 'Cambridge', 'MA', 'M.S.', 'Computer Science', '2015-06', 1, '3.9'),
+  (7, 'Boston University', 'Boston', 'MA', 'B.S.', 'Computer Engineering', '2012-05', 1, '3.7'),
+  (8, 'University of Illinois', 'Champaign', 'IL', 'B.S.', 'Computer Science', '2018-05', 1, '3.6');
 
 -- Skills
 INSERT INTO user_skills (user_id, skill, proficiency, years) VALUES
@@ -66,7 +86,13 @@ INSERT INTO user_skills (user_id, skill, proficiency, years) VALUES
   (2, 'Kubernetes', 'Intermediate', 2),
   (3, 'React', 'Advanced', 3),
   (3, 'Figma', 'Advanced', 4),
-  (3, 'CSS/Animations', 'Advanced', 3);
+  (3, 'CSS/Animations', 'Advanced', 3),
+  (7, 'Engineering Leadership', 'Advanced', 10),
+  (7, 'Cloud Architecture', 'Advanced', 8),
+  (7, 'Hiring & Org Design', 'Advanced', 6),
+  (8, 'TypeScript', 'Advanced', 5),
+  (8, 'Distributed Systems', 'Advanced', 4),
+  (8, 'PostgreSQL', 'Advanced', 5);
 
 -- Languages
 INSERT INTO user_languages (user_id, language, proficiency) VALUES
@@ -74,7 +100,9 @@ INSERT INTO user_languages (user_id, language, proficiency) VALUES
   (2, 'English', 'Native'),
   (2, 'Spanish', 'Conversational'),
   (3, 'English', 'Native'),
-  (3, 'Mandarin', 'Native');
+  (3, 'Mandarin', 'Native'),
+  (7, 'English', 'Native'),
+  (8, 'English', 'Native');
 
 -- References
 INSERT INTO user_references (user_id, name, relationship, company, title, phone, email) VALUES
@@ -101,14 +129,18 @@ INSERT INTO user_eeo (user_id, gender, race_ethnicity) VALUES
   (2, 'Male', 'White'),
   (3, 'Female', 'Asian');
 
--- Three listings (recruiter owns Senior SWE + CTO, recruiter2 owns Software Engineer)
+-- Three listings posted at different times
+-- recruiter (id 4) owns Senior SWE + CTO
+-- recruiter2 (id 6) owns Software Engineer
 INSERT INTO job_postings
   (id, poster_id, title, company, employment_type, salary_min, salary_max, salary_currency,
    is_active, description, location, remote, recruiter_system_prompt,
    department, job_level, work_model, summary, key_responsibilities,
    req_years_of_experience, req_technical_skills, req_education_level,
-   benefits_overview, paid_time_off_days, company_website, industry, company_size, company_stage)
+   benefits_overview, paid_time_off_days, company_website, industry, company_size, company_stage,
+   created_at)
 VALUES
+  -- Posted 21 days ago
   (1, 6, 'Software Engineer', 'Lahack Labs', 'FullTime', 130000, 160000, 'USD',
    1, 'Own end-to-end delivery for features across services and the web app.', 'Remote', 1,
    'We want a mid-level full-stack track record, not a specialist who avoids parts of the stack.',
@@ -117,8 +149,10 @@ VALUES
    '["Design and ship features across React and API layers","Mentor juniors informally","Improve testing and monitoring","Contribute to technical design docs"]',
    3, '["TypeScript","Node.js","React","SQL"]', 'Bachelor''s',
    'Health, dental, vision, learning stipend, 401k', 22,
-   'https://lahack-labs.example.com', 'Technology', 120, 'seed'),
+   'https://lahack-labs.example.com', 'Technology', 120, 'seed',
+   datetime('now', '-21 days')),
 
+  -- Posted 14 days ago
   (2, 4, 'Senior Software Engineer', 'Nexus AI', 'FullTime', 180000, 220000, 'USD',
    1, 'Lead hard technical work: scale, refactors, and long-term quality.', 'San Francisco, CA', 1,
    'Must show ownership of non-trivial systems, not just feature tickets.',
@@ -127,8 +161,10 @@ VALUES
    '["Own design for larger initiatives","Refactor and harden performance-critical areas","Mentor engineers and review architecture","Partner with product on roadmap tradeoffs"]',
    5, '["TypeScript","Distributed systems","Postgres or similar","System design"]', 'Bachelor''s or equivalent',
    'Health, dental, vision, equity, 401k, flexible PTO', 25,
-   'https://nexus-ai.example.com', 'Artificial Intelligence', 85, 'Series B'),
+   'https://nexus-ai.example.com', 'Artificial Intelligence', 85, 'Series B',
+   datetime('now', '-14 days')),
 
+  -- Posted 7 days ago
   (3, 4, 'Chief Technology Officer', 'Greenfield Ventures', 'FullTime', 250000, 350000, 'USD',
    1, 'Set technology vision, build the engineering org, and own delivery vs. risk for the product.', 'New York, NY', 1,
    'We need a leader with prior exec or VP-level product engineering scope; deep IC-only background is not enough.',
@@ -137,72 +173,75 @@ VALUES
    '["Set multi-year technology strategy and roadmap","Hire and develop engineering leaders","Oversee security, compliance, and reliability as we scale","Represent engineering to board and customers"]',
    10, '["Engineering leadership","Hiring and org design","Cloud/platform strategy","Stakeholder communication"]', 'Bachelor''s or higher',
    'Equity, executive benefits, flexible PTO', 30,
-   'https://greenfield.example.com', 'FinTech', 45, 'Series A');
+   'https://greenfield.example.com', 'FinTech', 45, 'Series A',
+   datetime('now', '-7 days'));
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Applications
+--
+-- Recruiter2 (id 6) — Software Engineer at Lahack Labs (job 1):
+--   Alice (85), Bob (88), Carol (78) — all accepted
+--
+-- Recruiter (id 4) — Senior SWE at Nexus AI (job 2):
+--   Alice (75), Bob (90), Eve (82) — all accepted, mix of strong and regular
+--
+-- Recruiter (id 4) — CTO at Greenfield (job 3):
+--   Dave (88), Carol (45) — Dave strong match, Carol weak
 -- ═══════════════════════════════════════════════════════════════════════════
 
 INSERT INTO applications
   (id, applicant_id, job_posting_id, status, notes, agent_reasoning, match_score,
    created_at, updated_at, decided_at)
 VALUES
-  -- Alice → Software Engineer at Lahack Labs (job 1): accepted, interview scheduled
+  -- === Software Engineer at Lahack Labs (job 1, recruiter2) ===
   (1, 1, 1, 'SentToRecruiter',
    'Full-stack experience aligns well with mid-level expectations.',
    'Candidate owns both frontend and backend. Node.js + React match. Approved.',
    85,
-   datetime('now', '-12 days'), datetime('now', '-11 days'), datetime('now', '-11 days')),
-
-  -- Alice → Senior SWE at Nexus AI (job 2): declined by agent
-  (2, 1, 2, 'Declined',
-   'Needs more systems design depth for senior level.',
-   'Candidate has 4 years experience but limited distributed systems ownership. Below senior bar.',
-   45,
-   datetime('now', '-13 days'), datetime('now', '-12 days'), datetime('now', '-12 days')),
-
-  -- Alice → CTO at Greenfield (job 3): declined by agent
-  (3, 1, 3, 'Declined',
-   'No executive or VP-level experience.',
-   'Candidate is mid-career IC. No org leadership, hiring, or board-level experience. Hard decline.',
-   15,
-   datetime('now', '-13 days'), datetime('now', '-12 days'), datetime('now', '-12 days')),
-
-  -- Bob → Software Engineer at Lahack Labs (job 1): accepted, interview complete
-  (4, 2, 1, 'SentToRecruiter',
+   datetime('now', '-18 days'), datetime('now', '-17 days'), datetime('now', '-17 days')),
+  (2, 2, 1, 'SentToRecruiter',
    'Distributed systems background is a strong plus for mid-level.',
    'Go + Python + k8s experience. Strong backend. Approved.',
    88,
-   datetime('now', '-10 days'), datetime('now', '-9 days'), datetime('now', '-9 days')),
+   datetime('now', '-16 days'), datetime('now', '-15 days'), datetime('now', '-15 days')),
+  (3, 3, 1, 'SentToRecruiter',
+   'Design-engineering hybrid is a unique strength.',
+   'Strong React + design system experience. Approved.',
+   78,
+   datetime('now', '-14 days'), datetime('now', '-13 days'), datetime('now', '-13 days')),
 
-  -- Bob → Senior SWE at Nexus AI (job 2): accepted, interview scheduled
+  -- === Senior SWE at Nexus AI (job 2, recruiter) ===
+  (4, 1, 2, 'SentToRecruiter',
+   'Solid TypeScript and Node.js background, stretch for senior.',
+   'Candidate has 4 years experience. Approved but flagged as stretch candidate.',
+   75,
+   datetime('now', '-12 days'), datetime('now', '-11 days'), datetime('now', '-11 days')),
   (5, 2, 2, 'SentToRecruiter',
    'Scaling experience from 100 to 10k RPS is impressive.',
    'Deep systems work, led team of 4. Meets senior bar. Approved.',
    90,
-   datetime('now', '-8 days'), datetime('now', '-7 days'), datetime('now', '-7 days')),
+   datetime('now', '-11 days'), datetime('now', '-10 days'), datetime('now', '-10 days')),
+  (6, 8, 2, 'SentToRecruiter',
+   'Strong backend and distributed systems experience.',
+   'Migrated monolith to microservices, 99.99% uptime. Solid senior candidate. Approved.',
+   82,
+   datetime('now', '-10 days'), datetime('now', '-9 days'), datetime('now', '-9 days')),
 
-  -- Bob → CTO at Greenfield (job 3): still pending
-  (6, 2, 3, 'Pending',
-   NULL, NULL, NULL,
-   datetime('now', '-3 days'), datetime('now', '-3 days'), NULL),
-
-  -- Carol → Software Engineer at Lahack Labs (job 1): accepted, invited awaiting response
-  (7, 3, 1, 'SentToRecruiter',
-   'Design-engineering hybrid is a unique strength.',
-   'Strong React + design system experience. Approved.',
-   78,
-   datetime('now', '-6 days'), datetime('now', '-5 days'), datetime('now', '-5 days')),
-
-  -- Carol → Senior SWE at Nexus AI (job 2): declined
-  (8, 3, 2, 'Declined',
-   'Frontend-only background, needs backend depth for senior.',
-   'No backend or distributed systems experience. Fails senior requirements.',
-   35,
-   datetime('now', '-8 days'), datetime('now', '-7 days'), datetime('now', '-7 days'));
+  -- === CTO at Greenfield (job 3, recruiter) ===
+  (7, 7, 3, 'SentToRecruiter',
+   'VP-level engineering leadership with org-building experience.',
+   'Candidate grew eng team from 12 to 40, owns technical strategy. Strong CTO fit. Approved.',
+   88,
+   datetime('now', '-5 days'), datetime('now', '-4 days'), datetime('now', '-4 days')),
+  (8, 3, 3, 'SentToRecruiter',
+   'Creative leader but limited executive experience.',
+   'Led design system initiative across teams. Some leadership but no exec scope. Borderline.',
+   45,
+   datetime('now', '-4 days'), datetime('now', '-3 days'), datetime('now', '-3 days'));
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Conversations — all start with interview_request card
+-- Timestamps follow: job posted → applied → accepted → conversation starts
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Agent thread (Carol ↔ Agent, no job)
@@ -210,42 +249,51 @@ INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, int
   (1, 3, 5, NULL, 1, 'none');
 
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content, created_at) VALUES
-  (1, 0, 5, 'Carol — I can help match you to roles that fit your design-engineer profile when you are ready to apply widely.', datetime('now', '-20 days')),
-  (1, 1, 3, 'Sounds good, thanks!', datetime('now', '-20 days', '+2 hours'));
+  (1, 0, 5, 'Carol — I can help match you to roles that fit your design-engineer profile when you are ready to apply widely.', datetime('now', '-25 days')),
+  (1, 1, 3, 'Sounds good, thanks!', datetime('now', '-25 days', '+2 hours'));
 
 -- Alice ↔ Recruiter2 (id 6) for Software Engineer at Lahack Labs: interview scheduled
+-- Conversation started 15 days ago (2 days after acceptance)
 INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, interview_status) VALUES
   (2, 1, 6, 1, 1, 'scheduled');
 
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content, kind, metadata, created_at) VALUES
-  (2, 0, 6, 'Hi! I''d like to schedule an interview with you for the Software Engineer role at Lahack Labs. Could you share a few times that work this week?', 'interview_request', '{"role":"Software Engineer","company":"Lahack Labs","format":"30-min video call"}', datetime('now', '-9 days')),
-  (2, 1, 1, 'Here are 3 times that work for me — let me know which is best.', 'availability_proposal', '{"slots":[{"label":"Mon, Apr 21, 10:00 AM","start_iso":"2026-04-21T10:00:00","end_iso":"2026-04-21T10:30:00"},{"label":"Tue, Apr 22, 2:00 PM","start_iso":"2026-04-22T14:00:00","end_iso":"2026-04-22T14:30:00"},{"label":"Wed, Apr 23, 4:00 PM","start_iso":"2026-04-23T16:00:00","end_iso":"2026-04-23T16:30:00"}]}', datetime('now', '-9 days', '+4 hours')),
-  (2, 2, 6, 'Software Engineer — interview', 'calendar_invite', '{"title":"Software Engineer — interview","start_iso":"2026-04-21T10:00:00","end_iso":"2026-04-21T10:30:00","location":"Video call (link in description)","slot_label":"Mon, Apr 21, 10:00 AM","description":"Looking forward to chatting. Use the calendar invite link to add this to your schedule.","google_calendar_url":"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Software+Engineer+interview&dates=20260421T100000/20260421T103000"}', datetime('now', '-8 days'));
+  (2, 0, 6, 'Hi! I''d like to schedule an interview with you for the Software Engineer role at Lahack Labs. Could you share a few times that work this week?', 'interview_request', '{"role":"Software Engineer","company":"Lahack Labs","format":"30-min video call"}', datetime('now', '-15 days')),
+  (2, 1, 1, 'Here are 3 times that work for me — let me know which is best.', 'availability_proposal', '{"slots":[{"label":"Mon, Apr 14, 10:00 AM","start_iso":"2026-04-14T10:00:00","end_iso":"2026-04-14T10:30:00"},{"label":"Tue, Apr 15, 2:00 PM","start_iso":"2026-04-15T14:00:00","end_iso":"2026-04-15T14:30:00"},{"label":"Wed, Apr 16, 4:00 PM","start_iso":"2026-04-16T16:00:00","end_iso":"2026-04-16T16:30:00"}]}', datetime('now', '-15 days', '+5 hours')),
+  (2, 2, 6, 'Software Engineer — interview', 'calendar_invite', '{"title":"Software Engineer — interview","start_iso":"2026-04-14T10:00:00","end_iso":"2026-04-14T10:30:00","location":"Video call (link in description)","slot_label":"Mon, Apr 14, 10:00 AM","description":"Looking forward to chatting. Use the calendar invite link to add this to your schedule.","google_calendar_url":"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Software+Engineer+interview&dates=20260414T100000/20260414T103000"}', datetime('now', '-14 days'));
 
--- Bob ↔ Recruiter2 (id 6) for Software Engineer at Lahack Labs: interview complete, closed
-INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, interview_status, closed_at) VALUES
-  (3, 2, 6, 1, 0, 'complete', datetime('now', '-3 days'));
+-- Bob ↔ Recruiter (id 4) for Senior SWE at Nexus AI: interview scheduled
+-- Conversation started 8 days ago (2 days after acceptance)
+INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, interview_status) VALUES
+  (3, 2, 4, 2, 1, 'scheduled');
 
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content, kind, metadata, created_at) VALUES
-  (3, 0, 6, 'Hi! I''d like to schedule an interview with you for the Software Engineer role at Lahack Labs. Could you share a few times that work this week?', 'interview_request', '{"role":"Software Engineer","company":"Lahack Labs","format":"30-min video call"}', datetime('now', '-8 days')),
-  (3, 1, 2, 'Here are 3 times that work for me — let me know which is best.', 'availability_proposal', '{"slots":[{"label":"Thu, Apr 17, 1:00 PM","start_iso":"2026-04-17T13:00:00","end_iso":"2026-04-17T13:30:00"},{"label":"Fri, Apr 18, 3:00 PM","start_iso":"2026-04-18T15:00:00","end_iso":"2026-04-18T15:30:00"},{"label":"Mon, Apr 21, 9:00 AM","start_iso":"2026-04-21T09:00:00","end_iso":"2026-04-21T09:30:00"}]}', datetime('now', '-8 days', '+3 hours')),
-  (3, 2, 6, 'Software Engineer — interview', 'calendar_invite', '{"title":"Software Engineer — interview","start_iso":"2026-04-17T13:00:00","end_iso":"2026-04-17T13:30:00","location":"Video call (link in description)","slot_label":"Thu, Apr 17, 1:00 PM","description":"Looking forward to chatting. Use the calendar invite link to add this to your schedule.","google_calendar_url":"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Software+Engineer+interview&dates=20260417T130000/20260417T133000"}', datetime('now', '-7 days')),
-  (3, 3, 2, 'Interview went well, thanks for the opportunity!', 'text', NULL, datetime('now', '-4 days')),
-  (3, 4, 6, 'Thanks Bob. We will be in touch with next steps.', 'text', NULL, datetime('now', '-4 days', '+1 hour')),
-  (3, 5, 6, 'Conversation closed.', 'system', NULL, datetime('now', '-3 days'));
+  (3, 0, 4, 'Hi! I''d like to schedule an interview with you for the Senior Software Engineer role at Nexus AI. Could you share a few times that work this week?', 'interview_request', '{"role":"Senior Software Engineer","company":"Nexus AI","format":"45-min video call"}', datetime('now', '-8 days')),
+  (3, 1, 2, 'Here are 3 times that work for me — let me know which is best.', 'availability_proposal', '{"slots":[{"label":"Thu, Apr 20, 1:00 PM","start_iso":"2026-04-20T13:00:00","end_iso":"2026-04-20T13:45:00"},{"label":"Fri, Apr 21, 3:00 PM","start_iso":"2026-04-21T15:00:00","end_iso":"2026-04-21T15:45:00"},{"label":"Mon, Apr 23, 9:00 AM","start_iso":"2026-04-23T09:00:00","end_iso":"2026-04-23T09:45:00"}]}', datetime('now', '-8 days', '+4 hours')),
+  (3, 2, 4, 'Senior Software Engineer — interview', 'calendar_invite', '{"title":"Senior Software Engineer — interview","start_iso":"2026-04-20T13:00:00","end_iso":"2026-04-20T13:45:00","location":"Video call (link in description)","slot_label":"Thu, Apr 20, 1:00 PM","description":"Looking forward to chatting. Use the calendar invite link to add this to your schedule.","google_calendar_url":"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Senior+Software+Engineer+interview&dates=20260420T130000/20260420T134500"}', datetime('now', '-7 days'));
+
+-- Dave ↔ Recruiter (id 4) for CTO at Greenfield: just invited, awaiting response
+INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, interview_status) VALUES
+  (6, 4, 7, 3, 1, 'requested');
+
+INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content, kind, metadata, created_at) VALUES
+  (6, 0, 4, 'Hi! I''d like to schedule an interview with you for the Chief Technology Officer role at Greenfield Ventures. Could you share a few times that work this week?', 'interview_request', '{"role":"Chief Technology Officer","company":"Greenfield Ventures","format":"60-min video call"}', datetime('now', '-3 days'));
 
 -- Carol ↔ Recruiter2 (id 6) for Software Engineer at Lahack Labs: just invited, awaiting response
+-- Conversation started 2 days ago
 INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, interview_status) VALUES
   (4, 3, 6, 1, 1, 'requested');
 
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content, kind, metadata, created_at) VALUES
-  (4, 0, 6, 'Hi! I''d like to schedule an interview with you for the Software Engineer role at Lahack Labs. Could you share a few times that work this week?', 'interview_request', '{"role":"Software Engineer","company":"Lahack Labs","format":"30-min video call"}', datetime('now', '-1 days'));
-
--- Bob ↔ Recruiter (id 4) for Senior SWE at Nexus AI: interview scheduled
-INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, interview_status) VALUES
-  (5, 2, 4, 2, 1, 'scheduled');
+  (4, 0, 6, 'Hi! I''d like to schedule an interview with you for the Software Engineer role at Lahack Labs. Could you share a few times that work this week?', 'interview_request', '{"role":"Software Engineer","company":"Lahack Labs","format":"30-min video call"}', datetime('now', '-2 days'));
+-- Bob ↔ Recruiter2 (id 6) for Software Engineer at Lahack Labs: interview complete, closed
+INSERT INTO conversations (id, user_1_id, user_2_id, job_posting_id, active, interview_status, closed_at) VALUES
+  (5, 2, 6, 1, 0, 'complete', datetime('now', '-5 days'));
 
 INSERT INTO messages (conversation_id, conversation_index, user_id, conversation_content, kind, metadata, created_at) VALUES
-  (5, 0, 4, 'Hi! I''d like to schedule an interview with you for the Senior Software Engineer role at Nexus AI. Could you share a few times that work this week?', 'interview_request', '{"role":"Senior Software Engineer","company":"Nexus AI","format":"45-min video call"}', datetime('now', '-5 days')),
-  (5, 1, 2, 'Here are 3 times that work for me — let me know which is best.', 'availability_proposal', '{"slots":[{"label":"Wed, Apr 22, 10:00 AM","start_iso":"2026-04-22T10:00:00","end_iso":"2026-04-22T10:45:00"},{"label":"Thu, Apr 23, 2:00 PM","start_iso":"2026-04-23T14:00:00","end_iso":"2026-04-23T14:45:00"},{"label":"Fri, Apr 24, 11:00 AM","start_iso":"2026-04-24T11:00:00","end_iso":"2026-04-24T11:45:00"}]}', datetime('now', '-5 days', '+6 hours')),
-  (5, 2, 4, 'Senior Software Engineer — interview', 'calendar_invite', '{"title":"Senior Software Engineer — interview","start_iso":"2026-04-22T10:00:00","end_iso":"2026-04-22T10:45:00","location":"Video call (link in description)","slot_label":"Wed, Apr 22, 10:00 AM","description":"Looking forward to chatting. Use the calendar invite link to add this to your schedule.","google_calendar_url":"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Senior+Software+Engineer+interview&dates=20260422T100000/20260422T104500"}', datetime('now', '-4 days'));
+  (5, 0, 6, 'Hi! I''d like to schedule an interview with you for the Software Engineer role at Lahack Labs. Could you share a few times that work this week?', 'interview_request', '{"role":"Software Engineer","company":"Lahack Labs","format":"30-min video call"}', datetime('now', '-12 days')),
+  (5, 1, 2, 'Here are 3 times that work for me — let me know which is best.', 'availability_proposal', '{"slots":[{"label":"Thu, Apr 16, 1:00 PM","start_iso":"2026-04-16T13:00:00","end_iso":"2026-04-16T13:30:00"},{"label":"Fri, Apr 17, 3:00 PM","start_iso":"2026-04-17T15:00:00","end_iso":"2026-04-17T15:30:00"},{"label":"Mon, Apr 20, 9:00 AM","start_iso":"2026-04-20T09:00:00","end_iso":"2026-04-20T09:30:00"}]}', datetime('now', '-12 days', '+3 hours')),
+  (5, 2, 6, 'Software Engineer — interview', 'calendar_invite', '{"title":"Software Engineer — interview","start_iso":"2026-04-16T13:00:00","end_iso":"2026-04-16T13:30:00","location":"Video call (link in description)","slot_label":"Thu, Apr 16, 1:00 PM","description":"Looking forward to chatting. Use the calendar invite link to add this to your schedule.","google_calendar_url":"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Software+Engineer+interview&dates=20260416T130000/20260416T133000"}', datetime('now', '-11 days')),
+  (5, 3, 2, 'Interview went well, thanks for the opportunity!', 'text', NULL, datetime('now', '-6 days')),
+  (5, 4, 6, 'Thanks Bob. We will be in touch with next steps.', 'text', NULL, datetime('now', '-6 days', '+1 hour')),
+  (5, 5, 6, 'Conversation closed.', 'system', NULL, datetime('now', '-5 days'));
