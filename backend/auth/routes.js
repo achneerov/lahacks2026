@@ -1,10 +1,22 @@
 const express = require('express');
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const { signRequest } = require('@worldcoin/idkit-server');
+const { verifySiweMessage } = require('@worldcoin/minikit-js/siwe');
 const db = require('../db');
 const { verifyWorldId } = require('./verifyWorldId');
 const { signToken, requireAuth } = require('./jwt');
 const { recordAttempt } = require('../applicant/criticalChange');
+
+const NONCE_TTL_MS = 5 * 60 * 1000;
+const NONCE_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+
+function signNonce(nonce, expiresAt) {
+  return crypto
+    .createHmac('sha256', NONCE_SECRET)
+    .update(`${nonce}|${expiresAt}`)
+    .digest('hex');
+}
 
 const router = express.Router();
 
@@ -524,6 +536,95 @@ router.post('/login', async (req, res) => {
       trust_score: user.trust_score,
     },
   });
+});
+
+// Stateless SIWE nonce. The signature lets `/wallet-login` verify the nonce
+// it received was actually issued by us without keeping server-side state.
+router.get('/wallet-nonce', (req, res) => {
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const expires_at = Date.now() + NONCE_TTL_MS;
+  const signature = signNonce(nonce, expires_at);
+  return res.json({ nonce, expires_at, signature });
+});
+
+router.post('/wallet-login', async (req, res) => {
+  const { nonce, expires_at, signature, finalPayload } = req.body || {};
+  if (!nonce || !expires_at || !signature || !finalPayload) {
+    return res.status(400).json({ error: 'missing_fields' });
+  }
+  if (typeof expires_at !== 'number' || Date.now() > expires_at) {
+    return res.status(400).json({ error: 'nonce_expired' });
+  }
+  const expected = signNonce(nonce, expires_at);
+  if (
+    expected.length !== signature.length ||
+    !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+  ) {
+    return res.status(400).json({ error: 'invalid_nonce' });
+  }
+
+  let address;
+  try {
+    const result = await verifySiweMessage(finalPayload, nonce);
+    if (!result.isValid || !result.siweMessageData?.address) {
+      return res.status(401).json({ error: 'invalid_signature' });
+    }
+    address = String(result.siweMessageData.address).toLowerCase();
+  } catch (e) {
+    return res
+      .status(401)
+      .json({ error: 'siwe_failed', detail: e?.message || String(e) });
+  }
+
+  // Upsert by wallet address. We reuse the `worldu_id` column for the wallet
+  // address since both are unique-per-human identifiers and the column is
+  // already NOT NULL UNIQUE.
+  let user = db
+    .prepare(
+      'SELECT id, role, email, username, verification_level, trust_score FROM users WHERE worldu_id = ?',
+    )
+    .get(address);
+
+  if (!user) {
+    const shortAddr = address.slice(2, 10);
+    const synthesizedEmail = `${address}@wallet.local`;
+    const baseUsername = `wallet_${shortAddr}`;
+    let username = baseUsername;
+    let suffix = 0;
+    while (
+      db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)
+    ) {
+      suffix += 1;
+      username = `${baseUsername}_${suffix}`;
+    }
+    const password_hash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
+    try {
+      const info = db
+        .prepare(
+          `INSERT INTO users (role, worldu_id, email, username, password_hash, verification_level)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .run('Applicant', address, synthesizedEmail, username, password_hash, 'device');
+      user = db
+        .prepare(
+          'SELECT id, role, email, username, verification_level, trust_score FROM users WHERE id = ?',
+        )
+        .get(info.lastInsertRowid);
+      recordAttempt({
+        userId: user.id,
+        decision: 'approved',
+        diff: { changes: [] },
+        agentDecision: null,
+        agentReasoning: 'Wallet signup baseline.',
+      });
+    } catch (e) {
+      console.error('[wallet-login] insert failed', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  }
+
+  const token = signToken(user);
+  return res.json({ token, user });
 });
 
 router.get('/me', requireAuth, (req, res) => {

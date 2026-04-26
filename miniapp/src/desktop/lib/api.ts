@@ -1,4 +1,6 @@
-const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001';
+const API_BASE =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
+  'http://localhost:3001';
 
 export const API_BASE_URL = API_BASE;
 
