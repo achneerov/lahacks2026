@@ -357,7 +357,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0
   },
   primaryBtn: {
-    backgroundColor: 'var(--brand-ink)',
+    backgroundColor: 'var(--accent-warm)',
     color: 'white',
     border: 'none',
     borderRadius: '999px',

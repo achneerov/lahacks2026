@@ -599,7 +599,7 @@ const s: Record<string, CSSProperties> = {
     fontSize: '14px',
     fontWeight: 600,
     color: '#fff',
-    background: 'var(--brand-ink)',
+    background: 'var(--accent-warm)',
     borderRadius: '999px',
     letterSpacing: '0.5px',
     fontFamily: 'inherit',
