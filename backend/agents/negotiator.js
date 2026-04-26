@@ -3,7 +3,6 @@ const db = require('../db');
 const { emit } = require('./bus');
 const { getApplicantProfile, getJobPosting } = require('./profile');
 const {
-  TURNS_PER_AGENT,
   TOTAL_TURNS,
   applicantAgentSystemPrompt,
   recruiterAgentSystemPrompt,

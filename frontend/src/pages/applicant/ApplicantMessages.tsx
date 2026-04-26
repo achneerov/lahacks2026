@@ -10,13 +10,18 @@ import {
 import {
   api,
   ApiError,
+  type ApplicantConversationMessagesResponse,
   type AvailabilitySlot,
-  type ConversationDetail,
   type ConversationMessage,
   type ConversationSummary,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import AvailabilityModal from '../../components/AvailabilityModal';
+import CloseChatModal from '../../components/CloseChatModal';
+import {
+  TrustScoreBadge,
+  VerificationLevelBadge,
+} from '../../components/Badges';
 import { renderSpecialBubble } from '../../components/InterviewCards';
 
 type ActiveFilter = 'any' | 'open' | 'closed';
@@ -37,10 +42,8 @@ export default function ApplicantMessages() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('any');
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [thread, setThread] = useState<{
-    conversation: ConversationDetail;
-    messages: ConversationMessage[];
-  } | null>(null);
+  const [thread, setThread] =
+    useState<ApplicantConversationMessagesResponse | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(null);
 
@@ -50,6 +53,7 @@ export default function ApplicantMessages() {
   const [awaitingReply, setAwaitingReply] = useState(false);
 
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -228,6 +232,21 @@ export default function ApplicantMessages() {
     void loadConversations({ silent: true });
   }
 
+  function handleClosed(newTrustScore: number | null) {
+    if (selectedId == null) return;
+    if (newTrustScore != null) {
+      setThread((prev) => {
+        if (!prev || prev.conversation.id !== selectedId) return prev;
+        return {
+          ...prev,
+          other_user: { ...prev.other_user, trust_score: newTrustScore },
+        };
+      });
+    }
+    void loadThread(selectedId);
+    void loadConversations({ silent: true });
+  }
+
   return (
     <div style={styles.page}>
       <style>{`
@@ -379,7 +398,7 @@ export default function ApplicantMessages() {
                       .slice(0, 1)
                       .toUpperCase()}
                   </span>
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={styles.threadName}>
                       {thread.conversation.other_party.username}
                     </div>
@@ -401,7 +420,25 @@ export default function ApplicantMessages() {
                         <span style={styles.closedPill}>Closed</span>
                       )}
                     </div>
+                    <div style={{ ...styles.threadMeta, marginTop: 6 }}>
+                      <TrustScoreBadge score={thread.other_user.trust_score} />
+                      <VerificationLevelBadge
+                        level={thread.other_user.verification_level}
+                      />
+                    </div>
                   </div>
+                  {thread.conversation.active === 1 &&
+                    thread.conversation.other_party.role === 'Recruiter' && (
+                      <button
+                        type="button"
+                        onClick={() => setCloseOpen(true)}
+                        style={styles.closeChatBtn}
+                        title="Close conversation — rate recruiter first"
+                        aria-label="Close conversation"
+                      >
+                        ✕
+                      </button>
+                    )}
                 </div>
               </header>
 
@@ -520,6 +557,18 @@ export default function ApplicantMessages() {
               onSubmit={handleSendAvailability}
             />
           )}
+
+          {closeOpen &&
+            thread &&
+            thread.conversation.other_party.role === 'Recruiter' && (
+              <CloseChatModal
+                conversationId={thread.conversation.id}
+                raterRole="applicant"
+                ratedUsername={thread.conversation.other_party.username}
+                onClose={() => setCloseOpen(false)}
+                onClosed={handleClosed}
+              />
+            )}
 
           {selectedConversation && !thread && !threadLoading && !threadError && (
             <div style={styles.threadEmpty}>
@@ -1108,5 +1157,23 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     background: 'currentColor',
     animation: 'wsDots 950ms ease-in-out infinite',
+  },
+  closeChatBtn: {
+    appearance: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 16,
+    lineHeight: 1,
+    fontWeight: 500,
+    color: 'var(--text)',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: 10,
+    width: 36,
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
 };

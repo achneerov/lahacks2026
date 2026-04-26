@@ -424,6 +424,7 @@ export interface ApplicantApplicationsResponse {
   applications: Application[];
 }
 
+/** Counterparty on a thread or list — chat identity only (no trust fields). */
 export interface ConversationParty {
   id: number;
   username: string;
@@ -431,8 +432,12 @@ export interface ConversationParty {
   first_name?: string | null;
   last_name?: string | null;
   preferred_name?: string | null;
-  verification_level?: VerificationLevel;
+}
+
+/** User row slice for the counterparty; trust lives here, not under `conversation`. */
+export interface ConversationPeerUser extends ConversationParty {
   trust_score?: number;
+  verification_level?: VerificationLevel;
 }
 
 export interface ConversationSummary {
@@ -537,13 +542,13 @@ export interface TrustResponse {
 
 export interface ClosureResponses {
   responses: TrustResponse[];
-  summary: string;
   closed_by: number;
   closed_at: string;
 }
 
 export interface ApplicantConversationMessagesResponse {
   conversation: ConversationDetail;
+  other_user: ConversationPeerUser;
   messages: ConversationMessage[];
 }
 
@@ -562,6 +567,7 @@ export interface RecruiterConversationsResponse {
 
 export interface RecruiterConversationMessagesResponse {
   conversation: ConversationDetail;
+  other_user: ConversationPeerUser;
   messages: ConversationMessage[];
 }
 
@@ -911,7 +917,6 @@ export interface CalendarInviteInput {
 
 export interface CloseConversationInput {
   responses: TrustResponse[];
-  summary?: string;
 }
 
 export interface CloseConversationResponse {
@@ -934,6 +939,11 @@ export interface RecruiterJobConversation {
     role: Role | string;
     full_name: string | null;
     headline: string | null;
+  };
+  other_user: {
+    id: number;
+    trust_score?: number;
+    verification_level?: VerificationLevel;
   };
 }
 
@@ -1291,6 +1301,24 @@ export const api = {
   ) =>
     request<CloseConversationResponse>(
       `/api/recruiter/conversations/${conversationId}/close`,
+      { method: 'POST', body: JSON.stringify(body) },
+      token,
+    ),
+
+  applicantRecruiterTrustQuestions: (token: string) =>
+    request<{ questions: TrustQuestion[] }>(
+      '/api/applicant/trust-questions-recruiter',
+      {},
+      token,
+    ),
+
+  applicantCloseConversation: (
+    token: string,
+    conversationId: number,
+    body: CloseConversationInput,
+  ) =>
+    request<CloseConversationResponse>(
+      `/api/applicant/conversations/${conversationId}/close`,
       { method: 'POST', body: JSON.stringify(body) },
       token,
     ),

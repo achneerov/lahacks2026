@@ -1,34 +1,32 @@
-// Questions a recruiter answers when closing a conversation. Each is scored
-// 1..5 and the average is folded back into the applicant's trust_score.
+// Two questions when someone closes a chat (1..5 each). The backend rounds
+// the average of those two scores and applies a small trust_score step (−2..+2).
 //
-// IDs are stable so the frontend can localize labels later without breaking
-// historical closure_responses payloads.
+// IDs are stable so historical closure_responses JSON stays meaningful.
 const TRUST_QUESTIONS = [
   {
     id: 'resume_accuracy',
-    label: "How accurate was the candidate's resume vs. what you saw in the interview?",
-    helper: '1 = significantly exaggerated · 5 = matched perfectly',
-  },
-  {
-    id: 'skills_honesty',
-    label: 'Did the candidate honestly represent their skills?',
-    helper: '1 = misrepresented · 5 = exactly as claimed',
-  },
-  {
-    id: 'professionalism',
-    label: 'Were they professional during the interview?',
-    helper: '1 = unprofessional · 5 = exemplary',
+    label: "How accurate was their resume and background vs. what you saw?",
+    helper: '1 = misleading · 5 = fully accurate',
   },
   {
     id: 'reliability',
-    label: 'Did they follow through (show up on time, respond promptly)?',
-    helper: '1 = no-show or unresponsive · 5 = perfectly reliable',
-  },
-  {
-    id: 'recommend_again',
-    label: 'Would you trust them to represent your company in front of others?',
-    helper: '1 = no · 5 = absolutely',
+    label: 'How reliable were they (timeliness, responsiveness, follow-through)?',
+    helper: '1 = poor · 5 = excellent',
   },
 ];
 
-module.exports = { TRUST_QUESTIONS };
+// When an applicant closes with a recruiter: same trust step on the recruiter.
+const RECRUITER_RATING_QUESTIONS = [
+  {
+    id: 'role_process_clarity',
+    label: 'How clear and fair was the recruiter about the role and process?',
+    helper: '1 = vague or misleading · 5 = transparent and fair',
+  },
+  {
+    id: 'recruiter_professionalism',
+    label: 'How professional was their communication?',
+    helper: '1 = unprofessional · 5 = excellent',
+  },
+];
+
+module.exports = { TRUST_QUESTIONS, RECRUITER_RATING_QUESTIONS };

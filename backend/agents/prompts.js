@@ -1,7 +1,8 @@
 const { Type } = require('@google/genai');
 
-const TURNS_PER_AGENT = 5;
-const TOTAL_TURNS = TURNS_PER_AGENT * 2;
+const TOTAL_TURNS = 9;
+const APPLICANT_MAX_TURNS = Math.ceil(TOTAL_TURNS / 2); // 5
+const RECRUITER_MAX_TURNS = Math.floor(TOTAL_TURNS / 2); // 4
 
 const NO_LIE_RULE = `STRICT NO-FABRICATION RULE: You may ONLY cite facts that are present in the structured applicant profile JSON below. Do NOT invent companies, projects, dates, metrics, technologies, certifications, or anything else. If the profile is silent on a topic the recruiter probes, say so honestly ("the profile does not list that") rather than guessing. Made-up numbers ("improved performance 10x") are forbidden unless that exact metric appears in the profile.`;
 
@@ -17,7 +18,7 @@ function safeJson(value) {
 function applicantAgentSystemPrompt({ applicantProfile, jobPosting }) {
   return `You are APPLICANT_AGENT, an advocate negotiating on behalf of a job candidate.
 
-Your goal: convince RECRUITER_AGENT, in at most ${TURNS_PER_AGENT} turns, to recommend this candidate to the human recruiter.
+Your goal: convince RECRUITER_AGENT, in at most ${APPLICANT_MAX_TURNS} turns, to recommend this candidate to the human recruiter.
 
 How to argue well:
 - Tie concrete evidence from the profile to specific requirements implied by the job posting.
@@ -55,7 +56,7 @@ function recruiterAgentSystemPrompt({ jobPosting }) {
 
   return `You are RECRUITER_AGENT, screening a candidate on behalf of the human recruiter who posted this job.
 
-Your goal in at most ${TURNS_PER_AGENT} turns: figure out whether this candidate genuinely fits the role, then either recommend them or decline.
+Your goal in at most ${RECRUITER_MAX_TURNS} turns: figure out whether this candidate genuinely fits the role, then either recommend them or decline.
 
 WHAT THIS CONVERSATION IS:
 You are doing a PAPER SCREEN, not a live technical interview. The candidate is represented by APPLICANT_AGENT, an advocate that has access to the candidate's structured résumé/profile JSON. **You do NOT have access to that profile.** Everything you know about the candidate must come from what APPLICANT_AGENT has actually said in the transcript below — never assume, invent, or imply you have seen anything else about them. APPLICANT_AGENT also CANNOT recall specific incidents, log output, code snippets, design decisions, debugging steps, or precise metrics that aren't already written down in the profile. Asking for any of those is a wasted turn — it will produce either "the profile doesn't list that" or, worse, an invented answer.
@@ -153,7 +154,6 @@ const VERDICT_SCHEMA = {
 };
 
 module.exports = {
-  TURNS_PER_AGENT,
   TOTAL_TURNS,
   applicantAgentSystemPrompt,
   recruiterAgentSystemPrompt,

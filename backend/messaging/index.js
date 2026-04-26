@@ -116,45 +116,44 @@ function googleCalendarUrl({ title, description, startIso, endIso, location }) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-// Recompute trust score from closure feedback records. Each closure has
-// per-question scores (1..5); we average them, normalize to 0..100, and blend
-// with the user's prior score so a single bad/great interview can't whiplash.
-function recomputeTrustScore(userId) {
-  const closures = db
-    .prepare(
-      `SELECT closure_responses FROM conversations
-        WHERE active = 0 AND closure_responses IS NOT NULL
-          AND (user_1_id = ? OR user_2_id = ?)`
-    )
-    .all(userId, userId);
+// Who this closure's scores are about. New payloads set rated_user_id;
+// legacy recruiter-only closes infer "the other participant" from closed_by.
+function ratedUserIdForClosure(row, parsed) {
+  const explicit = Number(parsed?.rated_user_id);
+  if (Number.isFinite(explicit)) return explicit;
+  const closedBy = Number(parsed?.closed_by);
+  if (!Number.isFinite(closedBy)) return null;
+  if (row.user_1_id === closedBy) return row.user_2_id;
+  if (row.user_2_id === closedBy) return row.user_1_id;
+  return null;
+}
 
-  if (closures.length === 0) return null;
+// Rounded average of this chat’s 1..5 ratings → one step on their score:
+// 5 → +2, 4 → +1, 3 → 0, 2 → −1, 1 → −2 (then clamp 0..100).
+function trustDeltaFromRoundedLikert(rounded) {
+  if (rounded === 5) return 2;
+  if (rounded === 4) return 1;
+  if (rounded === 3) return 0;
+  if (rounded === 2) return -1;
+  return -2;
+}
 
-  let totalScore = 0;
-  let totalWeight = 0;
-  for (const row of closures) {
-    let parsed;
-    try {
-      parsed = JSON.parse(row.closure_responses);
-    } catch {
-      continue;
-    }
-    if (!parsed || !Array.isArray(parsed.responses)) continue;
-    for (const r of parsed.responses) {
-      const n = Number(r?.score);
-      if (!Number.isFinite(n)) continue;
-      totalScore += n;
-      totalWeight += 1;
-    }
-  }
+function applyTrustFeedbackDelta(userId, scores) {
+  const nums = scores
+    .map((n) => Number(n))
+    .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+  if (nums.length === 0) return null;
+  const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+  const rounded = Math.max(1, Math.min(5, Math.round(avg)));
+  const delta = trustDeltaFromRoundedLikert(rounded);
 
-  if (totalWeight === 0) return null;
-  const avg = totalScore / totalWeight; // 1..5 typically
-  // Map 1..5 to 30..100. 5 = 100, 3 = 65, 1 = 30.
-  const mapped = Math.round(30 + ((avg - 1) / 4) * 70);
-  const clamped = Math.max(0, Math.min(100, mapped));
-  db.prepare('UPDATE users SET trust_score = ? WHERE id = ?').run(clamped, userId);
-  return clamped;
+  const row = db.prepare('SELECT trust_score FROM users WHERE id = ?').get(userId);
+  if (!row) return null;
+  const cur = Number(row.trust_score);
+  const base = Number.isFinite(cur) ? cur : 85;
+  const next = Math.max(0, Math.min(100, base + delta));
+  db.prepare('UPDATE users SET trust_score = ? WHERE id = ?').run(next, userId);
+  return next;
 }
 
 module.exports = {
@@ -163,5 +162,6 @@ module.exports = {
   findOrCreateConversation,
   setInterviewStatus,
   googleCalendarUrl,
-  recomputeTrustScore,
+  applyTrustFeedbackDelta,
+  ratedUserIdForClosure,
 };

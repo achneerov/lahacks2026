@@ -348,7 +348,7 @@ CREATE INDEX idx_applications_status    ON applications(status);
 CREATE INDEX idx_applications_match     ON applications(job_posting_id, match_score DESC);
 
 -- Append-only transcript for the applicant_agent <-> recruiter_agent negotiation.
--- One row per turn (turn_index 0..9 for 10 total turns; applicant on even, recruiter on odd).
+-- One row per turn (turn_index 0..8 for 9 total turns; applicant on even, recruiter on odd).
 CREATE TABLE negotiation_messages (
   application_id  INTEGER NOT NULL,
   turn_index      INTEGER NOT NULL,
@@ -374,7 +374,7 @@ CREATE TABLE conversations (
   interview_status TEXT NOT NULL DEFAULT 'none'
     CHECK (interview_status IN ('none','requested','availability_proposed','scheduled','complete')),
   closed_at       TEXT,
-  -- JSON: { responses: [{question_id, label, score, note}], trust_delta, summary }
+  -- JSON: saved close-and-rate questionnaire (trust_score stays on users table).
   closure_responses TEXT,
   created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_1_id)      REFERENCES users(id)        ON DELETE CASCADE,

@@ -10,7 +10,8 @@ const {
   lockUser,
 } = require('./criticalChange');
 const { reviewCriticalChange } = require('../agents/profile-credibility');
-const { insertMessage, setInterviewStatus } = require('../messaging');
+const { insertMessage, setInterviewStatus, applyTrustFeedbackDelta } = require('../messaging');
+const { RECRUITER_RATING_QUESTIONS } = require('../messaging/trustQuestions');
 
 const router = express.Router();
 
@@ -676,10 +677,24 @@ router.get('/conversations/:id/messages', requireAuth, requireApplicant, (req, r
     if (!convo) return res.status(404).json({ error: 'not_found' });
     const otherUserId = convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
     const otherParty = db.prepare(
-      `SELECT u.id, u.username, u.role, up.first_name, up.last_name
+      `SELECT u.id, u.username, u.role, u.verification_level, u.trust_score,
+              up.first_name, up.last_name, up.preferred_name
          FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
         WHERE u.id = ?`
     ).get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
+    const otherPartyChat = {
+      id: otherParty.id,
+      username: otherParty.username,
+      role: otherParty.role,
+      first_name: otherParty.first_name ?? null,
+      last_name: otherParty.last_name ?? null,
+      preferred_name: otherParty.preferred_name ?? null,
+    };
+    const otherUser = {
+      ...otherPartyChat,
+      trust_score: otherParty.trust_score ?? undefined,
+      verification_level: otherParty.verification_level ?? undefined,
+    };
     const messages = db.prepare(
       `SELECT conversation_index AS msg_index, user_id, conversation_content AS content,
               kind, metadata, created_at
@@ -703,8 +718,9 @@ router.get('/conversations/:id/messages', requireAuth, requireApplicant, (req, r
         interview_status: convo.interview_status || 'none',
         closed_at: convo.closed_at,
         created_at: convo.created_at,
-        other_party: otherParty,
+        other_party: otherPartyChat,
       },
+      other_user: otherUser,
       messages,
     });
   } catch (e) {
@@ -806,5 +822,107 @@ router.post('/conversations/:id/availability', requireAuth, requireApplicant, (r
     return res.status(500).json({ error: 'server_error' });
   }
 });
+
+router.get('/trust-questions-recruiter', requireAuth, requireApplicant, (_req, res) => {
+  return res.json({ questions: RECRUITER_RATING_QUESTIONS });
+});
+
+router.post(
+  '/conversations/:id/close',
+  requireAuth,
+  requireApplicant,
+  (req, res) => {
+    const userId = req.user.id;
+    const conversationId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return res.status(400).json({ error: 'invalid_conversation_id' });
+    }
+
+    const responses = Array.isArray(req.body?.responses) ? req.body.responses : null;
+    if (!responses || responses.length === 0) {
+      return res.status(400).json({ error: 'missing_responses' });
+    }
+
+    const validIds = new Set(RECRUITER_RATING_QUESTIONS.map((q) => q.id));
+    const byQuestionId = new Map();
+    for (const r of responses) {
+      if (!r || typeof r !== 'object') continue;
+      const qid = r.question_id;
+      if (typeof qid !== 'string' || !validIds.has(qid)) continue;
+      const score = Number(r.score);
+      if (!Number.isFinite(score) || score < 1 || score > 5) continue;
+      byQuestionId.set(qid, {
+        question_id: qid,
+        score,
+        note: typeof r.note === 'string' ? r.note.slice(0, 500) : '',
+      });
+    }
+    for (const q of RECRUITER_RATING_QUESTIONS) {
+      if (!byQuestionId.has(q.id)) {
+        return res.status(400).json({
+          error: 'incomplete_responses',
+          detail: 'Answer every question (1–5) before closing.',
+        });
+      }
+    }
+    const cleaned = RECRUITER_RATING_QUESTIONS.map((q) => byQuestionId.get(q.id));
+
+    try {
+      const convo = loadConversationForUser(conversationId, userId);
+      if (!convo) return res.status(404).json({ error: 'not_found' });
+      if (convo.active === 0) return res.status(409).json({ error: 'conversation_closed' });
+
+      const otherUserId =
+        convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
+      const other = db
+        .prepare('SELECT id, role FROM users WHERE id = ?')
+        .get(otherUserId);
+      if (!other || other.role !== 'Recruiter') {
+        return res.status(400).json({
+          error: 'only_recruiter_ratings',
+          detail: 'Closure ratings apply to recruiter conversations only.',
+        });
+      }
+
+      const payload = {
+        responses: cleaned,
+        closed_by: userId,
+        closed_at: new Date().toISOString(),
+        rated_user_id: otherUserId,
+      };
+
+      db.prepare(
+        `UPDATE conversations
+            SET active = 0,
+                closed_at = datetime('now'),
+                interview_status = 'complete',
+                closure_responses = ?
+          WHERE id = ?`
+      ).run(JSON.stringify(payload), conversationId);
+
+      insertMessage({
+        conversationId,
+        userId,
+        content: 'Conversation closed. Thanks for the feedback.',
+        kind: 'system',
+        metadata: { closed: true },
+      });
+
+      const newScore = applyTrustFeedbackDelta(
+        otherUserId,
+        cleaned.map((r) => r.score),
+      );
+
+      return res.json({
+        ok: true,
+        conversation_id: conversationId,
+        new_trust_score: newScore,
+      });
+    } catch (e) {
+      console.error('[applicant/conversations/:id/close]', e);
+      return res.status(500).json({ error: 'server_error' });
+    }
+  },
+);
 
 module.exports = router;

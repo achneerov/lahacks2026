@@ -7,7 +7,8 @@ const {
   findOrCreateConversation,
   setInterviewStatus,
   googleCalendarUrl,
-  recomputeTrustScore,
+  applyTrustFeedbackDelta,
+  ratedUserIdForClosure,
 } = require('../messaging');
 const { TRUST_QUESTIONS } = require('../messaging/trustQuestions');
 
@@ -777,14 +778,17 @@ router.get('/applications/:id/applicant', requireAuth, requireRecruiter, (req, r
 
     const closedConvos = db
       .prepare(
-        `SELECT closure_responses FROM conversations
+        `SELECT user_1_id, user_2_id, closure_responses FROM conversations
            WHERE active = 0 AND closure_responses IS NOT NULL
              AND (user_1_id = ? OR user_2_id = ?)`
       )
       .all(applicantId, applicantId)
-      .map((r) => {
+      .map((row) => {
         try {
-          return JSON.parse(r.closure_responses);
+          const parsed = JSON.parse(row.closure_responses);
+          if (!parsed) return null;
+          if (ratedUserIdForClosure(row, parsed) !== applicantId) return null;
+          return parsed;
         } catch {
           return null;
         }
@@ -894,37 +898,53 @@ router.get('/jobs/:id/conversations', requireAuth, requireRecruiter, (req, res) 
               WHERE u.id IN (${otherIds.map(() => '?').join(',')})`
           )
           .all(...otherIds)
-          .map((u) => ({
-            id: u.id,
-            username: u.username,
-            role: u.role,
-            verification_level: u.verification_level,
-            trust_score: u.trust_score,
-            full_name:
+          .map((u) => {
+            const fullName =
               [u.preferred_name || u.first_name, u.last_name]
                 .filter(Boolean)
-                .join(' ') || null,
-            headline: null,
-          }))
+                .join(' ') || null;
+            return {
+              id: u.id,
+              other_party: {
+                id: u.id,
+                username: u.username,
+                role: u.role,
+                full_name: fullName,
+                headline: null,
+              },
+              other_user: {
+                id: u.id,
+                trust_score: u.trust_score ?? undefined,
+                verification_level: u.verification_level ?? undefined,
+              },
+            };
+          })
       : [];
     const otherById = new Map(others.map((u) => [u.id, u]));
 
-    const conversations = rows.map((r) => ({
-      id: r.id,
-      active: r.active,
-      created_at: r.created_at,
-      message_count: r.message_count,
-      last_message: r.last_message,
-      last_message_at: r.last_message_at,
-      last_message_from_me:
-        r.last_message_user_id != null ? r.last_message_user_id === userId : null,
-      other_party: otherById.get(r.other_user_id) || {
-        id: r.other_user_id,
-        username: 'unknown',
-        role: 'Unknown',
-        full_name: null,
-      },
-    }));
+    const conversations = rows.map((r) => {
+      const meta = otherById.get(r.other_user_id);
+      return {
+        id: r.id,
+        active: r.active,
+        created_at: r.created_at,
+        message_count: r.message_count,
+        last_message: r.last_message,
+        last_message_at: r.last_message_at,
+        last_message_from_me:
+          r.last_message_user_id != null ? r.last_message_user_id === userId : null,
+        other_party: meta?.other_party ?? {
+          id: r.other_user_id,
+          username: 'unknown',
+          role: 'Unknown',
+          full_name: null,
+          headline: null,
+        },
+        other_user: meta?.other_user ?? {
+          id: r.other_user_id,
+        },
+      };
+    });
 
     return res.json({ conversations });
   } catch (e) {
@@ -1221,6 +1241,20 @@ router.get(
         )
         .get(otherUserId) || { id: otherUserId, username: 'unknown', role: 'Unknown' };
 
+      const otherPartyChat = {
+        id: otherParty.id,
+        username: otherParty.username,
+        role: otherParty.role,
+        first_name: otherParty.first_name ?? null,
+        last_name: otherParty.last_name ?? null,
+        preferred_name: otherParty.preferred_name ?? null,
+      };
+      const otherUser = {
+        ...otherPartyChat,
+        trust_score: otherParty.trust_score ?? undefined,
+        verification_level: otherParty.verification_level ?? undefined,
+      };
+
       const messages = db
         .prepare(
           `SELECT
@@ -1263,8 +1297,9 @@ router.get(
           closed_at: convo.closed_at,
           closure_responses: closureResponses,
           created_at: convo.created_at,
-          other_party: otherParty,
+          other_party: otherPartyChat,
         },
+        other_user: otherUser,
         messages,
       });
     } catch (e) {
@@ -1496,9 +1531,9 @@ router.get('/trust-questions', requireAuth, requireRecruiter, (_req, res) => {
   return res.json({ questions: TRUST_QUESTIONS });
 });
 
-// Close a conversation by submitting the trust questionnaire. Records the
-// answers verbatim and recomputes the applicant's trust_score from the
-// rolling history of all closures.
+// Close a conversation by submitting the trust questionnaire. Records answers
+// on the row and bumps the rated user’s trust_score by a small step (−2..+2)
+// from the rounded average of the two 1–5 scores.
 router.post(
   '/conversations/:id/close',
   requireAuth,
@@ -1516,21 +1551,28 @@ router.post(
     }
 
     const validIds = new Set(TRUST_QUESTIONS.map((q) => q.id));
-    const cleaned = [];
+    const byQuestionId = new Map();
     for (const r of responses) {
       if (!r || typeof r !== 'object') continue;
-      if (!validIds.has(r.question_id)) continue;
+      const qid = r.question_id;
+      if (typeof qid !== 'string' || !validIds.has(qid)) continue;
       const score = Number(r.score);
       if (!Number.isFinite(score) || score < 1 || score > 5) continue;
-      cleaned.push({
-        question_id: r.question_id,
+      byQuestionId.set(qid, {
+        question_id: qid,
         score,
         note: typeof r.note === 'string' ? r.note.slice(0, 500) : '',
       });
     }
-    if (cleaned.length === 0) {
-      return res.status(400).json({ error: 'invalid_responses' });
+    for (const q of TRUST_QUESTIONS) {
+      if (!byQuestionId.has(q.id)) {
+        return res.status(400).json({
+          error: 'incomplete_responses',
+          detail: 'Answer every question (1–5) before closing.',
+        });
+      }
     }
+    const cleaned = TRUST_QUESTIONS.map((q) => byQuestionId.get(q.id));
 
     try {
       const convo = loadConversationForUser(conversationId, userId);
@@ -1539,12 +1581,11 @@ router.post(
       const otherUserId =
         convo.user_1_id === userId ? convo.user_2_id : convo.user_1_id;
 
-      const summary = typeof req.body?.summary === 'string' ? req.body.summary.slice(0, 1000) : '';
       const payload = {
         responses: cleaned,
-        summary,
         closed_by: userId,
         closed_at: new Date().toISOString(),
+        rated_user_id: otherUserId,
       };
 
       db.prepare(
@@ -1566,7 +1607,10 @@ router.post(
         metadata: { closed: true },
       });
 
-      const newScore = recomputeTrustScore(otherUserId);
+      const newScore = applyTrustFeedbackDelta(
+        otherUserId,
+        cleaned.map((r) => r.score),
+      );
 
       return res.json({
         ok: true,

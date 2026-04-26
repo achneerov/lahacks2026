@@ -13,9 +13,9 @@ import {
   ApiError,
   type AvailabilitySlot,
   type CalendarInviteInput,
-  type ConversationDetail,
   type ConversationMessage,
   type ConversationSummary,
+  type RecruiterConversationMessagesResponse,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import { renderSpecialBubble } from '../../components/InterviewCards';
@@ -48,10 +48,8 @@ export default function RecruiterMessages() {
     const fromQuery = searchParams.get('conversation');
     return fromQuery ? Number(fromQuery) : null;
   });
-  const [thread, setThread] = useState<{
-    conversation: ConversationDetail;
-    messages: ConversationMessage[];
-  } | null>(null);
+  const [thread, setThread] =
+    useState<RecruiterConversationMessagesResponse | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(null);
 
@@ -250,8 +248,17 @@ export default function RecruiterMessages() {
     void loadConversations({ silent: true });
   }
 
-  function handleClosed() {
+  function handleClosed(newTrustScore: number | null) {
     if (selectedId == null) return;
+    if (newTrustScore != null) {
+      setThread((prev) => {
+        if (!prev || prev.conversation.id !== selectedId) return prev;
+        return {
+          ...prev,
+          other_user: { ...prev.other_user, trust_score: newTrustScore },
+        };
+      });
+    }
     void loadThread(selectedId);
     void loadConversations({ silent: true });
   }
@@ -430,11 +437,9 @@ export default function RecruiterMessages() {
                       )}
                     </div>
                     <div style={{ ...styles.threadMeta, marginTop: 6 }}>
-                      <TrustScoreBadge
-                        score={thread.conversation.other_party.trust_score}
-                      />
+                      <TrustScoreBadge score={thread.other_user.trust_score} />
                       <VerificationLevelBadge
-                        level={thread.conversation.other_party.verification_level}
+                        level={thread.other_user.verification_level}
                       />
                     </div>
                   </div>
@@ -443,9 +448,10 @@ export default function RecruiterMessages() {
                       type="button"
                       onClick={() => setCloseOpen(true)}
                       style={styles.closeChatBtn}
-                      title="Submit trust feedback and close this chat"
+                      title="Close conversation — rate trust first"
+                      aria-label="Close conversation"
                     >
-                      Close conversation
+                      ✕
                     </button>
                   )}
                 </div>
@@ -581,7 +587,8 @@ export default function RecruiterMessages() {
           {closeOpen && thread && (
             <CloseChatModal
               conversationId={thread.conversation.id}
-              applicantUsername={thread.conversation.other_party.username}
+              raterRole="recruiter"
+              ratedUsername={thread.conversation.other_party.username}
               onClose={() => setCloseOpen(false)}
               onClosed={handleClosed}
             />
@@ -1173,13 +1180,18 @@ const styles: Record<string, CSSProperties> = {
     appearance: 'none',
     cursor: 'pointer',
     fontFamily: 'inherit',
-    fontSize: 13,
+    fontSize: 16,
+    lineHeight: 1,
     fontWeight: 500,
     color: 'var(--text)',
     background: 'transparent',
     border: '1px solid var(--border)',
-    borderRadius: 999,
-    padding: '6px 12px',
+    borderRadius: 10,
+    width: 36,
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
 };
