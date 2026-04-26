@@ -445,6 +445,14 @@ export default function RecruiterMessages() {
                       <VerificationLevelBadge
                         level={thread.other_user.verification_level}
                       />
+                      {thread.conversation.interview_gate_state &&
+                        thread.conversation.interview_gate_state !== 'none' && (
+                          <span style={styles.interviewStatePill}>
+                            {interviewGateLabel(
+                              thread.conversation.interview_gate_state,
+                            )}
+                          </span>
+                        )}
                     </div>
                   </div>
                   {thread.conversation.active === 1 && (
@@ -475,6 +483,8 @@ export default function RecruiterMessages() {
                       </div>
                       {group.messages.map((m) => {
                         const special = renderSpecialBubble(m, 'recruiter', {
+                          interviewGateState:
+                            thread.conversation.interview_gate_state,
                           onSendInvite: (slot) => setInviteSlot(slot),
                         });
                         if (special) return <div key={m.index}>{special}</div>;
@@ -655,6 +665,23 @@ function formatRelative(iso: string): string {
   if (diffSec < 86400) return `${Math.round(diffSec / 3600)}h`;
   if (diffSec < 7 * 86400) return `${Math.round(diffSec / 86400)}d`;
   return d.toLocaleDateString();
+}
+
+function interviewGateLabel(state: string): string {
+  switch (state) {
+    case 'awaiting_identity':
+      return 'Waiting on Face ID verification';
+    case 'awaiting_availability':
+      return 'Identity verified — waiting on availability';
+    case 'availability_received':
+      return 'Availability received — send invite';
+    case 'scheduled':
+      return 'Interview scheduled';
+    case 'complete':
+      return 'Interview closed';
+    default:
+      return state;
+  }
 }
 
 function dayLabel(d: Date): string {
@@ -921,6 +948,16 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
+  },
+  interviewStatePill: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 8px',
+    color: 'var(--text-h)',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    borderRadius: 999,
+    letterSpacing: 0.2,
   },
   emptyState: {
     padding: 32,

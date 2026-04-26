@@ -16,4 +16,20 @@ if (isFresh) {
   db.exec(fs.readFileSync(SCHEMA_PATH, 'utf8'));
 }
 
+function ensureColumn(table, column, sqlTypeAndDefault) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${sqlTypeAndDefault}`);
+  }
+}
+
+// Back-compat columns for interview invite identity-gating flow.
+ensureColumn(
+  'conversations',
+  'invite_requires_identity',
+  'INTEGER NOT NULL DEFAULT 0 CHECK (invite_requires_identity IN (0, 1))',
+);
+ensureColumn('conversations', 'invite_identity_verified_at', 'TEXT');
+ensureColumn('conversations', 'invite_identity_verified_by_user_id', 'INTEGER');
+
 module.exports = db;

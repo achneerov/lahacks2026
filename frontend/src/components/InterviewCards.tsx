@@ -4,6 +4,7 @@ import type {
   AvailabilitySlot,
   CalendarInviteMetadata,
   ConversationMessage,
+  InterviewGateState,
   InterviewRequestMetadata,
   Role,
 } from '../lib/api';
@@ -13,7 +14,9 @@ type Viewer = 'applicant' | 'recruiter';
 interface InterviewCardProps {
   message: ConversationMessage;
   viewer: Viewer;
+  interviewGateState?: InterviewGateState;
   onProposeAvailability?: () => void;
+  onVerifyIdentity?: () => void;
   onSendInvite?: (slot: AvailabilitySlot) => void;
 }
 
@@ -21,7 +24,9 @@ export function renderSpecialBubble(
   message: ConversationMessage,
   viewer: Viewer,
   handlers: {
+    interviewGateState?: InterviewGateState;
     onProposeAvailability?: () => void;
+    onVerifyIdentity?: () => void;
     onSendInvite?: (slot: AvailabilitySlot) => void;
   },
 ): ReactNode | null {
@@ -30,7 +35,9 @@ export function renderSpecialBubble(
     <InterviewCard
       message={message}
       viewer={viewer}
+      interviewGateState={handlers.interviewGateState}
       onProposeAvailability={handlers.onProposeAvailability}
+      onVerifyIdentity={handlers.onVerifyIdentity}
       onSendInvite={handlers.onSendInvite}
     />
   );
@@ -39,7 +46,9 @@ export function renderSpecialBubble(
 export function InterviewCard({
   message,
   viewer,
+  interviewGateState,
   onProposeAvailability,
+  onVerifyIdentity,
   onSendInvite,
 }: InterviewCardProps) {
   if (message.kind === 'system') {
@@ -52,7 +61,15 @@ export function InterviewCard({
 
   if (message.kind === 'interview_request') {
     const meta = (message.metadata || {}) as Partial<InterviewRequestMetadata>;
-    const showAction = viewer === 'applicant' && !!onProposeAvailability;
+    const requiresFaceId =
+      meta.requires_face_id === true ||
+      interviewGateState === 'awaiting_identity' ||
+      interviewGateState === 'awaiting_availability';
+    const needsIdentity =
+      requiresFaceId &&
+      (interviewGateState === 'awaiting_identity' || interviewGateState == null);
+    const canShareAvailability =
+      !requiresFaceId || interviewGateState === 'awaiting_availability';
     return (
       <div style={message.from_me ? styles.cardRowMine : styles.cardRowTheirs}>
         <div style={styles.card}>
@@ -73,7 +90,16 @@ export function InterviewCard({
               )}
             </div>
           )}
-          {showAction && (
+          {viewer === 'applicant' && needsIdentity && onVerifyIdentity && (
+            <button
+              type="button"
+              onClick={onVerifyIdentity}
+              style={styles.primaryActionBtn}
+            >
+              Verify identity with World Face ID →
+            </button>
+          )}
+          {viewer === 'applicant' && canShareAvailability && onProposeAvailability && (
             <button
               type="button"
               onClick={onProposeAvailability}
@@ -82,6 +108,20 @@ export function InterviewCard({
               Reply with my availability →
             </button>
           )}
+          {viewer === 'recruiter' &&
+            requiresFaceId &&
+            interviewGateState === 'awaiting_identity' && (
+              <span style={styles.stateNote}>
+                Waiting on applicant to confirm identity in World app.
+              </span>
+            )}
+          {viewer === 'recruiter' &&
+            requiresFaceId &&
+            interviewGateState === 'awaiting_availability' && (
+              <span style={styles.stateNote}>
+                Identity confirmed. Waiting on availability.
+              </span>
+            )}
         </div>
       </div>
     );
@@ -285,6 +325,11 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     padding: '8px 14px',
     width: 'fit-content',
+  },
+  stateNote: {
+    fontSize: 12,
+    color: 'var(--text)',
+    fontStyle: 'italic',
   },
   slotList: {
     listStyle: 'none',

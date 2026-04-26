@@ -8,12 +8,18 @@ import {
   type FormEvent,
 } from 'react';
 import {
+  IDKitRequestWidget,
+  selfieCheckLegacy,
+  type IDKitResult,
+} from '@worldcoin/idkit';
+import {
   api,
   ApiError,
   type ApplicantConversationMessagesResponse,
   type AvailabilitySlot,
   type ConversationMessage,
   type ConversationSummary,
+  type WorldIdContext,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import AvailabilityModal from '../../components/AvailabilityModal';
@@ -55,6 +61,11 @@ export default function ApplicantMessages() {
 
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyCtx, setVerifyCtx] = useState<WorldIdContext | null>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifySubmitting, setVerifySubmitting] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -182,6 +193,10 @@ export default function ApplicantMessages() {
     () => conversations.find((c) => c.id === selectedId) ?? null,
     [conversations, selectedId],
   );
+  const inviteFaceSignal =
+    thread?.conversation?.id != null
+      ? `invite-face-${thread.conversation.id}`
+      : 'invite-face';
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
@@ -234,6 +249,53 @@ export default function ApplicantMessages() {
         : prev,
     );
     void loadConversations({ silent: true });
+  }
+
+  async function handleOpenVerifyIdentity(conversationIdOverride?: number) {
+    const targetConversationId = conversationIdOverride ?? selectedId;
+    if (!token || targetConversationId == null) return;
+    setVerifyError(null);
+    setVerifyLoading(true);
+    try {
+      const ctx = await api.worldIdContext();
+      setVerifyCtx(ctx);
+      setVerifyOpen(true);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.detail || err.code
+          : 'Could not start World ID verification.';
+      setVerifyError(msg);
+    } finally {
+      setVerifyLoading(false);
+    }
+  }
+
+  async function handleVerifyIdentitySuccess(result: IDKitResult) {
+    if (!token || selectedId == null) return;
+    setVerifySubmitting(true);
+    setVerifyError(null);
+    try {
+      const data = await api.applicantVerifyInviteIdentity(token, selectedId, result);
+      if (data.message) {
+        setThread((prev) =>
+          prev && prev.conversation.id === selectedId
+            ? { ...prev, messages: [...prev.messages, data.message!] }
+            : prev,
+        );
+      }
+      setVerifyOpen(false);
+      await loadThread(selectedId);
+      void loadConversations({ silent: true });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.detail || err.code
+          : 'Could not verify identity for this interview invite.';
+      setVerifyError(msg);
+    } finally {
+      setVerifySubmitting(false);
+    }
   }
 
   function handleClosed(newTrustScore: number | null) {
@@ -429,6 +491,14 @@ export default function ApplicantMessages() {
                       <VerificationLevelBadge
                         level={thread.other_user.verification_level}
                       />
+                      {thread.conversation.interview_gate_state &&
+                        thread.conversation.interview_gate_state !== 'none' && (
+                          <span style={styles.interviewStatePill}>
+                            {interviewGateLabel(
+                              thread.conversation.interview_gate_state,
+                            )}
+                          </span>
+                        )}
                     </div>
                   </div>
                   {thread.conversation.active === 1 &&
@@ -460,8 +530,11 @@ export default function ApplicantMessages() {
                       </div>
                       {group.messages.map((m) => {
                         const special = renderSpecialBubble(m, 'applicant', {
+                          interviewGateState:
+                            thread.conversation.interview_gate_state,
                           onProposeAvailability: () =>
                             setAvailabilityOpen(true),
+                          onVerifyIdentity: handleOpenVerifyIdentity,
                         });
                         if (special) return <div key={m.index}>{special}</div>;
                         return (
@@ -481,6 +554,11 @@ export default function ApplicantMessages() {
               </div>
 
               <form onSubmit={handleSend} style={styles.composer}>
+                {verifyError && (
+                  <div role="alert" style={styles.composerError}>
+                    {verifyError}
+                  </div>
+                )}
                 {sendError && (
                   <div role="alert" style={styles.composerError}>
                     {sendError}
@@ -531,7 +609,17 @@ export default function ApplicantMessages() {
                   </button>
                 </div>
                 <div style={styles.feedbackRow}>
-                  {sending ? (
+                  {verifySubmitting ? (
+                    <span style={styles.feedbackChip}>
+                      Verifying identity
+                      <TypingDots />
+                    </span>
+                  ) : verifyLoading ? (
+                    <span style={styles.feedbackChip}>
+                      Preparing World ID
+                      <TypingDots />
+                    </span>
+                  ) : sending ? (
                     <span style={styles.feedbackChip}>
                       Sending
                       <TypingDots />
@@ -578,6 +666,20 @@ export default function ApplicantMessages() {
             <div style={styles.threadEmpty}>
               {selectedConversation.other_party.username}
             </div>
+          )}
+
+          {verifyCtx && (
+            <IDKitRequestWidget
+              app_id={verifyCtx.app_id}
+              action={verifyCtx.action}
+              rp_context={verifyCtx.rp_context}
+              allow_legacy_proofs={true}
+              // Force a Face proof path for interview invites.
+              preset={selfieCheckLegacy({ signal: inviteFaceSignal })}
+              open={verifyOpen}
+              onOpenChange={setVerifyOpen}
+              onSuccess={handleVerifyIdentitySuccess}
+            />
           )}
         </section>
       </section>
@@ -637,6 +739,23 @@ function formatRelative(iso: string): string {
   if (diffSec < 86400) return `${Math.round(diffSec / 3600)}h`;
   if (diffSec < 7 * 86400) return `${Math.round(diffSec / 86400)}d`;
   return d.toLocaleDateString();
+}
+
+function interviewGateLabel(state: string): string {
+  switch (state) {
+    case 'awaiting_identity':
+      return 'Waiting on Face ID verification';
+    case 'awaiting_availability':
+      return 'Identity verified — send availability';
+    case 'availability_received':
+      return 'Availability sent';
+    case 'scheduled':
+      return 'Interview scheduled';
+    case 'complete':
+      return 'Interview closed';
+    default:
+      return state;
+  }
 }
 
 function dayLabel(d: Date): string {
@@ -903,6 +1022,16 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
+  },
+  interviewStatePill: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 8px',
+    color: 'var(--text-h)',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    borderRadius: 999,
+    letterSpacing: 0.2,
   },
   emptyState: {
     padding: 32,
