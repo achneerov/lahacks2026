@@ -17,6 +17,7 @@ const {
   markConversationReadThrough,
 } = require('../messaging');
 const { RECRUITER_RATING_QUESTIONS } = require('../messaging/trustQuestions');
+const { verifyWorldId } = require('../auth/verifyWorldId');
 
 const router = express.Router();
 
@@ -27,6 +28,22 @@ function parseJsonOrNull(raw) {
   } catch {
     return null;
   }
+}
+
+function computeInterviewGateState(convo) {
+  if (!convo) return 'none';
+  if (convo.interview_status === 'complete') return 'complete';
+  if (convo.interview_status === 'scheduled') return 'scheduled';
+  if (convo.interview_status === 'availability_proposed') return 'availability_received';
+  if (
+    convo.interview_status === 'requested' &&
+    Number(convo.invite_requires_identity) === 1 &&
+    !convo.invite_identity_verified_at
+  ) {
+    return 'awaiting_identity';
+  }
+  if (convo.interview_status === 'requested') return 'awaiting_availability';
+  return 'none';
 }
 
 const PROFILE_COLS = [
@@ -673,7 +690,9 @@ router.get('/conversations', requireAuth, requireApplicant, (req, res) => {
 
 function loadConversationForUser(conversationId, userId) {
   return db.prepare(
-    `SELECT c.id, c.user_1_id, c.user_2_id, c.job_posting_id, c.active, c.created_at,
+    `SELECT c.id, c.user_1_id, c.user_2_id, c.job_posting_id, c.active,
+            c.interview_status, c.invite_requires_identity, c.invite_identity_verified_at,
+            c.created_at,
             jp.title AS job_title, jp.company AS job_company
        FROM conversations c LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
       WHERE c.id = ? AND (c.user_1_id = ? OR c.user_2_id = ?)`
@@ -687,7 +706,8 @@ router.get('/conversations/:id/messages', requireAuth, requireApplicant, (req, r
   try {
     const convo = db.prepare(
       `SELECT c.id, c.user_1_id, c.user_2_id, c.job_posting_id, c.active,
-              c.interview_status, c.closed_at, c.created_at,
+              c.interview_status, c.invite_requires_identity, c.invite_identity_verified_at,
+              c.closed_at, c.created_at,
               jp.title AS job_title, jp.company AS job_company
          FROM conversations c LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
         WHERE c.id = ? AND (c.user_1_id = ? OR c.user_2_id = ?)`
@@ -737,6 +757,9 @@ router.get('/conversations/:id/messages', requireAuth, requireApplicant, (req, r
         job_company: convo.job_company,
         active: convo.active,
         interview_status: convo.interview_status || 'none',
+        interview_gate_state: computeInterviewGateState(convo),
+        invite_requires_identity: Number(convo.invite_requires_identity) === 1,
+        invite_identity_verified_at: convo.invite_identity_verified_at || null,
         closed_at: convo.closed_at,
         created_at: convo.created_at,
         other_party: otherPartyChat,
@@ -781,6 +804,83 @@ router.post('/conversations/:id/messages', requireAuth, requireApplicant, (req, 
   }
 });
 
+router.post('/conversations/:id/verify-invite-identity', requireAuth, requireApplicant, async (req, res) => {
+  const userId = req.user.id;
+  const conversationId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(conversationId) || conversationId <= 0) {
+    return res.status(400).json({ error: 'invalid_conversation_id' });
+  }
+  const worldIdResult = req.body?.world_id_result;
+  if (!worldIdResult) {
+    return res.status(400).json({ error: 'missing_world_id_result' });
+  }
+
+  try {
+    const convo = loadConversationForUser(conversationId, userId);
+    if (!convo) return res.status(404).json({ error: 'not_found' });
+    if (convo.active === 0) return res.status(409).json({ error: 'conversation_closed' });
+
+    if (Number(convo.invite_requires_identity) !== 1) {
+      return res.status(409).json({ error: 'identity_verification_not_required' });
+    }
+    if (convo.invite_identity_verified_at) {
+      return res.json({ ok: true, already_verified: true, message: null });
+    }
+
+    let verified;
+    try {
+      verified = await verifyWorldId(worldIdResult);
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: 'world_id_failed', detail: e.message });
+    }
+
+    const me = db
+      .prepare('SELECT worldu_id FROM users WHERE id = ?')
+      .get(userId);
+    if (!me || !me.worldu_id || verified.nullifier_hash !== me.worldu_id) {
+      return res.status(403).json({
+        error: 'identity_mismatch',
+        detail: 'This verification proof does not match your account identity.',
+      });
+    }
+
+    db.prepare(
+      `UPDATE conversations
+          SET invite_identity_verified_at = datetime('now'),
+              invite_identity_verified_by_user_id = ?
+        WHERE id = ?`
+    ).run(userId, conversationId);
+
+    const inserted = insertMessage({
+      conversationId,
+      userId,
+      content: 'Identity confirmed with World Face ID. I will share my availability next.',
+      kind: 'system',
+      metadata: {
+        invite_identity_verified: true,
+        provider: 'world',
+      },
+    });
+
+    return res.status(201).json({
+      ok: true,
+      already_verified: false,
+      message: {
+        index: inserted.msg_index,
+        user_id: inserted.user_id,
+        content: inserted.content,
+        kind: inserted.kind || 'system',
+        metadata: parseJsonOrNull(inserted.metadata),
+        created_at: inserted.created_at,
+        from_me: true,
+      },
+    });
+  } catch (e) {
+    console.error('[applicant/conversations/:id/verify-invite-identity]', e);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
 // Reply to an interview_request with a list of timeslots. Posts an
 // availability_proposal card the recruiter's chat will render with a
 // "Send calendar invite" action per slot.
@@ -816,6 +916,15 @@ router.post('/conversations/:id/availability', requireAuth, requireApplicant, (r
     const convo = loadConversationForUser(conversationId, userId);
     if (!convo) return res.status(404).json({ error: 'not_found' });
     if (convo.active === 0) return res.status(409).json({ error: 'conversation_closed' });
+    if (
+      Number(convo.invite_requires_identity) === 1 &&
+      !convo.invite_identity_verified_at
+    ) {
+      return res.status(409).json({
+        error: 'identity_verification_required',
+        detail: 'Complete World Face ID verification before sharing availability.',
+      });
+    }
 
     const summary = `Here are ${cleaned.length} time${cleaned.length === 1 ? '' : 's'} that work for me — let me know which is best.`;
     const inserted = insertMessage({

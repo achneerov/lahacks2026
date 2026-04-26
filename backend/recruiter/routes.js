@@ -1214,6 +1214,22 @@ router.get('/conversations', requireAuth, requireRecruiter, (req, res) => {
   }
 });
 
+function computeInterviewGateState(convo) {
+  if (!convo) return 'none';
+  if (convo.interview_status === 'complete') return 'complete';
+  if (convo.interview_status === 'scheduled') return 'scheduled';
+  if (convo.interview_status === 'availability_proposed') return 'availability_received';
+  if (
+    convo.interview_status === 'requested' &&
+    Number(convo.invite_requires_identity) === 1 &&
+    !convo.invite_identity_verified_at
+  ) {
+    return 'awaiting_identity';
+  }
+  if (convo.interview_status === 'requested') return 'awaiting_availability';
+  return 'none';
+}
+
 function loadConversationForUser(conversationId, userId) {
   return db
     .prepare(
@@ -1223,6 +1239,9 @@ function loadConversationForUser(conversationId, userId) {
          c.user_2_id       AS user_2_id,
          c.job_posting_id  AS job_posting_id,
          c.active          AS active,
+         c.interview_status AS interview_status,
+         c.invite_requires_identity AS invite_requires_identity,
+         c.invite_identity_verified_at AS invite_identity_verified_at,
          c.created_at      AS created_at,
          jp.title          AS job_title,
          jp.company        AS job_company
@@ -1248,7 +1267,8 @@ router.get(
       const convo = db
         .prepare(
           `SELECT c.id, c.user_1_id, c.user_2_id, c.job_posting_id, c.active,
-                  c.interview_status, c.closed_at, c.closure_responses, c.created_at,
+                  c.interview_status, c.invite_requires_identity, c.invite_identity_verified_at,
+                  c.closed_at, c.closure_responses, c.created_at,
                   jp.title AS job_title, jp.company AS job_company
              FROM conversations c
              LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
@@ -1330,6 +1350,9 @@ router.get(
           job_company: convo.job_company,
           active: convo.active,
           interview_status: convo.interview_status || 'none',
+          interview_gate_state: computeInterviewGateState(convo),
+          invite_requires_identity: Number(convo.invite_requires_identity) === 1,
+          invite_identity_verified_at: convo.invite_identity_verified_at || null,
           closed_at: convo.closed_at,
           closure_responses: closureResponses,
           created_at: convo.created_at,
@@ -1450,7 +1473,7 @@ router.post(
       // via `note` in the request.
       const prompt =
         note ||
-        `Hi! I'd like to schedule an interview with you for the ${app.job_title}${app.job_company ? ` role at ${app.job_company}` : ''}. Could you share a few times that work this week?`;
+        `Hi! I'd like to schedule an interview with you for the ${app.job_title}${app.job_company ? ` role at ${app.job_company}` : ''}. Please complete Face ID verification in the World app first, then share a few times that work this week.`;
 
       const inserted = insertMessage({
         conversationId,
@@ -1462,8 +1485,18 @@ router.post(
           job_title: app.job_title,
           job_company: app.job_company,
           suggested_format: '30-min video call',
+          requires_face_id: true,
+          verification_provider: 'world',
+          verification_method: 'face_id',
         },
       });
+      db.prepare(
+        `UPDATE conversations
+            SET invite_requires_identity = 1,
+                invite_identity_verified_at = NULL,
+                invite_identity_verified_by_user_id = NULL
+          WHERE id = ?`
+      ).run(conversationId);
       setInterviewStatus(conversationId, 'requested');
 
       return res.status(201).json({

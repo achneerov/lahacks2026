@@ -461,6 +461,14 @@ export type InterviewStatus =
   | 'scheduled'
   | 'complete';
 
+export type InterviewGateState =
+  | 'none'
+  | 'awaiting_identity'
+  | 'awaiting_availability'
+  | 'availability_received'
+  | 'scheduled'
+  | 'complete';
+
 export interface ConversationDetail {
   id: number;
   job_posting_id: number | null;
@@ -469,6 +477,9 @@ export interface ConversationDetail {
   active: 0 | 1;
   created_at: string;
   interview_status?: InterviewStatus;
+  interview_gate_state?: InterviewGateState;
+  invite_requires_identity?: boolean;
+  invite_identity_verified_at?: string | null;
   closed_at?: string | null;
   closure_responses?: ClosureResponses | null;
   other_party: ConversationParty;
@@ -492,6 +503,9 @@ export interface InterviewRequestMetadata {
   job_title: string | null;
   job_company: string | null;
   suggested_format?: string;
+  requires_face_id?: boolean;
+  verification_provider?: 'world' | string;
+  verification_method?: 'face_id' | string;
 }
 
 export interface AvailabilityMetadata {
@@ -551,6 +565,12 @@ export interface ApplicantConversationMessagesResponse {
 
 export interface SendMessageResponse {
   message: ConversationMessage;
+}
+
+export interface VerifyInviteIdentityResponse {
+  ok: true;
+  already_verified: boolean;
+  message: ConversationMessage | null;
 }
 
 export interface ApplicantConversationsQuery {
@@ -1330,6 +1350,20 @@ export const api = {
     request<{ message: ConversationMessage }>(
       `/api/applicant/conversations/${conversationId}/availability`,
       { method: 'POST', body: JSON.stringify({ slots }) },
+      token,
+    ),
+
+  applicantVerifyInviteIdentity: (
+    token: string,
+    conversationId: number,
+    worldIdResult: WorldIdResult,
+  ) =>
+    request<VerifyInviteIdentityResponse>(
+      `/api/applicant/conversations/${conversationId}/verify-invite-identity`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ world_id_result: worldIdResult }),
+      },
       token,
     ),
 

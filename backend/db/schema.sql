@@ -379,6 +379,11 @@ CREATE TABLE conversations (
   -- timeslots; 'scheduled' = calendar invite sent; 'complete' = closed.
   interview_status TEXT NOT NULL DEFAULT 'none'
     CHECK (interview_status IN ('none','requested','availability_proposed','scheduled','complete')),
+  -- Invite flow gate: when 1, applicant must verify identity in World first.
+  invite_requires_identity INTEGER NOT NULL DEFAULT 0
+    CHECK (invite_requires_identity IN (0, 1)),
+  invite_identity_verified_at TEXT,
+  invite_identity_verified_by_user_id INTEGER,
   closed_at       TEXT,
   -- JSON: saved close-and-rate questionnaire (trust_score stays on users table).
   closure_responses TEXT,
