@@ -41,7 +41,7 @@ export default function ApplicantHome() {
   return (
     <div style={styles.page}>
       <header style={styles.header}>
-        <span style={styles.eyebrow}>Applicant dashboard</span>
+        <span className="indicator indicator-info">Applicant dashboard</span>
         <h1 style={styles.title}>
           Welcome back,{' '}
           <span style={styles.titleAccent}>{user?.username ?? 'there'}</span>

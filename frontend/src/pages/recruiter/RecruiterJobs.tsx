@@ -102,14 +102,14 @@ export default function RecruiterJobs() {
     <div style={styles.page}>
       <header style={styles.header}>
         <div>
-          <span style={styles.eyebrow}>Recruiter</span>
+          <span className="indicator indicator-info">Recruiter</span>
           <h1 style={styles.title}>Job postings</h1>
           <p style={styles.subtitle}>
             Create, edit, and manage your open roles. Click a posting to see
             applicants.
           </p>
         </div>
-        <Link to="/recruiter/jobs/new" style={styles.primaryBtn}>
+        <Link to="/recruiter/jobs/new" className="btn btn-primary">
           + Add job posting
         </Link>
       </header>
@@ -170,7 +170,7 @@ export default function RecruiterJobs() {
                 setSearch('');
                 setStatusFilter('all');
               }}
-              style={styles.clearBtn}
+              className="btn btn-ghost btn-sm"
             >
               Clear filters
             </button>
@@ -207,7 +207,7 @@ export default function RecruiterJobs() {
               type="button"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={!hasPrev || loading}
-              style={styles.pageBtn}
+              className="btn btn-ghost btn-sm"
             >
               ← Previous
             </button>
@@ -216,7 +216,7 @@ export default function RecruiterJobs() {
               type="button"
               onClick={() => setPage((p) => p + 1)}
               disabled={!hasNext || loading}
-              style={styles.pageBtn}
+              className="btn btn-ghost btn-sm"
             >
               Next →
             </button>
@@ -268,14 +268,14 @@ function JobRow({ job }: { job: RecruiterJobListItem }) {
       <div style={styles.rowActions}>
         <Link
           to={`/recruiter/jobs/${job.id}/edit`}
-          style={styles.secondaryBtn}
+          className="btn btn-ghost btn-sm"
           aria-label={`Edit ${job.title}`}
         >
           Edit
         </Link>
         <Link
           to={`/recruiter/jobs/${job.id}`}
-          style={styles.tertiaryBtn}
+          className="btn btn-secondary btn-sm"
           aria-label={`View ${job.title}`}
         >
           View →
@@ -370,18 +370,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 15,
     maxWidth: 560,
   },
-  primaryBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#fff',
-    background: 'var(--accent)',
-    padding: '10px 16px',
-    borderRadius: 10,
-    textDecoration: 'none',
-    whiteSpace: 'nowrap',
-  },
   controls: {
     display: 'flex',
     flexDirection: 'column',
@@ -452,16 +440,6 @@ const styles: Record<string, CSSProperties> = {
     flexWrap: 'wrap',
   },
   resultCount: { fontSize: 13, color: 'var(--text)' },
-  clearBtn: {
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--accent)',
-    background: 'transparent',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
@@ -564,27 +542,6 @@ const styles: Record<string, CSSProperties> = {
     gap: 8,
     minWidth: 100,
   },
-  secondaryBtn: {
-    padding: '8px 14px',
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 10,
-    textDecoration: 'none',
-    textAlign: 'center',
-  },
-  tertiaryBtn: {
-    padding: '8px 14px',
-    fontSize: 13,
-    color: 'var(--text)',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    textDecoration: 'none',
-    textAlign: 'center',
-  },
   empty: {
     padding: 32,
     border: '1px dashed var(--border)',
@@ -599,16 +556,6 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'space-between',
     gap: 8,
     padding: '16px 4px 4px',
-  },
-  pageBtn: {
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--text-h)',
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
   },
   pageLabel: { fontSize: 13, color: 'var(--text)' },
 };

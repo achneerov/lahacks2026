@@ -190,7 +190,7 @@ export default function SignupWorldId() {
               type="button"
               onClick={startVerification}
               disabled={verifyDisabled}
-              style={{ ...styles.primary, ...(verifyDisabled ? styles.primaryDisabled : null) }}
+              className="btn btn-primary btn-block btn-lg"
             >
               {submitting
                 ? 'CREATING ACCOUNT…'
@@ -391,21 +391,6 @@ const styles: Record<string, CSSProperties> = {
   },
   actionCol: { display: 'flex', flexDirection: 'column', gap: 16, marginTop: 4 },
   back: { fontSize: '14px', fontWeight: 500, color: 'var(--accent)', textAlign: 'center', textDecoration: 'none' },
-  primary: {
-    appearance: 'none',
-    width: '100%',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '16px 24px',
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent-warm)',
-    borderRadius: '999px',
-    letterSpacing: '0.5px',
-    fontFamily: 'inherit',
-  },
-  primaryDisabled: { cursor: 'not-allowed', opacity: 0.5 },
   footerLinks: {
     display: 'flex',
     justifyContent: 'center',

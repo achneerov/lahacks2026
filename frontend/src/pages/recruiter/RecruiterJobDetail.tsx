@@ -23,6 +23,7 @@ import {
   TrustScoreBadge,
   VerificationLevelBadge,
 } from '../../components/Badges';
+import { CalendarIcon } from '../../components/icons';
 
 type Tab = 'overview' | 'applicants' | 'messages';
 
@@ -192,7 +193,7 @@ export default function RecruiterJobDetail() {
             </span>
           </div>
         </div>
-        <Link to={`/recruiter/jobs/${job.id}/edit`} style={styles.primaryBtn}>
+        <Link to={`/recruiter/jobs/${job.id}/edit`} className="btn btn-primary">
           Edit posting
         </Link>
       </header>
@@ -609,7 +610,8 @@ function ApplicantModal({
           <button
             type="button"
             onClick={onClose}
-            style={styles.modalClose}
+            className="btn btn-ghost btn-sm"
+            style={styles.modalCloseOverride}
             aria-label="Close"
           >
             ✕
@@ -628,17 +630,21 @@ function ApplicantModal({
               type="button"
               onClick={handleScheduleInterview}
               disabled={scheduling}
-              style={{
-                ...styles.primaryActionBtn,
-                ...(scheduling ? styles.primaryActionBtnDisabled : null),
-              }}
+              className="btn btn-primary"
             >
-              {scheduling ? 'Opening chat…' : '📅 Schedule interview'}
+              {scheduling ? (
+                'Opening chat…'
+              ) : (
+                <>
+                  <CalendarIcon size={16} />
+                  Schedule interview
+                </>
+              )}
             </button>
             {detail?.application.id && (
               <Link
                 to={`/applications/${detail.application.id}`}
-                style={styles.secondaryActionBtn}
+                className="btn btn-secondary"
               >
                 View AI screen →
               </Link>
@@ -826,7 +832,7 @@ function ApplicantModal({
               <button
                 type="button"
                 onClick={() => setShowAgent((v) => !v)}
-                style={styles.toggleBtn}
+                className="btn btn-secondary btn-sm"
               >
                 {showAgent ? 'Hide' : 'View transcript'}
               </button>
@@ -1021,17 +1027,6 @@ const styles: Record<string, CSSProperties> = {
     color: 'var(--text)',
     background: 'transparent',
     borderColor: 'var(--border)',
-  },
-  primaryBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#fff',
-    background: 'var(--accent)',
-    padding: '10px 16px',
-    borderRadius: 10,
-    textDecoration: 'none',
   },
   errorBanner: {
     padding: '10px 14px',
@@ -1251,19 +1246,11 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 22,
     color: 'var(--text-h)',
   },
-  modalClose: {
-    appearance: 'none',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
+  modalCloseOverride: {
     width: 32,
     height: 32,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    color: 'var(--text)',
-    fontSize: 16,
+    padding: 0,
+    flexShrink: 0,
   },
   modalBody: {
     padding: 24,
@@ -1289,16 +1276,6 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-  },
-  toggleBtn: {
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
   },
   linkRow: {
     display: 'flex',
@@ -1438,32 +1415,6 @@ const styles: Record<string, CSSProperties> = {
     flexWrap: 'wrap',
     gap: 12,
     alignItems: 'center',
-  },
-  primaryActionBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: 10,
-    padding: '10px 18px',
-  },
-  primaryActionBtnDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-  },
-  secondaryActionBtn: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: 'var(--accent)',
-    textDecoration: 'none',
-    padding: '10px 16px',
-    border: '1px solid var(--accent-border)',
-    background: 'var(--accent-bg)',
-    borderRadius: 10,
   },
   trustGrid: {
     display: 'grid',

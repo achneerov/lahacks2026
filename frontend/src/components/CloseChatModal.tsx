@@ -110,7 +110,7 @@ export default function CloseChatModal({
       >
         <header style={styles.header}>
           <div>
-            <span style={styles.eyebrow}>Close conversation</span>
+            <span className="indicator indicator-info">Close conversation</span>
             <h2 id="close-chat-title" style={styles.title}>
               {raterRole === 'recruiter'
                 ? `How was @${ratedUsername}?`
@@ -124,7 +124,8 @@ export default function CloseChatModal({
           <button
             type="button"
             onClick={onClose}
-            style={styles.close}
+            className="btn btn-ghost btn-sm"
+            style={styles.closeOverride}
             aria-label="Close"
           >
             ✕
@@ -205,17 +206,14 @@ export default function CloseChatModal({
               <button
                 type="button"
                 onClick={onClose}
-                style={styles.secondaryBtn}
+                className="btn btn-ghost"
                 disabled={submitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                style={{
-                  ...styles.primaryBtn,
-                  ...(submitting ? styles.primaryBtnDisabled : null),
-                }}
+                className="btn btn-primary"
                 disabled={submitting}
               >
                 {submitting ? 'Closing…' : 'Submit & close'}
@@ -278,18 +276,10 @@ const styles: Record<string, CSSProperties> = {
     color: 'var(--text)',
     lineHeight: 1.5,
   },
-  close: {
-    appearance: 'none',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
+  closeOverride: {
     width: 32,
     height: 32,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    color: 'var(--text)',
+    padding: 0,
     fontSize: 16,
   },
   loading: {
@@ -372,33 +362,5 @@ const styles: Record<string, CSSProperties> = {
     gap: 8,
     paddingTop: 8,
     borderTop: '1px solid var(--border)',
-  },
-  secondaryBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 500,
-    color: 'var(--text)',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    padding: '8px 16px',
-  },
-  primaryBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: 10,
-    padding: '8px 18px',
-  },
-  primaryBtnDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
   },
 };

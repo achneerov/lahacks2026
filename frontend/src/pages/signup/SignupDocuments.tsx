@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ApiError, api, type ApplicantDocumentKind } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import { useSignup } from '../../signup/SignupContext';
+import FilePicker from '../../components/FilePicker';
 
 const KIND_OPTIONS: { value: ApplicantDocumentKind; label: string }[] = [
   { value: 'transcript', label: 'School transcript' },
@@ -61,7 +62,6 @@ export default function SignupDocuments() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
   const completedRef = useRef(false);
 
   if (!completedRef.current) {
@@ -86,7 +86,6 @@ export default function SignupDocuments() {
     addPendingDocument({ id: newId(), file, kind, title: title.trim() });
     setFile(null);
     setTitle('');
-    if (fileRef.current) fileRef.current.value = '';
   }
 
   async function createAccount() {
@@ -216,19 +215,19 @@ export default function SignupDocuments() {
             </div>
 
             <div style={s.fileRow}>
-              <input
-                ref={fileRef}
-                type="file"
+              <FilePicker
                 accept="application/pdf,.pdf"
-                onChange={e => setFile(e.target.files?.[0] || null)}
-                style={s.fileInput}
+                file={file}
+                onChange={setFile}
                 disabled={submitting}
+                buttonLabel="Choose PDF"
+                emptyLabel="No PDF selected"
               />
               <button
                 type="button"
+                className="btn btn-primary"
                 onClick={onAdd}
                 disabled={!file || submitting}
-                style={{ ...s.addBtn, ...((!file || submitting) ? s.addBtnDisabled : null) }}
               >
                 Add file
               </button>
@@ -251,7 +250,7 @@ export default function SignupDocuments() {
                     <button
                       type="button"
                       onClick={() => removePendingDocument(d.id)}
-                      style={s.removeBtn}
+                      className="btn btn-danger btn-sm"
                       disabled={submitting}
                     >
                       Remove
@@ -272,7 +271,8 @@ export default function SignupDocuments() {
             </Link>
             <button
               type="button"
-              style={{ ...s.primary, ...s.primaryFlex, ...(submitting ? s.primaryDisabled : null) }}
+              className="btn btn-primary btn-lg"
+              style={s.primaryFlex}
               onClick={createAccount}
               disabled={submitting}
             >

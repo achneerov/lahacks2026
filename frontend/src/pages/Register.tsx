@@ -122,7 +122,7 @@ export default function Register() {
           type="button"
           onClick={startVerification}
           disabled={!formValid || submitting}
-          style={styles.button}
+          className="btn btn-primary"
         >
           {submitting ? 'Creating account…' : 'Verify with World ID & Register'}
         </button>
@@ -175,14 +175,5 @@ const styles: Record<string, React.CSSProperties> = {
   form: { display: 'flex', flexDirection: 'column', gap: 16 },
   label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 },
   input: { padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' },
-  button: {
-    padding: '10px 16px',
-    fontSize: 16,
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 4,
-    cursor: 'pointer',
-  },
   error: { color: '#c00', margin: 0 },
 };

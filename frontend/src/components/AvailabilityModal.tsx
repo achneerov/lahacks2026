@@ -101,7 +101,7 @@ export default function AvailabilityModal({ onClose, onSubmit }: Props) {
       >
         <header style={styles.header}>
           <div>
-            <span style={styles.eyebrow}>Reply with availability</span>
+            <span className="indicator indicator-info">Reply with availability</span>
             <h2 id="availability-title" style={styles.title}>
               Pick times that work for you
             </h2>
@@ -109,7 +109,8 @@ export default function AvailabilityModal({ onClose, onSubmit }: Props) {
           <button
             type="button"
             onClick={onClose}
-            style={styles.close}
+            className="btn btn-ghost btn-sm"
+            style={styles.closeOverride}
             aria-label="Close"
           >
             ✕
@@ -153,7 +154,8 @@ export default function AvailabilityModal({ onClose, onSubmit }: Props) {
                   <button
                     type="button"
                     onClick={() => removeRow(i)}
-                    style={styles.removeBtn}
+                    className="btn btn-ghost btn-sm"
+                    style={styles.removeOverride}
                     aria-label="Remove time"
                   >
                     ✕
@@ -164,7 +166,12 @@ export default function AvailabilityModal({ onClose, onSubmit }: Props) {
           </ul>
 
           {drafts.length < 6 && (
-            <button type="button" onClick={addRow} style={styles.addBtn}>
+            <button
+              type="button"
+              onClick={addRow}
+              className="btn btn-ghost btn-sm"
+              style={styles.addOverride}
+            >
               + Add another time
             </button>
           )}
@@ -179,17 +186,14 @@ export default function AvailabilityModal({ onClose, onSubmit }: Props) {
             <button
               type="button"
               onClick={onClose}
-              style={styles.secondaryBtn}
+              className="btn btn-ghost"
               disabled={submitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              style={{
-                ...styles.primaryBtn,
-                ...(submitting ? styles.primaryBtnDisabled : null),
-              }}
+              className="btn btn-primary"
               disabled={submitting}
             >
               {submitting ? 'Sending…' : `Send ${slots.length} time${slots.length === 1 ? '' : 's'}`}
@@ -245,18 +249,10 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: 8,
   },
   title: { margin: 0, fontSize: 20, color: 'var(--text-h)' },
-  close: {
-    appearance: 'none',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
+  closeOverride: {
     width: 32,
     height: 32,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    color: 'var(--text)',
+    padding: 0,
     fontSize: 16,
   },
   body: {
@@ -303,29 +299,13 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 8,
     outline: 'none',
   },
-  removeBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
+  removeOverride: {
     width: 36,
     height: 36,
-    color: 'var(--text)',
-    fontSize: 14,
+    padding: 0,
   },
-  addBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'var(--accent)',
-    background: 'transparent',
-    border: '1px dashed var(--accent-border)',
-    borderRadius: 8,
-    padding: '8px 12px',
-    width: 'fit-content',
+  addOverride: {
+    borderStyle: 'dashed',
   },
   error: {
     padding: '8px 12px',
@@ -342,33 +322,5 @@ const styles: Record<string, CSSProperties> = {
     paddingTop: 8,
     borderTop: '1px solid var(--border)',
     marginTop: 8,
-  },
-  secondaryBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 500,
-    color: 'var(--text)',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    padding: '8px 16px',
-  },
-  primaryBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: 10,
-    padding: '8px 18px',
-  },
-  primaryBtnDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
   },
 };

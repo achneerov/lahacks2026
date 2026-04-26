@@ -2,26 +2,25 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, API_BASE_URL, type OfferNegotiationDetail } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
+import {
+  AgentBubble,
+  AgentChatKeyframes,
+  SessionDivider,
+  useStickToBottom,
+  type AgentMessage,
+  type AgentSender,
+} from '../components/AgentChat';
 
 const OFFER_TURNS = 5;
 
-type Sender = 'applicant_agent' | 'recruiter_agent';
-
-interface LiveMessage {
-  turnIndex: number;
-  sender: Sender;
-  content: string;
-  done: boolean;
-}
-
-type NegMsg = { turn_index: number; sender: Sender; content: string };
+type NegMsg = { turn_index: number; sender: AgentSender; content: string };
 
 type IncomingEvent =
   | { type: 'state'; negotiation: OfferNegotiationDetail; messages: NegMsg[] }
   | { type: 'started'; negotiationId: number; totalTurns: number }
-  | { type: 'turn-start'; turnIndex: number; sender: Sender }
-  | { type: 'delta'; turnIndex: number; sender: Sender; delta: string }
-  | { type: 'turn-complete'; turnIndex: number; sender: Sender; content: string }
+  | { type: 'turn-start'; turnIndex: number; sender: AgentSender }
+  | { type: 'delta'; turnIndex: number; sender: AgentSender; delta: string }
+  | { type: 'turn-complete'; turnIndex: number; sender: AgentSender; content: string }
   | { type: 'retry'; label: string; attempt: number; maxRetries: number; waitMs: number }
   | { type: 'verdict-pending' }
   | {
@@ -33,10 +32,8 @@ type IncomingEvent =
   | { type: 'error'; message: string }
   | { type: 'done' };
 
-const SENDER_LABEL: Record<Sender, string> = {
-  applicant_agent: 'Candidate-side agent',
-  recruiter_agent: 'Company-side agent',
-};
+const APPLICANT_LABEL = 'Candidate-side agent';
+const RECRUITER_LABEL = 'Company-side agent';
 
 export default function OfferNegotiation() {
   const { id } = useParams<{ id: string }>();
@@ -49,7 +46,7 @@ export default function OfferNegotiation() {
   }, [id]);
 
   const [negotiation, setNegotiation] = useState<OfferNegotiationDetail | null>(null);
-  const [messages, setMessages] = useState<Record<number, LiveMessage>>({});
+  const [messages, setMessages] = useState<Record<number, AgentMessage>>({});
   const [settlement, setSettlement] = useState<{
     final_terms: string;
     key_points: string[];
@@ -65,7 +62,18 @@ export default function OfferNegotiation() {
   const [streamClosed, setStreamClosed] = useState(false);
 
   const transcriptRef = useRef<HTMLDivElement | null>(null);
-  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+
+  const messageList = useMemo(
+    () => Object.values(messages).sort((a, b) => a.turnIndex - b.turnIndex),
+    [messages],
+  );
+
+  const handleTranscriptScroll = useStickToBottom(
+    transcriptRef,
+    messageList,
+    Boolean(settlement),
+    verdictPending,
+  );
 
   useEffect(() => {
     if (!negotiationId || !token) return;
@@ -75,113 +83,113 @@ export default function OfferNegotiation() {
     const t = token;
 
     function handleEvent(event: IncomingEvent) {
-    switch (event.type) {
-      case 'state': {
-        setNegotiation(event.negotiation);
-        const seeded: Record<number, LiveMessage> = {};
-        for (const m of event.messages) {
-          seeded[m.turn_index] = {
-            turnIndex: m.turn_index,
-            sender: m.sender,
-            content: m.content,
-            done: true,
-          };
+      switch (event.type) {
+        case 'state': {
+          setNegotiation(event.negotiation);
+          const seeded: Record<number, AgentMessage> = {};
+          for (const m of event.messages) {
+            seeded[m.turn_index] = {
+              turnIndex: m.turn_index,
+              sender: m.sender,
+              content: m.content,
+              done: true,
+            };
+          }
+          setMessages(seeded);
+          if (event.negotiation.status === 'complete' && event.negotiation.final_terms) {
+            setSettlement({
+              final_terms: event.negotiation.final_terms,
+              key_points: event.negotiation.key_points,
+              summary: event.negotiation.final_summary || '',
+            });
+          }
+          return;
         }
-        setMessages(seeded);
-        if (event.negotiation.status === 'complete' && event.negotiation.final_terms) {
-          setSettlement({
-            final_terms: event.negotiation.final_terms,
-            key_points: event.negotiation.key_points,
-            summary: event.negotiation.final_summary || '',
-          });
-        }
-        return;
-      }
-      case 'started':
-        return;
-      case 'turn-start': {
-        setMessages((prev) => ({
-          ...prev,
-          [event.turnIndex]: {
-            turnIndex: event.turnIndex,
-            sender: event.sender,
-            content: '',
-            done: false,
-          },
-        }));
-        return;
-      }
-      case 'delta': {
-        setMessages((prev) => {
-          const existing = prev[event.turnIndex] || {
-            turnIndex: event.turnIndex,
-            sender: event.sender,
-            content: '',
-            done: false,
-          };
-          return {
+        case 'started':
+          return;
+        case 'turn-start': {
+          setMessages((prev) => ({
             ...prev,
             [event.turnIndex]: {
-              ...existing,
-              content: existing.content + event.delta,
+              turnIndex: event.turnIndex,
               sender: event.sender,
+              content: '',
+              done: false,
             },
-          };
-        });
-        return;
-      }
-      case 'turn-complete': {
-        setMessages((prev) => ({
-          ...prev,
-          [event.turnIndex]: {
-            turnIndex: event.turnIndex,
-            sender: event.sender,
-            content: event.content,
-            done: true,
-          },
-        }));
-        return;
-      }
-      case 'retry': {
-        setRetry({
-          label: event.label,
-          attempt: event.attempt,
-          maxRetries: event.maxRetries,
-        });
-        return;
-      }
-      case 'verdict-pending': {
-        setVerdictPending(true);
-        setRetry(null);
-        return;
-      }
-      case 'settlement': {
-        setVerdictPending(false);
-        setRetry(null);
-        setSettlement({
-          final_terms: event.final_terms,
-          key_points: event.key_points,
-          summary: event.summary_for_both,
-        });
-        if (t && nid) {
-          api
-            .getOfferNegotiation(t, nid)
-            .then((d) => setNegotiation(d.negotiation))
-            .catch(() => {
-              /* */
-            });
+          }));
+          return;
         }
-        return;
+        case 'delta': {
+          setMessages((prev) => {
+            const existing = prev[event.turnIndex] || {
+              turnIndex: event.turnIndex,
+              sender: event.sender,
+              content: '',
+              done: false,
+            };
+            return {
+              ...prev,
+              [event.turnIndex]: {
+                ...existing,
+                content: existing.content + event.delta,
+                sender: event.sender,
+              },
+            };
+          });
+          return;
+        }
+        case 'turn-complete': {
+          setMessages((prev) => ({
+            ...prev,
+            [event.turnIndex]: {
+              turnIndex: event.turnIndex,
+              sender: event.sender,
+              content: event.content,
+              done: true,
+            },
+          }));
+          return;
+        }
+        case 'retry': {
+          setRetry({
+            label: event.label,
+            attempt: event.attempt,
+            maxRetries: event.maxRetries,
+          });
+          return;
+        }
+        case 'verdict-pending': {
+          setVerdictPending(true);
+          setRetry(null);
+          return;
+        }
+        case 'settlement': {
+          setVerdictPending(false);
+          setRetry(null);
+          setSettlement({
+            final_terms: event.final_terms,
+            key_points: event.key_points,
+            summary: event.summary_for_both,
+          });
+          if (t && nid) {
+            api
+              .getOfferNegotiation(t, nid)
+              .then((d) => setNegotiation(d.negotiation))
+              .catch(() => {
+                /* */
+              });
+          }
+          return;
+        }
+        case 'error': {
+          setError(event.message);
+          return;
+        }
+        case 'done': {
+          setStreamClosed(true);
+          return;
+        }
       }
-      case 'error': {
-        setError(event.message);
-        return;
-      }
-      case 'done': {
-        setStreamClosed(true);
-        return;
-      }
-    }
     }
 
     es.onmessage = (ev) => {
@@ -206,18 +214,6 @@ export default function OfferNegotiation() {
     };
   }, [negotiationId, token]);
 
-  const messageList = useMemo(
-    () => Object.values(messages).sort((a, b) => a.turnIndex - b.turnIndex),
-    [messages],
-  );
-
-  useEffect(() => {
-    const el = transcriptRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-    transcriptEndRef.current?.scrollIntoView({ block: 'end' });
-  }, [messageList, settlement, verdictPending]);
-
   const completedTurns = messageList.filter((m) => m.done).length;
   const progress = Math.min(1, completedTurns / OFFER_TURNS);
   const inFlight =
@@ -238,11 +234,14 @@ export default function OfferNegotiation() {
 
   return (
     <div style={styles.page}>
+      <AgentChatKeyframes />
       <header style={styles.header}>
         <Link to={backHref()} style={styles.backLink}>
           ← Back to messages
         </Link>
-        <span style={styles.eyebrow}>Live offer negotiation</span>
+        <span className="indicator indicator-info" style={{ marginTop: 4 }}>
+          Live offer negotiation
+        </span>
         <h1 style={styles.title}>
           {negotiation
             ? `Offer #${negotiation.id} · ${negotiation.status.replace(/_/g, ' ')}`
@@ -254,13 +253,19 @@ export default function OfferNegotiation() {
         </p>
       </header>
 
-      <section style={styles.statusBar} aria-label="Progress">
+      <section
+        style={{
+          ...styles.statusBar,
+          ...(settlement ? styles.statusBarComplete : null),
+        }}
+        aria-label="Progress"
+      >
         <div style={styles.progressTrack}>
           <div
             style={{
               ...styles.progressFill,
               width: `${Math.round(progress * 100)}%`,
-              background: settlement ? 'var(--accent)' : 'var(--accent)',
+              background: settlement ? 'var(--signal)' : 'var(--accent)',
             }}
           />
         </div>
@@ -269,18 +274,21 @@ export default function OfferNegotiation() {
             Turn {Math.min(completedTurns, OFFER_TURNS)} / {OFFER_TURNS}
           </span>
           {verdictPending && (
-            <span style={styles.statusPill}>Composing final package…</span>
+            <span className="indicator indicator-signal">Composing final package…</span>
           )}
           {retry && !settlement && (
-            <span style={styles.retryPill}>
+            <span className="indicator indicator-warning">
               {retry.label} retry {retry.attempt}/{retry.maxRetries}…
             </span>
           )}
           {inFlight && (
-            <span style={styles.statusPill}>Agents negotiating</span>
+            <span className="indicator indicator-signal">Agents negotiating</span>
           )}
           {streamClosed && !settlement && (
-            <span style={styles.statusPill}>Stream closed</span>
+            <span className="indicator indicator-neutral">Stream closed</span>
+          )}
+          {settlement && (
+            <span className="indicator indicator-signal">Settlement reached</span>
           )}
         </div>
       </section>
@@ -295,67 +303,48 @@ export default function OfferNegotiation() {
         style={styles.transcript}
         ref={transcriptRef}
         aria-live="polite"
+        onScroll={handleTranscriptScroll}
       >
         {messageList.length === 0 && inFlight && (
           <div style={styles.empty}>Starting negotiators…</div>
         )}
         {messageList.map((m) => (
-          <div
+          <AgentBubble
             key={m.turnIndex}
-            style={{
-              ...styles.bubbleRow,
-              justifyContent: m.sender === 'applicant_agent' ? 'flex-start' : 'flex-end',
-            }}
-          >
-            <div
-              style={{
-                ...styles.bubble,
-                ...(m.sender === 'applicant_agent'
-                  ? styles.bubbleApplicant
-                  : styles.bubbleRecruiter),
-              }}
-            >
-              <span
-                style={{
-                  ...styles.bubbleSender,
-                  ...(m.sender === 'applicant_agent'
-                    ? styles.bubbleSenderApplicant
-                    : styles.bubbleSenderRecruiter),
-                }}
-              >
-                {SENDER_LABEL[m.sender]}
-              </span>
-              <p style={styles.bubbleBody}>
-                {m.content || (m.done ? '…' : '')}
-              </p>
-            </div>
-          </div>
+            message={m}
+            applicantLabel={APPLICANT_LABEL}
+            recruiterLabel={RECRUITER_LABEL}
+          />
         ))}
 
         {settlement && (
-          <div style={styles.settlementCard}>
-            <span style={styles.cardEyebrow}>Suggested package</span>
-            {settlement.summary && <p style={styles.settlementSummary}>{settlement.summary}</p>}
-            <p style={styles.bubbleBody}>{settlement.final_terms}</p>
-            {settlement.key_points.length > 0 && (
-              <ul style={styles.kpList}>
-                {settlement.key_points.map((k) => (
-                  <li key={k}>{k}</li>
-                ))}
-              </ul>
-            )}
-            <p style={styles.metaNote}>
-              This also appears in your messages thread. It is a suggestion, not a binding contract.
-            </p>
-          </div>
+          <>
+            <SessionDivider label="Negotiation complete - suggested package below" />
+            <div style={styles.settlementCard}>
+              <span className="indicator indicator-signal">Suggested package</span>
+              {settlement.summary && (
+                <p style={styles.settlementSummary}>{settlement.summary}</p>
+              )}
+              <p style={styles.settlementBody}>{settlement.final_terms}</p>
+              {settlement.key_points.length > 0 && (
+                <ul style={styles.kpList}>
+                  {settlement.key_points.map((k) => (
+                    <li key={k}>{k}</li>
+                  ))}
+                </ul>
+              )}
+              <p style={styles.metaNote}>
+                This also appears in your messages thread. It is a suggestion, not a binding contract.
+              </p>
+            </div>
+          </>
         )}
-        <div ref={transcriptEndRef} />
       </section>
 
       <footer style={styles.footer}>
         <button
           type="button"
-          style={styles.secondaryBtn}
+          className="btn btn-ghost"
           onClick={() => navigate(backHref())}
         >
           {settlement ? 'Done' : 'Run in the background'}
@@ -385,20 +374,6 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: 'none',
     width: 'fit-content',
   },
-  eyebrow: {
-    display: 'inline-block',
-    width: 'fit-content',
-    padding: '4px 12px',
-    fontSize: 12,
-    fontWeight: 500,
-    color: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginTop: 4,
-  },
   title: {
     margin: '8px 0 4px',
     fontSize: 26,
@@ -414,6 +389,11 @@ const styles: Record<string, CSSProperties> = {
     border: '1px solid var(--border)',
     borderRadius: 14,
     background: 'var(--bg)',
+    transition: 'opacity 220ms ease, filter 220ms ease, transform 220ms ease',
+  },
+  statusBarComplete: {
+    opacity: 0.8,
+    filter: 'saturate(0.85)',
   },
   progressTrack: {
     width: '100%',
@@ -429,23 +409,6 @@ const styles: Record<string, CSSProperties> = {
   },
   statusRow: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   progressLabel: { fontSize: 13, fontWeight: 500, color: 'var(--text-h)' },
-  statusPill: {
-    fontSize: 11,
-    fontWeight: 600,
-    padding: '3px 10px',
-    textTransform: 'uppercase',
-    borderRadius: 999,
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-  },
-  retryPill: {
-    fontSize: 12,
-    color: 'var(--warning)',
-    background: 'var(--warning-bg)',
-    border: '1px solid var(--warning-border)',
-    borderRadius: 999,
-    padding: '3px 10px',
-  },
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
@@ -467,59 +430,25 @@ const styles: Record<string, CSSProperties> = {
     gap: 12,
   },
   empty: { textAlign: 'center', color: 'var(--text)', padding: 24, fontSize: 14 },
-  bubbleRow: { display: 'flex', width: '100%' },
-  bubble: {
-    maxWidth: '82%',
-    padding: 12,
-    borderRadius: 12,
-    border: '1px solid var(--border)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-  },
-  bubbleApplicant: { alignSelf: 'flex-start' },
-  bubbleRecruiter: {
-    alignSelf: 'flex-end',
-    background: 'var(--accent-bg)',
-    borderColor: 'var(--accent-border)',
-  },
-  bubbleSender: {
-    fontSize: 10,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    padding: '2px 8px',
-    borderRadius: 999,
-    width: 'fit-content',
-  },
-  bubbleSenderApplicant: { background: 'var(--success)', color: '#fff' },
-  bubbleSenderRecruiter: { background: 'var(--brand-ink)', color: '#fff' },
-  bubbleBody: { margin: 0, fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-wrap' },
   settlementCard: {
     marginTop: 8,
     padding: 16,
     borderRadius: 14,
-    border: '1px solid var(--success-border)',
-    background: 'var(--success-bg)',
+    border: '1px solid var(--signal-border)',
+    background: 'var(--signal-bg)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
   },
-  cardEyebrow: {
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    color: 'var(--accent)',
-  },
-  settlementSummary: { fontSize: 14, lineHeight: 1.5, margin: '8px 0 0' },
-  kpList: { margin: '8px 0 0', paddingLeft: 18, fontSize: 14, lineHeight: 1.5 },
-  metaNote: { fontSize: 12, color: 'var(--text)', fontStyle: 'italic', marginTop: 8 },
-  footer: { display: 'flex', justifyContent: 'flex-end' },
-  secondaryBtn: {
-    padding: '10px 16px',
+  settlementSummary: { fontSize: 14, lineHeight: 1.5, margin: 0 },
+  settlementBody: {
+    margin: 0,
     fontSize: 14,
-    fontWeight: 500,
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    background: 'transparent',
+    lineHeight: 1.55,
+    whiteSpace: 'pre-wrap',
+    color: 'var(--text-h)',
   },
+  kpList: { margin: '4px 0 0', paddingLeft: 18, fontSize: 14, lineHeight: 1.5 },
+  metaNote: { fontSize: 12, color: 'var(--text)', fontStyle: 'italic', marginTop: 4 },
+  footer: { display: 'flex', justifyContent: 'flex-end' },
 };

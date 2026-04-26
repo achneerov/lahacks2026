@@ -497,7 +497,7 @@ export default function ApplicantProfile() {
   return (
     <div ref={pageTopRef} style={styles.page}>
       <header style={styles.header}>
-        <span style={styles.eyebrow}>Applicant</span>
+        <span className="indicator indicator-info">Applicant</span>
         <h1 style={styles.title}>Edit profile</h1>
         <p style={styles.subtitle}>Update your personal details and links.</p>
       </header>
@@ -516,7 +516,7 @@ export default function ApplicantProfile() {
           </div>
           <button
             type="button"
-            style={styles.openTicketBtn}
+            className="btn btn-danger btn-sm"
             onClick={() => {
               window.location.href = 'mailto:support@impulse.com?subject=Profile%20Lock%20-%20Request%20to%20Unlock';
             }}
@@ -600,7 +600,7 @@ export default function ApplicantProfile() {
           title="Work Experience"
           action={
             !lock.locked && (
-              <button type="button" onClick={addWork} style={styles.addBtn}>
+              <button type="button" onClick={addWork} className="btn btn-ghost btn-sm">
                 + Add experience
               </button>
             )
@@ -633,7 +633,7 @@ export default function ApplicantProfile() {
           title="Education"
           action={
             !lock.locked && (
-              <button type="button" onClick={addEdu} style={styles.addBtn}>
+              <button type="button" onClick={addEdu} className="btn btn-ghost btn-sm">
                 + Add education
               </button>
             )
@@ -709,7 +709,7 @@ export default function ApplicantProfile() {
         <Section
           title="Skills"
           action={
-            <button type="button" onClick={addSkill} style={styles.addBtn}>
+            <button type="button" onClick={addSkill} className="btn btn-ghost btn-sm">
               + Add skill
             </button>
           }
@@ -745,7 +745,8 @@ export default function ApplicantProfile() {
                 <button
                   type="button"
                   onClick={() => removeSkill(i)}
-                  style={styles.removeBtnInline}
+                  className="btn btn-ghost btn-sm"
+                  style={styles.removeInlineOverride}
                   aria-label="Remove skill"
                   title="Remove"
                 >
@@ -759,7 +760,7 @@ export default function ApplicantProfile() {
         <Section
           title="Languages"
           action={
-            <button type="button" onClick={addLanguage} style={styles.addBtn}>
+            <button type="button" onClick={addLanguage} className="btn btn-ghost btn-sm">
               + Add language
             </button>
           }
@@ -787,7 +788,8 @@ export default function ApplicantProfile() {
                 <button
                   type="button"
                   onClick={() => removeLanguage(i)}
-                  style={styles.removeBtnInline}
+                  className="btn btn-ghost btn-sm"
+                  style={styles.removeInlineOverride}
                   aria-label="Remove language"
                   title="Remove"
                 >
@@ -872,7 +874,7 @@ export default function ApplicantProfile() {
         )}
 
         <div style={styles.actionsRow}>
-          <button type="submit" style={styles.primaryBtn} disabled={saving}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
@@ -944,7 +946,7 @@ function WorkExperienceCard({
             <button
               type="button"
               onClick={onRemove}
-              style={styles.removeBtn}
+              className="btn btn-danger btn-sm"
               disabled={disabled}
             >
               Remove
@@ -1093,7 +1095,7 @@ function EducationCard({
             <button
               type="button"
               onClick={onRemove}
-              style={styles.removeBtn}
+              className="btn btn-danger btn-sm"
               disabled={disabled}
             >
               Remove
@@ -1253,7 +1255,7 @@ function ReferenceCard({
             <button
               type="button"
               onClick={onRemove}
-              style={styles.removeBtn}
+              className="btn btn-danger btn-sm"
             >
               Remove
             </button>
@@ -1480,7 +1482,6 @@ const styles: Record<string, CSSProperties> = {
   lockBanner: { display: 'flex', alignItems: 'flex-start', gap: 16, padding: '14px 16px', fontSize: 14, color: 'var(--danger-strong)', background: 'var(--danger-strong-bg)', border: '1px solid var(--danger-strong-border)', borderRadius: 12, flexWrap: 'wrap' },
   lockBannerText: { display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 320px', minWidth: 0, lineHeight: 1.5 },
   lockBannerTitle: { color: 'var(--danger-strong)', fontSize: 15 },
-  openTicketBtn: { padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--danger-strong)', border: '1px solid var(--danger-strong)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
   successBanner: { padding: '10px 14px', fontSize: 14, color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: 10 },
   form: { display: 'flex', flexDirection: 'column', gap: 20 },
   section: { display: 'flex', flexDirection: 'column', gap: 12, padding: 20, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--bg)', boxShadow: 'var(--shadow)' },
@@ -1504,10 +1505,8 @@ const styles: Record<string, CSSProperties> = {
   cardHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   cardTitle: { fontSize: 14, fontWeight: 600, color: 'var(--text-h)' },
   cardSubtitle: { fontSize: 13, color: 'var(--text)' },
-  removeBtn: { padding: '6px 10px', fontSize: 12, fontWeight: 500, color: 'var(--danger)', background: 'transparent', border: '1px solid var(--danger-border)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
-  removeBtnInline: { width: 32, height: 32, padding: 0, fontSize: 18, lineHeight: 1, fontWeight: 600, color: 'var(--danger)', background: 'transparent', border: '1px solid var(--danger-border)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4 },
+  removeInlineOverride: { width: 32, height: 32, padding: 0, fontSize: 18, lineHeight: 1, flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4 },
   inlineRow: { display: 'flex', alignItems: 'flex-end', gap: 12, width: '100%' },
-  addBtn: { padding: '6px 12px', fontSize: 13, fontWeight: 500, color: 'var(--accent)', background: 'transparent', border: '1px dashed var(--accent-border)', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' },
   emptyHint: { margin: 0, fontSize: 13, color: 'var(--text)', padding: 12, border: '1px dashed var(--border)', borderRadius: 10, textAlign: 'center' },
   badge: { marginLeft: 8, padding: '2px 8px', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 999 },
   hint: { margin: 0, fontSize: 12, color: 'var(--text)' },
@@ -1515,5 +1514,4 @@ const styles: Record<string, CSSProperties> = {
   checkbox: { width: 16, height: 16, accentColor: 'var(--accent)' },
   checkboxLabel: { fontSize: 13, color: 'var(--text-h)' },
   actionsRow: { display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end', marginTop: 4 },
-  primaryBtn: { padding: '10px 18px', fontSize: 14, fontWeight: 500, color: 'var(--bg)', background: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' },
 };

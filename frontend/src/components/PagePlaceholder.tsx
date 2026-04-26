@@ -16,7 +16,7 @@ export default function PagePlaceholder({
   return (
     <div style={styles.page}>
       <header style={styles.header}>
-        <span style={styles.eyebrow}>{eyebrow}</span>
+        <span className="indicator indicator-info">{eyebrow}</span>
         <h1 style={styles.title}>{title}</h1>
         <p style={styles.subtitle}>{description}</p>
       </header>

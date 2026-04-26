@@ -46,7 +46,7 @@ export default function RecruiterHome() {
   return (
     <div style={styles.page}>
       <header style={styles.header}>
-        <span style={styles.eyebrow}>Recruiter dashboard</span>
+        <span className="indicator indicator-info">Recruiter dashboard</span>
         <h1 style={styles.title}>
           Welcome back,{' '}
           <span style={styles.titleAccent}>{user?.username ?? 'there'}</span>

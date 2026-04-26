@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useRef,
   useState,
   type CSSProperties,
 } from 'react';
@@ -11,6 +10,7 @@ import {
   type ApplicantDocumentKind,
 } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
+import FilePicker from './FilePicker';
 
 const KIND_OPTIONS: { value: ApplicantDocumentKind; label: string }[] = [
   { value: 'transcript', label: 'School transcript' },
@@ -43,7 +43,6 @@ export default function UploadedDocsManager({ variant = 'card' }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -74,7 +73,6 @@ export default function UploadedDocsManager({ variant = 'card' }: Props) {
       setDocs((prev) => [document, ...prev]);
       setFile(null);
       setTitle('');
-      if (fileRef.current) fileRef.current.value = '';
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.code === 'only_pdf') setError('Only PDF files are supported.');
@@ -152,22 +150,19 @@ export default function UploadedDocsManager({ variant = 'card' }: Props) {
       </div>
 
       <div style={styles.fileRow}>
-        <input
-          ref={fileRef}
-          type="file"
+        <FilePicker
           accept="application/pdf,.pdf"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          file={file}
+          onChange={setFile}
           disabled={uploading}
-          style={styles.fileInput}
+          buttonLabel="Choose PDF"
+          emptyLabel="No PDF selected"
         />
         <button
           type="button"
+          className="btn btn-primary"
           onClick={onUpload}
           disabled={!file || uploading}
-          style={{
-            ...styles.uploadBtn,
-            ...(!file || uploading ? styles.uploadBtnDisabled : null),
-          }}
         >
           {uploading ? 'Uploading…' : 'Upload PDF'}
         </button>
@@ -197,14 +192,18 @@ export default function UploadedDocsManager({ variant = 'card' }: Props) {
                 </div>
               </div>
               <div style={styles.docActions}>
-                <button type="button" onClick={() => onOpen(d.id)} style={styles.linkBtn}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(d.id)}
+                  className="btn btn-ghost btn-sm"
+                >
                   View
                 </button>
                 <button
                   type="button"
                   onClick={() => onDelete(d.id)}
                   disabled={deletingId === d.id}
-                  style={styles.deleteBtn}
+                  className="btn btn-danger btn-sm"
                 >
                   {deletingId === d.id ? '…' : 'Delete'}
                 </button>
@@ -271,27 +270,6 @@ const styles: Record<string, CSSProperties> = {
     gap: 12,
     flexWrap: 'wrap',
   },
-  fileInput: {
-    flex: 1,
-    minWidth: 200,
-    fontSize: 13,
-    fontFamily: 'inherit',
-  },
-  uploadBtn: {
-    padding: '10px 18px',
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent, #0f172a)',
-    border: '1px solid var(--accent, #0f172a)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
-  uploadBtnDisabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
   error: {
     padding: '10px 12px',
     fontSize: 13,
@@ -357,27 +335,5 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     gap: 8,
     alignItems: 'center',
-  },
-  linkBtn: {
-    padding: '6px 12px',
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'var(--accent, #0f172a)',
-    background: 'transparent',
-    border: '1px solid var(--accent-border, #cbd5e1)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
-  deleteBtn: {
-    padding: '6px 12px',
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#9a1a1a',
-    background: 'transparent',
-    border: '1px solid rgba(154, 26, 26, 0.45)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
   },
 };

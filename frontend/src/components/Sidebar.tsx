@@ -144,7 +144,8 @@ export default function Sidebar() {
           </div>
           <button
             type="button"
-            style={styles.logout}
+            className="btn btn-secondary btn-block"
+            style={styles.logoutOverride}
             onClick={() => {
               logout();
               nav('/');
@@ -372,18 +373,8 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 12,
     color: 'var(--text)',
   },
-  logout: {
-    appearance: 'none',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
+  logoutOverride: {
+    justifyContent: 'flex-start',
     gap: 10,
-    padding: '10px 12px',
-    fontSize: 14,
-    color: 'var(--text)',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    fontFamily: 'inherit',
   },
 };

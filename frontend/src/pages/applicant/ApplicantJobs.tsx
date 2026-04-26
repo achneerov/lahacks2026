@@ -170,7 +170,7 @@ export default function ApplicantJobs() {
   return (
     <div style={styles.page}>
       <header style={styles.header}>
-        <span style={styles.eyebrow}>Applicant</span>
+        <span className="indicator indicator-info">Applicant</span>
         <h1 style={styles.title}>Job postings</h1>
         <p style={styles.subtitle}>
           Browse open roles from verified recruiters.
@@ -244,7 +244,7 @@ export default function ApplicantJobs() {
           <button
             type="button"
             onClick={clearFilters}
-            style={styles.clearBtn}
+            className="btn btn-ghost btn-sm"
             disabled={
               !search && !location && !employmentType && remote === 'any'
             }
@@ -317,7 +317,7 @@ export default function ApplicantJobs() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={!hasPrev || loading}
-                style={styles.pageBtn}
+                className="btn btn-ghost btn-sm"
               >
                 ← Previous
               </button>
@@ -326,7 +326,7 @@ export default function ApplicantJobs() {
                 type="button"
                 onClick={() => setPage((p) => p + 1)}
                 disabled={!hasNext || loading}
-                style={styles.pageBtn}
+                className="btn btn-ghost btn-sm"
               >
                 Next →
               </button>
@@ -374,9 +374,6 @@ function JobDetail({
   const meets = meetsLevel(userLevel, job.min_verification_level);
   const gated = job.min_verification_level !== 'device' && !meets;
   const disabled = applying || gated;
-  const primaryStyle = disabled
-    ? { ...styles.primaryBtn, cursor: applying ? 'progress' : 'not-allowed', opacity: 0.6 }
-    : { ...styles.primaryBtn, cursor: 'pointer', opacity: 1 };
 
   return (
     <div style={styles.detailInner}>
@@ -435,7 +432,7 @@ function JobDetail({
       <div style={styles.detailActions}>
         <button
           type="button"
-          style={primaryStyle}
+          className="btn btn-primary"
           disabled={disabled}
           onClick={() => onApply(job)}
           title={gated ? `Requires ${verificationLabel(job.min_verification_level)} or higher.` : undefined}
@@ -571,15 +568,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 13,
     color: 'var(--text)',
   },
-  clearBtn: {
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--text-h)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    cursor: 'pointer',
-  },
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
@@ -686,15 +674,6 @@ const styles: Record<string, CSSProperties> = {
     gap: 8,
     padding: '12px 4px 4px',
   },
-  pageBtn: {
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--text-h)',
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    cursor: 'pointer',
-  },
   pageLabel: {
     fontSize: 13,
     color: 'var(--text)',
@@ -784,17 +763,6 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: 10,
-  },
-  primaryBtn: {
-    padding: '10px 16px',
-    fontSize: 14,
-    fontWeight: 500,
-    color: 'var(--bg)',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: 10,
-    cursor: 'not-allowed',
-    opacity: 0.8,
   },
   secondaryBtn: {
     padding: '10px 16px',

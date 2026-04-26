@@ -201,10 +201,7 @@ export default function SignupBasics() {
             <button 
               type="submit" 
               disabled={!localValid || submitting} 
-              style={{
-                ...styles.signInBtn,
-                ...((!localValid || submitting) ? styles.disabledBtn : null)
-              }}
+              className="btn btn-primary btn-block btn-lg"
             >
               {submitting ? 'PROCESSING...' : 'CONTINUE TO VERIFICATION'}
             </button>
@@ -217,7 +214,7 @@ export default function SignupBasics() {
           <button 
             type="button" 
             onClick={() => nav('/login')} 
-            style={styles.createBtn}
+            className="btn btn-secondary btn-block btn-lg"
           >
             SIGN IN INSTEAD
           </button>
@@ -463,24 +460,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     lineHeight: 1.4,
   },
-  signInBtn: {
-    width: '100%',
-    marginTop: '12px',
-    padding: '16px',
-    fontSize: '14px',
-    fontWeight: 600,
-    backgroundColor: 'var(--accent-warm)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '999px',
-    cursor: 'pointer',
-    letterSpacing: '0.5px',
-    transition: 'opacity 0.2s'
-  },
-  disabledBtn: {
-    opacity: 0.5,
-    cursor: 'not-allowed'
-  },
   errorBox: {
     padding: '12px',
     backgroundColor: 'var(--danger-bg)',
@@ -494,19 +473,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: '1px',
     backgroundColor: 'var(--border)',
     margin: '24px 0'
-  },
-  createBtn: {
-    width: '100%',
-    padding: '16px',
-    fontSize: '14px',
-    fontWeight: 600,
-    backgroundColor: 'transparent',
-    color: 'var(--text-h)',
-    border: '1px solid var(--border)',
-    borderRadius: '999px',
-    cursor: 'pointer',
-    letterSpacing: '0.5px',
-    transition: 'all 0.2s'
   },
   footerLinks: {
     display: 'flex',

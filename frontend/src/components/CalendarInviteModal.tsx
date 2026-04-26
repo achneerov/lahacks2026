@@ -83,7 +83,7 @@ export default function CalendarInviteModal({
       >
         <header style={styles.header}>
           <div>
-            <span style={styles.eyebrow}>Send calendar invite</span>
+            <span className="indicator indicator-info">Send calendar invite</span>
             <h2 id="calendar-invite-title" style={styles.title}>
               Confirm interview details
             </h2>
@@ -91,7 +91,8 @@ export default function CalendarInviteModal({
           <button
             type="button"
             onClick={onClose}
-            style={styles.close}
+            className="btn btn-ghost btn-sm"
+            style={styles.closeOverride}
             aria-label="Close"
           >
             ✕
@@ -160,17 +161,14 @@ export default function CalendarInviteModal({
             <button
               type="button"
               onClick={onClose}
-              style={styles.secondaryBtn}
+              className="btn btn-ghost"
               disabled={submitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              style={{
-                ...styles.primaryBtn,
-                ...(submitting ? styles.primaryBtnDisabled : null),
-              }}
+              className="btn btn-primary"
               disabled={submitting}
             >
               {submitting ? 'Sending…' : 'Send Google Calendar invite'}
@@ -226,18 +224,10 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: 8,
   },
   title: { margin: 0, fontSize: 20, color: 'var(--text-h)' },
-  close: {
-    appearance: 'none',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
+  closeOverride: {
     width: 32,
     height: 32,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    color: 'var(--text)',
+    padding: 0,
     fontSize: 16,
   },
   body: {
@@ -281,33 +271,5 @@ const styles: Record<string, CSSProperties> = {
     paddingTop: 8,
     borderTop: '1px solid var(--border)',
     marginTop: 8,
-  },
-  secondaryBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 500,
-    color: 'var(--text)',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    padding: '8px 16px',
-  },
-  primaryBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: 10,
-    padding: '8px 18px',
-  },
-  primaryBtnDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
   },
 };

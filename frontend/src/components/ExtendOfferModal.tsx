@@ -106,7 +106,7 @@ export default function ExtendOfferModal({
           <div style={styles.row}>
             <button
               type="button"
-              style={styles.secondary}
+              className="btn btn-ghost"
               onClick={onClose}
               disabled={submitting}
             >
@@ -114,7 +114,7 @@ export default function ExtendOfferModal({
             </button>
             <button
               type="submit"
-              style={styles.primary}
+              className="btn btn-primary"
               disabled={submitting || !terms.trim()}
             >
               {submitting ? 'Sending…' : 'Send to candidate'}
@@ -200,26 +200,5 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'flex-end',
     gap: 10,
     marginTop: 16,
-  },
-  secondary: {
-    padding: '8px 14px',
-    fontSize: 14,
-    borderRadius: 8,
-    border: '1px solid var(--border)',
-    background: 'transparent',
-    color: 'var(--text-h)',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
-  primary: {
-    padding: '8px 16px',
-    fontSize: 14,
-    fontWeight: 600,
-    borderRadius: 8,
-    border: '1px solid var(--accent)',
-    background: 'var(--accent)',
-    color: '#fff',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
   },
 };

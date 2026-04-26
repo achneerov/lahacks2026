@@ -372,47 +372,14 @@ const s: Record<string, CSSProperties> = {
     border: '1px solid var(--accent-border)',
     borderRadius: 16,
   },
-  addBtn: {
-    appearance: 'none',
-    width: '100%',
-    border: '1px dashed var(--border)',
-    cursor: 'pointer',
-    padding: '12px 16px',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--text)',
-    background: 'transparent',
-    borderRadius: '999px',
-    fontFamily: 'inherit',
-    letterSpacing: '0.3px',
-  },
-  removeBtn: {
-    appearance: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '6px 0',
-    fontSize: '12px',
-    fontWeight: 600,
-    color: 'var(--danger)',
-    background: 'transparent',
-    fontFamily: 'inherit',
-    alignSelf: 'flex-start',
-    textDecoration: 'underline',
-    textUnderlineOffset: 3,
-  },
-  removeBtnInline: {
-    appearance: 'none',
-    border: 'none',
-    cursor: 'pointer',
+  removeOverride: { alignSelf: 'flex-start' },
+  removeInlineOverride: {
     width: 40,
     height: 40,
+    padding: 0,
     flexShrink: 0,
     fontSize: '18px',
     lineHeight: 1,
-    color: 'var(--text)',
-    background: 'var(--accent-bg)',
-    borderRadius: '999px',
-    fontFamily: 'inherit',
   },
   checkRow: {
     display: 'flex',
@@ -447,21 +414,6 @@ const s: Record<string, CSSProperties> = {
     textAlign: 'center',
     textDecoration: 'none',
   },
-  primary: {
-    appearance: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    width: '100%',
-    padding: '16px 24px',
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent-warm)',
-    borderRadius: '999px',
-    letterSpacing: '0.5px',
-    fontFamily: 'inherit',
-  },
-  primaryDisabled: { cursor: 'not-allowed', opacity: 0.5 },
   footerLinks: {
     display: 'flex',
     justifyContent: 'center',
@@ -541,21 +493,6 @@ const s: Record<string, CSSProperties> = {
     zIndex: 5,
     paddingTop: 14,
     background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 26%, var(--bg) 62%)',
-  },
-  secondary: {
-    appearance: 'none',
-    cursor: 'pointer',
-    padding: '16px 22px',
-    fontSize: '14px',
-    fontWeight: 600,
-    color: 'var(--text-h)',
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: '999px',
-    fontFamily: 'inherit',
-    letterSpacing: '0.5px',
-    flex: '0 0 auto',
-    minWidth: 120,
   },
   primaryFlex: { flex: 1 },
   backLink: {
@@ -847,13 +784,13 @@ export default function SignupProfile() {
                 <TextArea label="RESPONSIBILITIES" value={w.responsibilities || ''} onChange={v => { const arr = [...form.work_experience]; arr[i] = { ...arr[i], responsibilities: v }; updateField('work_experience', arr); }} />
                 <TextArea label="KEY ACHIEVEMENTS" value={w.key_achievements || ''} onChange={v => { const arr = [...form.work_experience]; arr[i] = { ...arr[i], key_achievements: v }; updateField('work_experience', arr); }} />
                 {form.work_experience.length > 1 && (
-                  <button type="button" style={s.removeBtn} onClick={() => updateField('work_experience', form.work_experience.filter((_, j) => j !== i))}>
+                  <button type="button" className="btn btn-ghost btn-sm" style={s.removeOverride} onClick={() => updateField('work_experience', form.work_experience.filter((_, j) => j !== i))}>
                     Remove this role
                   </button>
                 )}
               </div>
             ))}
-            <button type="button" style={s.addBtn} onClick={() => updateField('work_experience', [...form.work_experience, emptyWorkExp()])}>
+            <button type="button" className="btn btn-ghost btn-block" onClick={() => updateField('work_experience', [...form.work_experience, emptyWorkExp()])}>
               + Add work experience
             </button>
           </FormSection>
@@ -883,13 +820,13 @@ export default function SignupProfile() {
                   <Input label="HONORS" value={ed.honors || ''} onChange={v => { const arr = [...form.education]; arr[i] = { ...arr[i], honors: v }; updateField('education', arr); }} />
                 </div>
                 {form.education.length > 1 && (
-                  <button type="button" style={s.removeBtn} onClick={() => updateField('education', form.education.filter((_, j) => j !== i))}>
+                  <button type="button" className="btn btn-ghost btn-sm" style={s.removeOverride} onClick={() => updateField('education', form.education.filter((_, j) => j !== i))}>
                     Remove this school
                   </button>
                 )}
               </div>
             ))}
-            <button type="button" style={s.addBtn} onClick={() => updateField('education', [...form.education, emptyEducation()])}>
+            <button type="button" className="btn btn-ghost btn-block" onClick={() => updateField('education', [...form.education, emptyEducation()])}>
               + Add education
             </button>
           </FormSection>
@@ -905,11 +842,11 @@ export default function SignupProfile() {
                   <Input label="YEARS" value={sk.years != null ? String(sk.years) : ''} onChange={v => { const arr = [...form.skills]; arr[i] = { ...arr[i], years: v ? Number(v) : null }; updateField('skills', arr); }} type="number" />
                 </div>
                 {form.skills.length > 1 && (
-                  <button type="button" style={s.removeBtnInline} title="Remove" onClick={() => updateField('skills', form.skills.filter((_, j) => j !== i))} aria-label="Remove skill">×</button>
+                  <button type="button" className="btn btn-ghost btn-sm" style={s.removeInlineOverride} title="Remove" onClick={() => updateField('skills', form.skills.filter((_, j) => j !== i))} aria-label="Remove skill">×</button>
                 )}
               </div>
             ))}
-            <button type="button" style={s.addBtn} onClick={() => updateField('skills', [...form.skills, emptySkill()])}>
+            <button type="button" className="btn btn-ghost btn-block" onClick={() => updateField('skills', [...form.skills, emptySkill()])}>
               + Add skill
             </button>
           </FormSection>
@@ -924,11 +861,11 @@ export default function SignupProfile() {
                   <Input label="PROFICIENCY" value={l.proficiency || ''} onChange={v => { const arr = [...form.languages]; arr[i] = { ...arr[i], proficiency: v }; updateField('languages', arr); }} placeholder="Native" />
                 </div>
                 {form.languages.length > 1 && (
-                  <button type="button" style={s.removeBtnInline} title="Remove" onClick={() => updateField('languages', form.languages.filter((_, j) => j !== i))} aria-label="Remove language">×</button>
+                  <button type="button" className="btn btn-ghost btn-sm" style={s.removeInlineOverride} title="Remove" onClick={() => updateField('languages', form.languages.filter((_, j) => j !== i))} aria-label="Remove language">×</button>
                 )}
               </div>
             ))}
-            <button type="button" style={s.addBtn} onClick={() => updateField('languages', [...form.languages, emptyLanguage()])}>
+            <button type="button" className="btn btn-ghost btn-block" onClick={() => updateField('languages', [...form.languages, emptyLanguage()])}>
               + Add language
             </button>
           </FormSection>
@@ -1062,7 +999,7 @@ export default function SignupProfile() {
               ) : (
                 <button
                   type="button"
-                  style={{ ...s.secondary, ...(!canNavigate ? s.primaryDisabled : null) }}
+                  className="btn btn-secondary btn-lg"
                   onClick={() => moveStep('prev')}
                   disabled={!canNavigate}
                 >
@@ -1072,7 +1009,8 @@ export default function SignupProfile() {
               <button
                 type={isLastStep ? 'submit' : 'button'}
                 disabled={!canNavigate}
-                style={{ ...s.primary, ...s.primaryFlex, ...(!canNavigate ? s.primaryDisabled : null) }}
+                className="btn btn-primary btn-lg"
+                style={s.primaryFlex}
                 onClick={isLastStep ? undefined : () => moveStep('next')}
               >
                 {isLastStep ? 'Continue to documents' : 'Continue'}

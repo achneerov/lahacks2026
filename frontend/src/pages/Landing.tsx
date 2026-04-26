@@ -33,15 +33,7 @@ export default function Landing() {
           <button
             type="button"
             onClick={() => nav('/signup')}
-            style={styles.primaryBtn}
-            onMouseEnter={(e) => {
-              (e.currentTarget.style.transform = 'translateY(-1px)');
-              (e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)');
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget.style.transform = 'translateY(0)');
-              (e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)');
-            }}
+            className="btn btn-warm btn-lg"
           >
             Get Started
           </button>
@@ -197,7 +189,8 @@ export default function Landing() {
           <button
             type="button"
             onClick={() => nav('/signup')}
-            style={{...styles.primaryBtn, marginTop: 24, padding: '16px 32px'}}
+            className="btn btn-warm btn-lg"
+            style={{ marginTop: 24 }}
           >
             Get Started with World ID
           </button>
@@ -355,18 +348,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text)',
     maxWidth: '650px',
     margin: 0
-  },
-  primaryBtn: {
-    backgroundColor: 'var(--accent-warm)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '999px',
-    padding: '16px 28px',
-    fontSize: '16px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
   },
   heroImageContainer: {
     width: '100%',

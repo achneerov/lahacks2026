@@ -141,7 +141,7 @@ export default function ApplicantApplications() {
   return (
     <div style={styles.page}>
       <header style={styles.header}>
-        <span style={styles.eyebrow}>Applicant</span>
+        <span className="indicator indicator-info">Applicant</span>
         <h1 style={styles.title}>Applications</h1>
         <p style={styles.subtitle}>
           Track every job you've applied to and where it stands.
@@ -241,7 +241,7 @@ export default function ApplicantApplications() {
                 setSearch('');
                 setStatusFilter('all');
               }}
-              style={styles.clearBtn}
+              className="btn btn-ghost btn-sm"
             >
               Clear filters
             </button>
@@ -278,7 +278,7 @@ export default function ApplicantApplications() {
               type="button"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={!hasPrev || loading}
-              style={styles.pageBtn}
+              className="btn btn-ghost btn-sm"
             >
               ← Previous
             </button>
@@ -287,7 +287,7 @@ export default function ApplicantApplications() {
               type="button"
               onClick={() => setPage((p) => p + 1)}
               disabled={!hasNext || loading}
-              style={styles.pageBtn}
+              className="btn btn-ghost btn-sm"
             >
               Next →
             </button>
@@ -584,16 +584,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 13,
     color: 'var(--text)',
   },
-  clearBtn: {
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--accent)',
-    background: 'transparent',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
   errorBanner: {
     padding: '10px 14px',
     fontSize: 14,
@@ -741,16 +731,6 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'space-between',
     gap: 8,
     padding: '16px 4px 4px',
-  },
-  pageBtn: {
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--text-h)',
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
   },
   pageLabel: {
     fontSize: 13,

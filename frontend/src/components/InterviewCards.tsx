@@ -10,6 +10,7 @@ import {
   type OfferNegotiationDetail,
   type Role,
 } from '../lib/api';
+import { CalendarIcon, ClockIcon, MailIcon, DocumentIcon } from './icons';
 
 type Viewer = 'applicant' | 'recruiter';
 
@@ -95,7 +96,10 @@ export function InterviewCard({
     return (
       <div style={message.from_me ? styles.cardRowMine : styles.cardRowTheirs}>
         <div style={styles.card}>
-          <span style={styles.cardEyebrow}>📅 Interview request</span>
+          <span style={styles.cardEyebrow}>
+            <CalendarIcon size={14} />
+            Interview request
+          </span>
           <p style={styles.cardBody}>{message.content}</p>
           {(meta.job_title || meta.suggested_format) && (
             <div style={styles.cardMeta}>
@@ -116,7 +120,7 @@ export function InterviewCard({
             <button
               type="button"
               onClick={onVerifyIdentity}
-              style={styles.primaryActionBtn}
+              className="btn btn-primary btn-sm"
             >
               Verify identity with World Face ID →
             </button>
@@ -125,7 +129,7 @@ export function InterviewCard({
             <button
               type="button"
               onClick={onProposeAvailability}
-              style={styles.primaryActionBtn}
+              className="btn btn-primary btn-sm"
             >
               Reply with my availability →
             </button>
@@ -156,7 +160,10 @@ export function InterviewCard({
     return (
       <div style={message.from_me ? styles.cardRowMine : styles.cardRowTheirs}>
         <div style={styles.card}>
-          <span style={styles.cardEyebrow}>🗓 Proposed times</span>
+          <span style={styles.cardEyebrow}>
+            <ClockIcon size={14} />
+            Proposed times
+          </span>
           <p style={styles.cardBody}>{message.content}</p>
           <ul style={styles.slotList}>
             {slots.map((s, i) => (
@@ -171,7 +178,7 @@ export function InterviewCard({
                   <button
                     type="button"
                     onClick={() => onSendInvite!(s)}
-                    style={styles.slotActionBtn}
+                    className="btn btn-secondary btn-sm"
                   >
                     Send invite
                   </button>
@@ -189,7 +196,10 @@ export function InterviewCard({
     return (
       <div style={message.from_me ? styles.cardRowMine : styles.cardRowTheirs}>
         <div style={styles.cardCalendar}>
-          <span style={styles.cardEyebrow}>📨 Calendar invite</span>
+          <span style={styles.cardEyebrow}>
+            <MailIcon size={14} />
+            Calendar invite
+          </span>
           <h4 style={styles.cardTitle}>{meta.title || 'Interview'}</h4>
           {meta.start_iso && meta.end_iso && (
             <span style={styles.cardWhen}>
@@ -209,7 +219,8 @@ export function InterviewCard({
               href={meta.google_calendar_url}
               target="_blank"
               rel="noreferrer"
-              style={styles.calendarBtn}
+              className="btn btn-primary btn-sm"
+              style={styles.calendarBtnOverride}
             >
               Add to Google Calendar ↗
             </a>
@@ -388,7 +399,7 @@ function OfferSettledCard({
               setBusy(false);
             }
           }}
-          style={styles.primaryActionBtn}
+          className="btn btn-primary btn-sm"
         >
           {busy ? 'Saving…' : 'Confirm — I agree to these terms'}
         </button>
@@ -459,7 +470,10 @@ function OfferProposalCard({
 
   return (
     <div style={styles.card}>
-      <span style={styles.cardEyebrow}>📝 Offer package</span>
+      <span style={styles.cardEyebrow}>
+        <DocumentIcon size={14} />
+        Offer package
+      </span>
       <p style={styles.cardBody}>{displayBody}</p>
       {waitingRecruiter && (
         <span style={styles.stateNote}>
@@ -476,14 +490,14 @@ function OfferProposalCard({
           <button
             type="button"
             onClick={() => onOfferAccept(negoId)}
-            style={styles.primaryActionBtn}
+            className="btn btn-primary btn-sm"
           >
             Accept as written
           </button>
           <button
             type="button"
             onClick={() => onOfferCounterOpen(negoId)}
-            style={styles.slotActionBtn}
+            className="btn btn-ghost btn-sm"
           >
             Send a counter
           </button>
@@ -495,7 +509,7 @@ function OfferProposalCard({
         <button
           type="button"
           onClick={() => onWatchOfferNegotiation(negoId)}
-          style={styles.primaryActionBtn}
+          className="btn btn-primary btn-sm"
         >
           Watch live negotiation
         </button>
@@ -583,11 +597,15 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: '0 6px 18px rgba(0, 0, 0, 0.05)',
   },
   cardEyebrow: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
     fontSize: 11,
     fontWeight: 600,
     color: 'var(--accent)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    width: 'fit-content',
   },
   cardTitle: {
     margin: 0,
@@ -616,19 +634,6 @@ const styles: Record<string, CSSProperties> = {
   cardMetaItem: {
     fontSize: 13,
     color: 'var(--text)',
-  },
-  primaryActionBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: 999,
-    padding: '8px 14px',
-    width: 'fit-content',
   },
   stateNote: {
     fontSize: 12,
@@ -667,28 +672,9 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 12,
     color: 'var(--text)',
   },
-  slotActionBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 999,
-    padding: '6px 12px',
-  },
-  calendarBtn: {
-    display: 'inline-block',
-    width: 'fit-content',
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent)',
+  calendarBtnOverride: {
     textDecoration: 'none',
-    padding: '8px 14px',
-    borderRadius: 999,
     marginTop: 4,
+    width: 'fit-content',
   },
 };

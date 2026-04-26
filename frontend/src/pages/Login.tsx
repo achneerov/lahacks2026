@@ -100,7 +100,7 @@ export default function Login() {
               />
             </div>
 
-            <button type="submit" disabled={submitting} style={styles.signInBtn}>
+            <button type="submit" disabled={submitting} className="btn btn-primary btn-block btn-lg">
               {submitting ? 'SIGNING IN...' : 'SIGN IN'}
             </button>
             
@@ -112,7 +112,7 @@ export default function Login() {
           <button 
             type="button" 
             onClick={() => nav('/signup')} 
-            style={styles.createBtn}
+            className="btn btn-secondary btn-block btn-lg"
           >
             SIGN UP INSTEAD
           </button>
@@ -295,19 +295,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box',
     transition: 'border-color 0.2s',
   },
-  signInBtn: {
-    width: '100%',
-    marginTop: '8px',
-    padding: '16px',
-    fontSize: '14px',
-    fontWeight: 600,
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '999px',
-    cursor: 'pointer',
-    letterSpacing: '0.5px'
-  },
   errorBox: {
     padding: '12px',
     backgroundColor: '#FEF2F2',
@@ -320,19 +307,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: '1px',
     backgroundColor: '#E2E8F0',
     margin: '32px 0'
-  },
-  createBtn: {
-    width: '100%',
-    padding: '16px',
-    fontSize: '14px',
-    fontWeight: 600,
-    backgroundColor: 'transparent',
-    color: '#1E293B',
-    border: '1px solid #CBD5E1',
-    borderRadius: '999px',
-    cursor: 'pointer',
-    letterSpacing: '0.5px',
-    transition: 'all 0.2s'
   },
   footerLinks: {
     display: 'flex',

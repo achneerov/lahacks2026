@@ -11,6 +11,7 @@ import {
   type VerificationLevel,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
+import { CheckIcon } from '../../components/icons';
 
 type Mode = 'create' | 'edit';
 
@@ -473,7 +474,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
     <form style={styles.page} onSubmit={handleSubmit} noValidate>
       <header style={styles.header}>
         <div>
-          <span style={styles.eyebrow}>Recruiter</span>
+          <span className="indicator indicator-info">Recruiter</span>
           <h1 style={styles.title}>
             {mode === 'create' ? 'Add job posting' : 'Edit job posting'}
           </h1>
@@ -671,7 +672,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
             type="button"
             onClick={handleReview}
             disabled={reviewing || saving}
-            style={styles.reviewBtn}
+            className="btn btn-secondary btn-sm"
           >
             {reviewing ? 'Reviewing…' : 'Run AI review'}
           </button>
@@ -679,8 +680,11 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
 
         {issues.length === 0 && reviewedAt && (
           <p style={styles.reviewClean}>
-            ✓ No issues found in this draft
-            {reviewSource === 'heuristic' ? ' (heuristic check)' : ''}.
+            <CheckIcon size={14} />
+            <span>
+              No issues found in this draft
+              {reviewSource === 'heuristic' ? ' (heuristic check)' : ''}.
+            </span>
           </p>
         )}
 
@@ -707,13 +711,13 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
       </section>
 
       <div style={styles.formFooter}>
-        <Link to="/recruiter/jobs" style={styles.cancelBtn}>
+        <Link to="/recruiter/jobs" className="btn btn-ghost">
           Cancel
         </Link>
         <button
           type="submit"
           disabled={saving}
-          style={styles.submitBtn}
+          className="btn btn-primary"
         >
           {saving
             ? 'Saving…'
@@ -982,21 +986,13 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 13,
     color: 'var(--text)',
   },
-  reviewBtn: {
-    padding: '8px 14px',
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'var(--accent)',
-    background: 'var(--accent-bg)',
-    border: '1px solid var(--accent-border)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
   reviewClean: {
     margin: 0,
     fontSize: 13,
     color: 'var(--success)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
   },
   issueList: {
     listStyle: 'none',
@@ -1049,26 +1045,6 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'flex-end',
     gap: 12,
     paddingTop: 8,
-  },
-  cancelBtn: {
-    padding: '10px 16px',
-    fontSize: 14,
-    color: 'var(--text)',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    textDecoration: 'none',
-  },
-  submitBtn: {
-    padding: '10px 18px',
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#fff',
-    background: 'var(--accent)',
-    border: 'none',
-    borderRadius: 10,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
   },
   warningFootnote: {
     margin: 0,

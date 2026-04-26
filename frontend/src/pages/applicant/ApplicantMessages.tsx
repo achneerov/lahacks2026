@@ -381,7 +381,7 @@ export default function ApplicantMessages() {
         }
       `}</style>
       <header style={styles.header}>
-        <span style={styles.eyebrow}>Applicant</span>
+        <span className="indicator indicator-info">Applicant</span>
         <h1 style={styles.title}>Messages</h1>
         <p style={styles.subtitle}>
           Talk to recruiters and agents about open roles.
@@ -557,7 +557,8 @@ export default function ApplicantMessages() {
                       <button
                         type="button"
                         onClick={() => setCloseOpen(true)}
-                        style={styles.closeChatBtn}
+                        className="btn btn-ghost btn-sm"
+                        style={styles.closeChatOverride}
                         title="Close conversation — rate recruiter first"
                         aria-label="Close conversation"
                       >
@@ -649,14 +650,7 @@ export default function ApplicantMessages() {
                   />
                   <button
                     type="submit"
-                    style={{
-                      ...styles.sendBtn,
-                      ...(draft.trim() === '' ||
-                      sending ||
-                      thread.conversation.active === 0
-                        ? styles.sendBtnDisabled
-                        : null),
-                    }}
+                    className="btn btn-primary"
                     disabled={
                       sending ||
                       draft.trim() === '' ||
@@ -1300,23 +1294,6 @@ const styles: Record<string, CSSProperties> = {
     maxHeight: 200,
     lineHeight: 1.5,
   },
-  sendBtn: {
-    padding: '10px 18px',
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#fff',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    flexShrink: 0,
-    transition: 'transform 140ms ease, opacity 140ms ease, box-shadow 140ms ease',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.12)',
-  },
-  sendBtnDisabled: {
-    opacity: 0.55,
-    cursor: 'not-allowed',
-  },
   composerHint: {
     fontSize: 11,
     color: 'var(--text)',
@@ -1362,22 +1339,10 @@ const styles: Record<string, CSSProperties> = {
     background: 'currentColor',
     animation: 'wsDots 950ms ease-in-out infinite',
   },
-  closeChatBtn: {
-    appearance: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: 16,
-    lineHeight: 1,
-    fontWeight: 500,
-    color: 'var(--text)',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
+  closeChatOverride: {
     width: 36,
     height: 36,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 0,
     flexShrink: 0,
   },
 };
