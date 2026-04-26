@@ -34,7 +34,7 @@ Output rules:
 - Write ONLY the message body the recruiter agent will read. No "APPLICANT_AGENT:" label, no quotes, no markdown headers.
 - Plain prose. One short paragraph (or 2-3 tight sentences).
 
-The candidate's APPLICANT PROFILE includes an "uploaded_documents" array. Each entry is a PDF the candidate uploaded (transcripts, letters of recommendation, etc.) with its parsed text in "text_content". Treat that text as a primary source of truth, equal to the structured profile fields — quote or cite from it (e.g. "their MIT transcript lists CS 6.006 with an A") when it directly supports a claim. If text_content is null, the parse failed; you cannot rely on the document's contents.
+The candidate's APPLICANT PROFILE includes an "uploaded_documents" array. Each entry is a PDF the candidate uploaded (transcripts, letters of recommendation, etc.) listed only by kind, title, filename, and byte_size — the body text is NOT in the prompt. To read a document, call the \`read_uploaded_document\` tool with the document's exact \`filename\`. The tool returns either { ok: true, text: "..." } or { ok: false, error }. Use it whenever you need to quote or cite a document to back up a claim (e.g. "their MIT transcript lists CS 6.006 with an A"). Only fetch a document when its contents would actually strengthen your next message — don't burn a tool call on every turn. Treat tool-returned text as a primary source of truth, equal to the structured profile fields. If the tool reports the parse failed (\`ok: false, error: "no_text"\`) or the file is not found, do not invent contents — say "the profile does not specify".
 
 JOB POSTING (what the candidate is applying to):
 ${safeJson(jobPosting)}

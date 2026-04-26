@@ -130,9 +130,12 @@ function getApplicantProfile(userId) {
     )
     .get(userId) || null;
 
+  // Metadata only. The full parsed text is fetched on demand by the applicant
+  // agent via the `read_uploaded_document` tool (see negotiator.js) so we don't
+  // bloat the system prompt with multi-page transcripts the agent may not need.
   const uploaded_documents = db
     .prepare(
-      `SELECT kind, title, filename, text_content
+      `SELECT kind, title, filename, byte_size, text_content
          FROM applicant_documents WHERE user_id = ? ORDER BY created_at, id`,
     )
     .all(userId)
@@ -140,7 +143,8 @@ function getApplicantProfile(userId) {
       kind: row.kind,
       title: row.title,
       filename: row.filename,
-      text_content: row.text_content || null,
+      byte_size: row.byte_size,
+      has_text: row.text_content != null && row.text_content.length > 0,
     }));
 
   return {

@@ -15,6 +15,8 @@ const API_KEY = process.env.GEMINI_API_KEY;
 const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
 const DECLINE_TOOL_NAME = 'decline_now';
+const READ_DOC_TOOL_NAME = 'read_uploaded_document';
+const MAX_APPLICANT_TOOL_ROUNDS = 4;
 
 const RECRUITER_TOOLS = [
   {
@@ -42,6 +44,77 @@ const RECRUITER_TOOLS = [
 const RECRUITER_TOOL_CONFIG = {
   functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO },
 };
+
+const APPLICANT_TOOLS = [
+  {
+    functionDeclarations: [
+      {
+        name: READ_DOC_TOOL_NAME,
+        description:
+          "Fetch the parsed text of a supporting PDF the candidate uploaded (transcript, letter of recommendation, etc.) so you can quote or cite it. Reference the document by the exact 'filename' shown in the candidate's uploaded_documents array. Returns { ok: true, text } on success, or { ok: false, error } if the document is not found or could not be parsed. Only call when the document's contents would actually back up your next message.",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            filename: {
+              type: Type.STRING,
+              description:
+                "The exact filename of the uploaded document to read, copied verbatim from uploaded_documents[].filename.",
+            },
+          },
+          required: ['filename'],
+        },
+      },
+    ],
+  },
+];
+
+const APPLICANT_TOOL_CONFIG = {
+  functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO },
+};
+
+// Look up an uploaded document by filename for the given applicant. Returns a
+// JSON-serialisable object that becomes the tool response sent back to Gemini.
+function executeApplicantTool(applicantUserId, call) {
+  if (!call || call.name !== READ_DOC_TOOL_NAME) {
+    return { ok: false, error: 'unknown_tool' };
+  }
+  const filename =
+    typeof call.args?.filename === 'string' ? call.args.filename.trim() : '';
+  if (!filename) {
+    return { ok: false, error: 'missing_filename' };
+  }
+  const row = db
+    .prepare(
+      `SELECT kind, title, filename, byte_size, text_content
+         FROM applicant_documents
+        WHERE user_id = ? AND filename = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1`,
+    )
+    .get(applicantUserId, filename);
+  if (!row) {
+    return { ok: false, error: 'not_found', filename };
+  }
+  if (!row.text_content) {
+    return {
+      ok: false,
+      error: 'no_text',
+      filename: row.filename,
+      kind: row.kind,
+      title: row.title,
+      detail:
+        'PDF parse failed at upload time; the document has no readable text. Do not invent its contents.',
+    };
+  }
+  return {
+    ok: true,
+    filename: row.filename,
+    kind: row.kind,
+    title: row.title,
+    byte_size: row.byte_size,
+    text: row.text_content,
+  };
+}
 
 const running = new Set();
 
@@ -177,38 +250,94 @@ async function runNegotiation(applicationId) {
     const result = await withRetry(
       `turn ${turn} (${sender})`,
       async () => {
-        // Re-emitted on every retry so the UI resets the in-progress buffer.
-        emit(applicationId, { type: 'turn-start', turnIndex: turn, sender });
+        // For the applicant we may take several internal rounds within a
+        // single turn (call tool, get text back, then write the message).
+        // The recruiter never loops — its only tool is `decline_now`, which
+        // ends the turn anyway. dialogContents is rebuilt each retry so the
+        // tool history is recreated cleanly from the transcript on retry.
+        const dialogContents = buildContents(transcript, sender);
+        let lastText = '';
+        let lastFunctionCalls = [];
 
-        const config = { systemInstruction: sysPrompts[sender] };
-        if (isRecruiter) {
-          config.tools = RECRUITER_TOOLS;
-          config.toolConfig = RECRUITER_TOOL_CONFIG;
-        }
+        for (let round = 0; round < MAX_APPLICANT_TOOL_ROUNDS; round++) {
+          // Re-emitted on every retry AND on every tool round so the UI
+          // resets the in-progress buffer (any intermediate text the model
+          // produced before deciding to call a tool gets discarded).
+          emit(applicationId, { type: 'turn-start', turnIndex: turn, sender });
 
-        const stream = await ai.models.generateContentStream({
-          model: MODEL,
-          contents: buildContents(transcript, sender),
-          config,
-        });
-
-        let acc = '';
-        const fnCalls = [];
-        for await (const chunk of stream) {
-          const delta = typeof chunk.text === 'string' ? chunk.text : '';
-          if (delta) {
-            acc += delta;
-            emit(applicationId, {
-              type: 'delta',
-              turnIndex: turn,
-              sender,
-              delta,
-            });
+          const config = { systemInstruction: sysPrompts[sender] };
+          if (isRecruiter) {
+            config.tools = RECRUITER_TOOLS;
+            config.toolConfig = RECRUITER_TOOL_CONFIG;
+          } else {
+            config.tools = APPLICANT_TOOLS;
+            config.toolConfig = APPLICANT_TOOL_CONFIG;
           }
-          const calls = chunk.functionCalls;
-          if (calls && calls.length) fnCalls.push(...calls);
+
+          const stream = await ai.models.generateContentStream({
+            model: MODEL,
+            contents: dialogContents,
+            config,
+          });
+
+          let acc = '';
+          const fnCalls = [];
+          for await (const chunk of stream) {
+            const delta = typeof chunk.text === 'string' ? chunk.text : '';
+            if (delta) {
+              acc += delta;
+              emit(applicationId, {
+                type: 'delta',
+                turnIndex: turn,
+                sender,
+                delta,
+              });
+            }
+            const calls = chunk.functionCalls;
+            if (calls && calls.length) fnCalls.push(...calls);
+          }
+
+          lastText = acc.trim();
+          lastFunctionCalls = fnCalls;
+
+          // The applicant called `read_uploaded_document` — execute it,
+          // append the model + tool messages to dialogContents, and let the
+          // model continue. On the next round it should write the actual
+          // turn body using what it learned.
+          if (!isRecruiter && fnCalls.length > 0) {
+            const modelParts = [];
+            if (acc) modelParts.push({ text: acc });
+            for (const c of fnCalls) {
+              modelParts.push({
+                functionCall: { name: c.name, args: c.args || {} },
+              });
+            }
+            dialogContents.push({ role: 'model', parts: modelParts });
+
+            const responseParts = fnCalls.map((c) => {
+              const response = executeApplicantTool(
+                applicantBundle.user.id,
+                c,
+              );
+              emit(applicationId, {
+                type: 'applicant-tool-call',
+                turnIndex: turn,
+                name: c.name,
+                args: c.args || null,
+                ok: !!response.ok,
+                error: response.ok ? null : response.error,
+              });
+              return { functionResponse: { name: c.name, response } };
+            });
+            dialogContents.push({ role: 'user', parts: responseParts });
+            continue;
+          }
+
+          // Recruiter early-decline (or applicant with no more tool calls).
+          break;
         }
-        return { text: acc.trim(), functionCalls: fnCalls };
+
+        return { text: lastText, functionCalls: lastFunctionCalls };
       },
       applicationId
     );
