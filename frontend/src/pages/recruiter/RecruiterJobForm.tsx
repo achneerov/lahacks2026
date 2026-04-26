@@ -345,6 +345,7 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
           expected_time_to_hire: '4-6 weeks', contact_person: 'Dana Recruiter',
           contact_email_phone: 'dana@acme.example.com',
           is_active: true,
+          min_verification_level: 'device',
         });
         setFieldErrors({});
         setIssues([]);
@@ -766,12 +767,6 @@ function Field({
       )}
     </label>
   );
-}
-
-function severityColor(s: JobReviewSeverity) {
-  if (s === 'error') return 'var(--danger)';
-  if (s === 'warning') return 'var(--warning)';
-  return 'var(--text)';
 }
 
 function severityStyle(s: JobReviewSeverity): CSSProperties {
