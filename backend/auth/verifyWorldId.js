@@ -18,8 +18,13 @@ async function verifyWorldId(idkitResult) {
 
   if (!res.ok || data.success === false) {
     const err = new Error(data.detail || data.code || 'World ID verification failed');
-    err.status = 400;
+    err.status = res.status || 400;
     err.code = data.code;
+    console.error('[WorldID] verify failed:', {
+      status: err.status,
+      code: err.code,
+      detail: data.detail || null,
+    });
     throw err;
   }
 

@@ -77,7 +77,7 @@ export default function SignupWorldId() {
       } catch (e) {
         setError(
           e instanceof ApiError
-            ? errorMessage(e.code, e.detail)
+            ? errorMessage(e.code, e.detail, e.status)
             : 'Something went wrong. Please try again.'
         );
       } finally {
@@ -108,7 +108,7 @@ export default function SignupWorldId() {
     } catch (e) {
       setError(
         e instanceof ApiError
-          ? errorMessage(e.code, e.detail)
+          ? errorMessage(e.code, e.detail, e.status)
           : 'Something went wrong. Please try again.'
       );
     } finally {
@@ -227,7 +227,12 @@ export default function SignupWorldId() {
   );
 }
 
-function errorMessage(code: string, detail?: string): string {
+function errorMessage(code: string, detail?: string, status?: number): string {
+  if (status === 401) {
+    return detail
+      ? `World ID request was rejected by the backend (401): ${detail}`
+      : 'World ID request was rejected by the backend (401). Check backend auth/proxy rules and WORLD_ID_* env config.';
+  }
   switch (code) {
     case 'email_taken':
       return 'That email is already registered.';
