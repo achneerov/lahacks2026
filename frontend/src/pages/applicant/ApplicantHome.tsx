@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
 import { api, ApiError, type ApplicantHomeResponse } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 
@@ -143,6 +144,7 @@ export default function ApplicantHome() {
             <ul style={styles.list}>
               {data.featured_jobs.map((j) => (
                 <li key={j.id} style={styles.listItem}>
+                  <Link to={`/applicant/jobs`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={styles.itemTopRow}>
                     <span style={styles.itemTitle}>{j.title}</span>
                     {j.employment_type && (
@@ -161,6 +163,7 @@ export default function ApplicantHome() {
                     )}
                   </div>
                   <p style={styles.itemBody}>{formatSalary(j)}</p>
+                  </Link>
                 </li>
               ))}
             </ul>
