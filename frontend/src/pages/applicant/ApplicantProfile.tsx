@@ -20,6 +20,7 @@ import {
   type AboutMeInput,
   type LegalInput,
   type EeoInput,
+  type VerificationLevel,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import UploadedDocsManager from '../../components/UploadedDocsManager';
@@ -73,8 +74,23 @@ const EMPLOYMENT_TYPES: { value: string; label: string }[] = [
   { value: 'Temporary', label: 'Temporary' },
 ];
 
+function formatVerificationLevel(level: VerificationLevel | string | null | undefined): string {
+  switch (level) {
+    case 'orb':
+      return 'Orb verified';
+    case 'document':
+      return 'Document verified';
+    case 'face':
+      return 'Face verified';
+    case 'device':
+      return 'Device verified';
+    default:
+      return 'Unverified';
+  }
+}
+
 export default function ApplicantProfile() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -520,6 +536,15 @@ export default function ApplicantProfile() {
       {success && <div role="status" style={styles.successBanner}>{success}</div>}
 
       <form style={styles.form} onSubmit={e => { e.preventDefault(); void save(); }}>
+        <Section title="Verification Level">
+          <div style={styles.readonlyCard}>
+            Current level: <strong>{formatVerificationLevel(user?.verification_level)}</strong>
+          </div>
+          <p style={styles.hint}>
+            This level comes from your World ID verification and cannot be edited here.
+          </p>
+        </Section>
+
         <Section title="Personal Information">
           <div style={styles.row}>
             <Field label="First name" value={firstName} onChange={setFirstName} />

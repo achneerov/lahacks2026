@@ -8,6 +8,7 @@ import {
   type JobReviewSeverity,
   type RecruiterJob,
   type RecruiterJobInput,
+  type VerificationLevel,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 
@@ -84,6 +85,8 @@ type FormState = {
   expected_time_to_hire: string;
   contact_person: string;
   contact_email_phone: string;
+  // Verification gate
+  min_verification_level: VerificationLevel;
   // Status
   is_active: boolean;
 };
@@ -111,8 +114,16 @@ const EMPTY_FORM: FormState = {
   application_deadline: '', documents_required: '',
   interview_rounds: '', interview_format: '', expected_time_to_hire: '',
   contact_person: '', contact_email_phone: '',
+  min_verification_level: 'device',
   is_active: true,
 };
+
+const VERIFICATION_OPTIONS: { value: VerificationLevel; label: string }[] = [
+  { value: 'device', label: 'Any (Device or higher)' },
+  { value: 'face', label: 'Selfie Face or higher' },
+  { value: 'document', label: 'Document or higher' },
+  { value: 'orb', label: 'Proof of Human (Orb) only' },
+];
 
 const EMPLOYMENT_OPTIONS: { value: EmploymentType | ''; label: string }[] = [
   { value: '', label: 'Not specified' },
@@ -202,6 +213,7 @@ function jobToForm(job: RecruiterJob | null): FormState {
     interview_format: tryParseJsonArray(job.interview_format).join('\n'),
     expected_time_to_hire: job.expected_time_to_hire ?? '',
     contact_person: job.contact_person ?? '', contact_email_phone: job.contact_email_phone ?? '',
+    min_verification_level: job.min_verification_level ?? 'device',
     is_active: job.is_active === 1,
   };
 }
@@ -270,6 +282,7 @@ function buildPayload(form: FormState): RecruiterJobInput {
     expected_time_to_hire: strOrNull(form.expected_time_to_hire),
     contact_person: strOrNull(form.contact_person),
     contact_email_phone: strOrNull(form.contact_email_phone),
+    min_verification_level: form.min_verification_level,
     is_active: form.is_active,
   };
 }
@@ -616,6 +629,24 @@ export default function RecruiterJobForm({ mode }: { mode: Mode }) {
             <Field label="Contact person" input={<input type="text" value={form.contact_person} onChange={e => update('contact_person', e.target.value)} style={styles.input} />} />
             <Field label="Contact email / phone" input={<input type="text" value={form.contact_email_phone} onChange={e => update('contact_email_phone', e.target.value)} style={styles.input} />} />
           </div>
+        </fieldset>
+
+        <fieldset style={styles.fieldset} disabled={saving}>
+          <legend style={styles.legend}>Verification Gate</legend>
+          <Field
+            label="Minimum World ID level required to apply"
+            input={
+              <select
+                value={form.min_verification_level}
+                onChange={e => update('min_verification_level', e.target.value as VerificationLevel)}
+                style={styles.input}
+              >
+                {VERIFICATION_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            }
+          />
         </fieldset>
 
         <fieldset style={styles.fieldset} disabled={saving}>

@@ -4,6 +4,7 @@ const db = require('../db');
 const { requireAuth } = require('../auth/jwt');
 const { startNegotiation, isConfigured } = require('../agents/negotiator');
 const { subscribe } = require('../agents/bus');
+const { meetsLevel } = require('../auth/verificationLevels');
 
 const router = express.Router();
 
@@ -63,10 +64,21 @@ router.post('/', requireAuth, (req, res) => {
   }
 
   const job = db
-    .prepare('SELECT id, is_active FROM job_postings WHERE id = ?')
+    .prepare('SELECT id, is_active, min_verification_level FROM job_postings WHERE id = ?')
     .get(jobId);
   if (!job) return res.status(404).json({ error: 'job_not_found' });
   if (!job.is_active) return res.status(409).json({ error: 'job_inactive' });
+
+  const applicant = db
+    .prepare('SELECT verification_level FROM users WHERE id = ?')
+    .get(req.user.id);
+  if (!meetsLevel(applicant?.verification_level, job.min_verification_level)) {
+    return res.status(403).json({
+      error: 'verification_level_too_low',
+      required: job.min_verification_level,
+      current: applicant?.verification_level || null,
+    });
+  }
 
   let applicationId;
   try {

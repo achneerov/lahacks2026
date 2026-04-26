@@ -33,6 +33,14 @@ const PROFILE_TEXT_FIELDS = [
 
 const PROFILE_URL_FIELDS = ['linkedin_url', 'website_portfolio', 'github_or_other_portfolio'];
 
+function worldIdLog(stage, details = {}) {
+  try {
+    console.log(`[WorldID][${stage}]`, details);
+  } catch {
+    // Logging should never break request handling.
+  }
+}
+
 function sanitizeProfile(raw) {
   if (!raw || typeof raw !== 'object') return null;
 
@@ -103,13 +111,31 @@ router.get('/world-id-context', (req, res) => {
   const rp_id = process.env.WORLD_ID_RP_ID;
   const app_id = process.env.WORLD_ID_APP_ID;
   const action = process.env.WORLD_ID_ACTION || 'register';
+  worldIdLog('context:start', {
+    ip: req.ip,
+    has_signing_key: !!signingKeyHex,
+    has_rp_id: !!rp_id,
+    has_app_id: !!app_id,
+    action,
+  });
 
   if (!signingKeyHex || !rp_id || !app_id) {
+    worldIdLog('context:missing_config', {
+      has_signing_key: !!signingKeyHex,
+      has_rp_id: !!rp_id,
+      has_app_id: !!app_id,
+    });
     return res.status(500).json({ error: 'world_id_not_configured' });
   }
 
   try {
     const { sig, nonce, createdAt, expiresAt } = signRequest({ signingKeyHex, action });
+    worldIdLog('context:ok', {
+      ip: req.ip,
+      action,
+      nonce_prefix: typeof nonce === 'string' ? nonce.slice(0, 10) : null,
+      expires_at: expiresAt,
+    });
     return res.json({
       app_id,
       action,
@@ -123,6 +149,10 @@ router.get('/world-id-context', (req, res) => {
     });
   } catch (e) {
     console.error('[WorldID] signRequest failed:', e);
+    worldIdLog('context:error', {
+      ip: req.ip,
+      message: e?.message || String(e),
+    });
     return res.status(500).json({ error: 'sign_failed', detail: e.message });
   }
 });
@@ -169,8 +199,18 @@ router.post('/signup/check-basics', (req, res) => {
 
 router.post('/signup/check-world-id', async (req, res) => {
   const { world_id_result } = req.body || {};
+  worldIdLog('check:start', {
+    ip: req.ip,
+    has_result: !!world_id_result,
+    has_merkle_root: !!world_id_result?.merkle_root,
+    has_proof: !!world_id_result?.proof,
+    responses_count: Array.isArray(world_id_result?.responses)
+      ? world_id_result.responses.length
+      : 0,
+  });
 
   if (!world_id_result) {
+    worldIdLog('check:missing_fields', { ip: req.ip });
     return res.status(400).json({ error: 'missing_fields' });
   }
 
@@ -179,6 +219,12 @@ router.post('/signup/check-world-id', async (req, res) => {
   try {
     ({ nullifier_hash, verification_level } = await verifyWorldId(world_id_result));
   } catch (e) {
+    worldIdLog('check:verify_failed', {
+      ip: req.ip,
+      status: e?.status,
+      code: e?.code,
+      message: e?.message || String(e),
+    });
     return res.status(e.status || 400).json({ error: 'world_id_failed', detail: e.message });
   }
 
@@ -186,16 +232,43 @@ router.post('/signup/check-world-id', async (req, res) => {
     .prepare('SELECT 1 FROM users WHERE worldu_id = ?')
     .get(nullifier_hash);
   if (existing) {
+    worldIdLog('check:already_used', {
+      ip: req.ip,
+      verification_level,
+      nullifier_prefix:
+        typeof nullifier_hash === 'string' ? nullifier_hash.slice(0, 10) : null,
+    });
     return res.status(409).json({ error: 'world_id_already_used' });
   }
 
+  worldIdLog('check:ok', {
+    ip: req.ip,
+    verification_level,
+    nullifier_prefix:
+      typeof nullifier_hash === 'string' ? nullifier_hash.slice(0, 10) : null,
+  });
   return res.json({ ok: true, verification_level });
 });
 
 router.post('/register', async (req, res) => {
   const { email, password, username, role, world_id_result, profile } = req.body || {};
+  worldIdLog('register:start', {
+    ip: req.ip,
+    role,
+    email,
+    username,
+    has_world_id_result: !!world_id_result,
+    has_profile: !!profile,
+  });
 
   if (!email || !password || !username || !role || !world_id_result) {
+    worldIdLog('register:missing_fields', {
+      ip: req.ip,
+      role,
+      email,
+      username,
+      has_world_id_result: !!world_id_result,
+    });
     return res.status(400).json({ error: 'missing_fields' });
   }
   if (!ROLES.includes(role)) {
@@ -219,6 +292,15 @@ router.post('/register', async (req, res) => {
   try {
     ({ nullifier_hash, verification_level } = await verifyWorldId(world_id_result));
   } catch (e) {
+    worldIdLog('register:verify_failed', {
+      ip: req.ip,
+      role,
+      email,
+      username,
+      status: e?.status,
+      code: e?.code,
+      message: e?.message || String(e),
+    });
     return res.status(e.status || 400).json({ error: 'world_id_failed', detail: e.message });
   }
 
@@ -380,10 +462,25 @@ router.post('/register', async (req, res) => {
     const user = db
       .prepare('SELECT id, role, email, username, verification_level, trust_score FROM users WHERE id = ?')
       .get(userId);
+    worldIdLog('register:ok', {
+      ip: req.ip,
+      user_id: userId,
+      role: user?.role,
+      email: user?.email,
+      username: user?.username,
+      verification_level,
+    });
     const token = signToken(user);
     return res.status(201).json({ token, user });
   } catch (e) {
     if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      worldIdLog('register:unique_conflict', {
+        ip: req.ip,
+        role,
+        email,
+        username,
+        message: e?.message || String(e),
+      });
       const field = /worldu_id/.test(e.message)
         ? 'world_id_already_used'
         : /email/.test(e.message)
@@ -394,6 +491,13 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: field });
     }
     console.error(e);
+    worldIdLog('register:error', {
+      ip: req.ip,
+      role,
+      email,
+      username,
+      message: e?.message || String(e),
+    });
     return res.status(500).json({ error: 'server_error' });
   }
 });

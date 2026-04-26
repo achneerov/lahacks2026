@@ -559,6 +559,7 @@ router.get('/jobs', requireAuth, requireApplicant, (req, res) => {
     const jobs = db.prepare(
       `SELECT jp.id, jp.title, jp.company, jp.description, jp.location, jp.remote,
               jp.employment_type, jp.salary_min, jp.salary_max, jp.salary_currency, jp.created_at,
+              jp.min_verification_level,
               u.username AS poster_username
          FROM job_postings jp JOIN users u ON u.id = jp.poster_id ${whereSql}
          ORDER BY jp.created_at DESC LIMIT ? OFFSET ?`

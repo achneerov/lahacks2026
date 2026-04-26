@@ -898,13 +898,11 @@ function TrustStat({
 function verificationLabel(level: string | null | undefined): string {
   switch (level) {
     case 'orb':
-      return 'Orb (in-person biometric)';
-    case 'iris':
-      return 'Iris-verified';
-    case 'passport':
-      return 'Passport-verified';
+      return 'Proof of Human (Orb)';
     case 'document':
       return 'Document-verified';
+    case 'face':
+      return 'Selfie Face-verified';
     default:
       return 'Device-only';
   }

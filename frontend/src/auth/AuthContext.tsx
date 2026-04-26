@@ -10,10 +10,23 @@ interface AuthState {
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
-const STORAGE_KEY = 'auth_token';
+const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001';
+const STORAGE_KEY = `auth_token:${API_BASE}`;
+const LEGACY_STORAGE_KEY = 'auth_token';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(STORAGE_KEY));
+  const [token, setToken] = useState<string | null>(() => {
+    const scoped = localStorage.getItem(STORAGE_KEY);
+    if (scoped) return scoped;
+    // One-time migration for older builds that used a global key.
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      localStorage.setItem(STORAGE_KEY, legacy);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return legacy;
+    }
+    return null;
+  });
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(!!token);
 

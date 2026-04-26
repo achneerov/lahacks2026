@@ -7,8 +7,36 @@ import {
   type ApplicantJobsResponse,
   type EmploymentType,
   type JobPosting,
+  type VerificationLevel,
 } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
+import { VerificationLevelBadge } from '../../components/Badges';
+
+const LEVEL_RANK: Record<VerificationLevel, number> = {
+  orb: 4,
+  document: 3,
+  face: 2,
+  device: 1,
+};
+
+function meetsLevel(
+  userLevel: VerificationLevel | null | undefined,
+  requiredLevel: VerificationLevel | null | undefined,
+): boolean {
+  const u = userLevel ? LEVEL_RANK[userLevel] : 0;
+  const r = requiredLevel ? LEVEL_RANK[requiredLevel] : 0;
+  return u >= r;
+}
+
+function verificationLabel(level: VerificationLevel | null | undefined): string {
+  switch (level) {
+    case 'orb': return 'Proof of Human (Orb)';
+    case 'document': return 'Document';
+    case 'face': return 'Selfie Face';
+    case 'device': return 'Device';
+    default: return 'unverified';
+  }
+}
 
 type RemoteFilter = 'any' | 'remote' | 'onsite';
 
@@ -31,8 +59,9 @@ const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
 const PAGE_SIZE = 20;
 
 export default function ApplicantJobs() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
+  const userLevel = user?.verification_level ?? null;
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -61,7 +90,9 @@ export default function ApplicantJobs() {
         err instanceof ApiError
           ? err.code === 'already_applied'
             ? 'You already applied to this role.'
-            : err.detail || err.code
+            : err.code === 'verification_level_too_low'
+              ? `This role requires ${verificationLabel(job.min_verification_level)} or higher.`
+              : err.detail || err.code
           : 'Could not submit your application.';
       setApplyError(msg);
       setApplyingJobId(null);
@@ -310,6 +341,7 @@ export default function ApplicantJobs() {
               onApply={handleApply}
               applying={applyingJobId === selectedJob.id}
               applyError={applyingJobId == null ? applyError : null}
+              userLevel={userLevel}
             />
           ) : (
             <div style={styles.detailEmpty}>
@@ -331,14 +363,19 @@ function JobDetail({
   onApply,
   applying,
   applyError,
+  userLevel,
 }: {
   job: JobPosting;
   onApply: (job: JobPosting) => void;
   applying: boolean;
   applyError: string | null;
+  userLevel: VerificationLevel | null;
 }) {
-  const primaryStyle = applying
-    ? { ...styles.primaryBtn, cursor: 'progress', opacity: 0.7 }
+  const meets = meetsLevel(userLevel, job.min_verification_level);
+  const gated = job.min_verification_level !== 'device' && !meets;
+  const disabled = applying || gated;
+  const primaryStyle = disabled
+    ? { ...styles.primaryBtn, cursor: applying ? 'progress' : 'not-allowed', opacity: 0.6 }
     : { ...styles.primaryBtn, cursor: 'pointer', opacity: 1 };
 
   return (
@@ -369,6 +406,17 @@ function JobDetail({
             · Posted {formatRelative(job.created_at)} by @{job.poster_username}
           </span>
         </div>
+        {job.min_verification_level !== 'device' && (
+          <div style={styles.detailMetaRow}>
+            <span style={styles.detailMetaMuted}>Requires:</span>
+            <VerificationLevelBadge level={job.min_verification_level} />
+            {!meets && (
+              <span style={{ ...styles.detailMetaMuted, color: 'var(--warning)' }}>
+                · Your level ({verificationLabel(userLevel)}) does not meet this requirement.
+              </span>
+            )}
+          </div>
+        )}
       </header>
 
       <div style={styles.detailBody}>
@@ -388,10 +436,15 @@ function JobDetail({
         <button
           type="button"
           style={primaryStyle}
-          disabled={applying}
+          disabled={disabled}
           onClick={() => onApply(job)}
+          title={gated ? `Requires ${verificationLabel(job.min_verification_level)} or higher.` : undefined}
         >
-          {applying ? 'Starting agent screen…' : 'Apply'}
+          {applying
+            ? 'Starting agent screen…'
+            : gated
+              ? `Verify with ${verificationLabel(job.min_verification_level)} to apply`
+              : 'Apply'}
         </button>
       </div>
     </div>
