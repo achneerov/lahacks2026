@@ -1,5 +1,5 @@
-import { useState, useEffect, type CSSProperties } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ApiError, api, type SignupRole } from '../../lib/api';
 import { useSignup } from '../../signup/SignupContext';
 

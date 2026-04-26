@@ -57,6 +57,7 @@ export default function SignupWorldId() {
   }, [basics]);
 
   if (!basics && !completedRef.current) return <Navigate to="/signup" replace />;
+  if (!basics) return null;
 
   const isApplicant = basics.role === 'Applicant';
 
