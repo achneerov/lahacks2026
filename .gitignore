@@ -9,3 +9,4 @@ backend/db/*.db-wal
 backend/db/*.db-shm
 **/key.json
 backend/uploads/
+reset-db.sh
