@@ -135,9 +135,10 @@ export default function SignupDocuments() {
         <div style={layout.leftContent}>
           <div style={layout.logoRow}>
             <div style={layout.logoIcon}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              <span style={layout.logoRingMid}></span>
+              <span style={layout.logoRingInner}></span>
             </div>
-            <span style={layout.logoText}>AegisTalent</span>
+            <span style={layout.logoText}>Impulse</span>
           </div>
           <div style={layout.heroTextContainer}>
             <h1 style={layout.heroTitle}>Give your AI agent something to cite.</h1>
@@ -310,8 +311,8 @@ const layout: Record<string, CSSProperties> = {
   leftOverlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: '#000000',
-    opacity: 0.75,
+    backgroundColor: 'var(--brand-ink)',
+    opacity: 0.78,
   },
   leftContent: {
     position: 'relative',
@@ -328,11 +329,29 @@ const layout: Record<string, CSSProperties> = {
   logoIcon: {
     width: '32px',
     height: '32px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'relative',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoRingMid: {
+    width: '18px',
+    height: '18px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'absolute',
+    boxSizing: 'border-box',
+  },
+  logoRingInner: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    border: '2px solid #FFFFFF',
+    position: 'absolute',
+    boxSizing: 'border-box',
   },
   logoText: { fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' },
   heroTextContainer: { maxWidth: '480px', marginBottom: '80px' },
@@ -345,7 +364,7 @@ const layout: Record<string, CSSProperties> = {
   },
   heroSubtitle: {
     fontSize: '16px',
-    color: '#CBD5E1',
+    color: 'rgba(255,255,255,0.82)',
     lineHeight: 1.6,
     margin: 0,
   },
@@ -358,7 +377,7 @@ const layout: Record<string, CSSProperties> = {
   statLabel: {
     fontSize: '11px',
     fontWeight: 600,
-    color: '#94A3B8',
+    color: 'rgba(255,255,255,0.7)',
     letterSpacing: '1px',
     marginBottom: '8px',
   },
@@ -367,12 +386,12 @@ const layout: Record<string, CSSProperties> = {
     flex: '1',
     minWidth: 0,
     minHeight: 0,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'var(--bg)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    borderLeft: '1px solid #E2E8F0',
+    borderLeft: '1px solid var(--border)',
     overflow: 'auto',
     WebkitOverflowScrolling: 'touch',
   },
@@ -394,25 +413,25 @@ const s: Record<string, CSSProperties> = {
     display: 'block',
     fontSize: '11px',
     fontWeight: 700,
-    color: '#3B82F6',
+    color: 'var(--accent)',
     letterSpacing: '1px',
     textTransform: 'uppercase',
     marginBottom: 10,
   },
   stepSegments: { display: 'flex', gap: 6, marginBottom: 12 },
-  stepSeg: { flex: 1, height: 3, background: '#E2E8F0', borderRadius: 2 },
-  stepSegOn: { background: '#0F172A' },
-  stepSegCurrent: { background: '#3B82F6' },
+  stepSeg: { flex: 1, height: 3, background: 'var(--border)', borderRadius: 2 },
+  stepSegOn: { background: 'var(--brand-ink)' },
+  stepSegCurrent: { background: 'var(--accent)' },
   panelTitle: {
     fontSize: '22px',
     fontWeight: 500,
-    color: '#1E293B',
+    color: 'var(--text-h)',
     margin: '0 0 6px',
     letterSpacing: '-0.3px',
   },
   panelSubtitle: {
     fontSize: '14px',
-    color: '#64748B',
+    color: 'var(--text)',
     margin: 0,
     lineHeight: 1.55,
   },
@@ -422,8 +441,8 @@ const s: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
-    background: '#FFFFFF',
-    border: '1px solid #E2E8F0',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
     borderRadius: 20,
     padding: '20px 22px',
     marginBottom: 16,
@@ -432,7 +451,7 @@ const s: Record<string, CSSProperties> = {
   hint: {
     margin: 0,
     fontSize: 13,
-    color: '#475569',
+    color: 'var(--text)',
     lineHeight: 1.5,
   },
   uploadRow: {
@@ -450,16 +469,16 @@ const s: Record<string, CSSProperties> = {
   label: {
     fontSize: 12,
     fontWeight: 600,
-    color: '#475569',
+    color: 'var(--text)',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   input: {
     padding: '10px 12px',
     fontSize: 14,
-    color: '#0f172a',
-    background: '#fff',
-    border: '1px solid #cbd5e1',
+    color: 'var(--text-h)',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
     borderRadius: 10,
     outline: 'none',
     fontFamily: 'inherit',
@@ -483,8 +502,8 @@ const s: Record<string, CSSProperties> = {
     fontSize: 13,
     fontWeight: 600,
     color: '#fff',
-    background: '#0F172A',
-    border: '1px solid #0F172A',
+    background: 'var(--brand-ink)',
+    border: '1px solid var(--brand-ink)',
     borderRadius: 999,
     cursor: 'pointer',
     fontFamily: 'inherit',
@@ -493,9 +512,9 @@ const s: Record<string, CSSProperties> = {
   error: {
     padding: '10px 12px',
     fontSize: 13,
-    color: '#b00020',
-    background: 'rgba(176, 0, 32, 0.08)',
-    border: '1px solid rgba(176, 0, 32, 0.25)',
+    color: 'var(--danger-strong)',
+    background: 'var(--danger-strong-bg)',
+    border: '1px solid var(--danger-strong-border)',
     borderRadius: 10,
   },
   list: {
@@ -507,9 +526,9 @@ const s: Record<string, CSSProperties> = {
   empty: {
     margin: 0,
     fontSize: 13,
-    color: '#64748b',
+    color: 'var(--text)',
     padding: 12,
-    border: '1px dashed #cbd5e1',
+    border: '1px dashed var(--border)',
     borderRadius: 10,
     textAlign: 'center',
   },
@@ -519,9 +538,9 @@ const s: Record<string, CSSProperties> = {
     justifyContent: 'space-between',
     gap: 12,
     padding: '10px 14px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--border)',
     borderRadius: 10,
-    background: '#fff',
+    background: 'var(--bg)',
   },
   docInfo: {
     display: 'flex',
@@ -533,19 +552,19 @@ const s: Record<string, CSSProperties> = {
   docTitle: {
     fontSize: 14,
     fontWeight: 600,
-    color: '#0f172a',
+    color: 'var(--text-h)',
   },
   docMeta: {
     fontSize: 12,
-    color: '#64748b',
+    color: 'var(--text)',
   },
   removeBtn: {
     padding: '6px 12px',
     fontSize: 12,
     fontWeight: 600,
-    color: '#9a1a1a',
+    color: 'var(--danger)',
     background: 'transparent',
-    border: '1px solid rgba(154, 26, 26, 0.45)',
+    border: '1px solid var(--danger-border)',
     borderRadius: 999,
     cursor: 'pointer',
     fontFamily: 'inherit',
@@ -560,7 +579,7 @@ const s: Record<string, CSSProperties> = {
   backLink: {
     fontSize: '13px',
     fontWeight: 500,
-    color: '#3B82F6',
+    color: 'var(--accent)',
     textDecoration: 'none',
     display: 'flex',
     alignItems: 'center',
@@ -580,7 +599,7 @@ const s: Record<string, CSSProperties> = {
     fontSize: '14px',
     fontWeight: 600,
     color: '#fff',
-    background: '#0F172A',
+    background: 'var(--brand-ink)',
     borderRadius: '999px',
     letterSpacing: '0.5px',
     fontFamily: 'inherit',

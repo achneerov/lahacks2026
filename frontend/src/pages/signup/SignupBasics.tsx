@@ -190,8 +190,8 @@ export default function SignupBasics() {
                       }}
                       aria-pressed={active}
                     >
-                      <span style={{...styles.roleTitle, color: active ? 'white' : '#1E293B'}}>{r.title}</span>
-                      <span style={{...styles.roleSubtitle, color: active ? '#CBD5E1' : '#64748B'}}>{r.subtitle}</span>
+                      <span style={{...styles.roleTitle, color: active ? '#ffffff' : 'var(--text-h)'}}>{r.title}</span>
+                      <span style={{...styles.roleSubtitle, color: active ? 'rgba(255,255,255,0.82)' : 'var(--text)'}}>{r.subtitle}</span>
                     </button>
                   );
                 })}
@@ -280,8 +280,8 @@ const styles: Record<string, React.CSSProperties> = {
   leftOverlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: '#000000',
-    opacity: 0.75,
+    backgroundColor: 'var(--brand-ink)',
+    opacity: 0.78,
   },
   leftContent: {
     position: 'relative',
@@ -343,7 +343,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   heroSubtitle: {
     fontSize: '16px',
-    color: '#CBD5E1', // slate-300
+    color: 'rgba(255,255,255,0.82)',
     lineHeight: 1.6,
     margin: 0
   },
@@ -356,7 +356,7 @@ const styles: Record<string, React.CSSProperties> = {
   statLabel: {
     fontSize: '11px',
     fontWeight: 600,
-    color: '#94A3B8', // slate-400
+    color: 'rgba(255,255,255,0.7)',
     letterSpacing: '1px',
     marginBottom: '8px'
   },
@@ -368,11 +368,11 @@ const styles: Record<string, React.CSSProperties> = {
   // RIGHT PANEL
   rightPanel: {
     flex: '1',
-    backgroundColor: '#F8FAFC', // very light slate/gray
+    backgroundColor: 'var(--bg)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderLeft: '1px solid #E2E8F0', // slate-200
+    borderLeft: '1px solid var(--border)',
     overflowY: 'auto'
   },
   rightContentBox: {
@@ -387,7 +387,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-block',
     fontSize: '11px',
     fontWeight: 700,
-    color: '#3B82F6', // a confident blue
+    color: 'var(--accent)',
     letterSpacing: '1px',
     textTransform: 'uppercase',
     marginBottom: '8px'
@@ -395,12 +395,12 @@ const styles: Record<string, React.CSSProperties> = {
   formTitle: {
     fontSize: '22px',
     fontWeight: 500,
-    color: '#1E293B', // slate-800
+    color: 'var(--text-h)',
     margin: '0 0 8px'
   },
   formSubtitle: {
     fontSize: '14px',
-    color: '#64748B', // slate-500
+    color: 'var(--text)',
     margin: 0,
     lineHeight: 1.5
   },
@@ -417,16 +417,16 @@ const styles: Record<string, React.CSSProperties> = {
   label: {
     fontSize: '11px',
     fontWeight: 600,
-    color: '#1E293B',
+    color: 'var(--text-h)',
     letterSpacing: '0.5px'
   },
   input: {
     width: '100%',
     padding: '16px',
     fontSize: '15px',
-    color: '#0F172A',
-    backgroundColor: 'white',
-    border: '1px solid #CBD5E1', // slate-300
+    color: 'var(--text-h)',
+    backgroundColor: 'var(--bg)',
+    border: '1px solid var(--border)',
     borderRadius: '999px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -442,8 +442,8 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     textAlign: 'left',
     padding: '16px 24px',
-    background: 'white',
-    border: '1px solid #CBD5E1',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
     borderRadius: '24px',
     display: 'flex',
     flexDirection: 'column',
@@ -451,9 +451,9 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.2s ease',
   },
   roleCardActive: {
-    border: '1px solid #0F172A',
-    background: '#0F172A',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    border: '1px solid var(--accent)',
+    background: 'var(--accent)',
+    boxShadow: 'var(--shadow)',
   },
   roleTitle: {
     fontSize: '14px',
@@ -469,7 +469,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '16px',
     fontSize: '14px',
     fontWeight: 600,
-    backgroundColor: '#000',
+    backgroundColor: 'var(--brand-ink)',
     color: '#fff',
     border: 'none',
     borderRadius: '999px',
@@ -483,15 +483,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
   errorBox: {
     padding: '12px',
-    backgroundColor: '#FEF2F2',
-    color: '#DC2626',
+    backgroundColor: 'var(--danger-bg)',
+    color: 'var(--danger)',
+    border: '1px solid var(--danger-border)',
     borderRadius: '8px',
     fontSize: '13px',
     textAlign: 'center'
   },
   divider: {
     height: '1px',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'var(--border)',
     margin: '24px 0'
   },
   createBtn: {
@@ -500,8 +501,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     fontWeight: 600,
     backgroundColor: 'transparent',
-    color: '#1E293B',
-    border: '1px solid #CBD5E1',
+    color: 'var(--text-h)',
+    border: '1px solid var(--border)',
     borderRadius: '999px',
     cursor: 'pointer',
     letterSpacing: '0.5px',
@@ -514,7 +515,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '12px',
     marginTop: '40px',
     fontSize: '12px',
-    color: '#94A3B8'
+    color: 'var(--text)'
   },
   dot: {
     fontSize: '10px'

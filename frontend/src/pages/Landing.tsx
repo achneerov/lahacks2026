@@ -91,7 +91,7 @@ export default function Landing() {
                 </div>
                 <div style={styles.calcResultBlock}>
                   <div style={styles.calcResultLabel}>Recruiter Hours Saved</div>
-                  <div style={{...styles.calcResultValue, color: '#0044FF'}}>{hoursSaved.toLocaleString()} hrs</div>
+                  <div style={{...styles.calcResultValue, color: 'var(--accent)'}}>{hoursSaved.toLocaleString()} hrs</div>
                 </div>
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function Landing() {
           <div style={styles.cardsGrid}>
             <div style={styles.lightCard}>
               <div style={styles.fingerprintWatermark}>
-                <svg width="240" height="240" viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="240" height="240" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 12C2 6.48 6.48 2 12 2s10 4.48 10 10-4.48 10-10 10S2 17.52 2 12z"></path>
                   <path d="M5.5 9.5c1.5-2 4-3.5 6.5-3.5s5 1.5 6.5 3.5"></path>
                   <path d="M7 13c1-2.5 3.5-4 5-4s4 1.5 5 4"></path>
@@ -119,10 +119,10 @@ export default function Landing() {
               </div>
               <div style={styles.cardTop}>
                 <div style={styles.iconCircleLight}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#101828" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-h)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </div>
                 <div style={styles.verifiedPill}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                   <span>VERIFIED WORLD ID</span>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export default function Landing() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>
               </div>
               <h3 style={{...styles.cardTitle, color: 'white'}}>Dynamic Reliability Score</h3>
-              <p style={{...styles.cardBody, color: '#9ca3af'}}>Every candidate carries a unified Reliability Score based on their verification status and historical consistency, allowing your team to focus only on high-signal prospects.</p>
+              <p style={{...styles.cardBody, color: 'rgba(255,255,255,0.72)'}}>Every candidate carries a unified Reliability Score based on their verification status and historical consistency, allowing your team to focus only on high-signal prospects.</p>
               <div style={styles.cardFooterDark}>ELIMINATE APPLICATION NOISE</div>
             </div>
             
@@ -165,19 +165,19 @@ export default function Landing() {
             <ul style={styles.checkList}>
               <li style={styles.checkListItem}>
                 <div style={styles.checkIconLightWrapper}>
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
                 Plug-and-play ATS extensions
               </li>
               <li style={styles.checkListItem}>
                 <div style={styles.checkIconLightWrapper}>
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
                 Zero internal biometric storage
               </li>
               <li style={styles.checkListItem}>
                 <div style={styles.checkIconLightWrapper}>
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="#0044FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3L4.5 8.5L2 6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
                 GDPR & SOC2 Compliant pathways
               </li>
@@ -226,7 +226,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     fontFamily: 'Inter, system-ui, sans-serif',
-    backgroundColor: '#FAF9F6', 
+    backgroundColor: 'var(--bg)',
     margin: 0,
     padding: 0,
     overflowX: 'hidden'
@@ -247,7 +247,7 @@ const styles: Record<string, React.CSSProperties> = {
   logoIcon: {
     width: '24px',
     height: '24px',
-    border: '2px solid #111827',
+    border: '2px solid var(--text-h)',
     borderRadius: '50%',
     position: 'relative',
     boxSizing: 'border-box',
@@ -258,7 +258,7 @@ const styles: Record<string, React.CSSProperties> = {
   logoRingMid: {
     width: '14px',
     height: '14px',
-    border: '2px solid #111827',
+    border: '2px solid var(--text-h)',
     borderRadius: '50%',
     position: 'absolute',
     boxSizing: 'border-box'
@@ -266,7 +266,7 @@ const styles: Record<string, React.CSSProperties> = {
   logoRingInner: {
     width: '6px',
     height: '6px',
-    border: '2px solid #111827',
+    border: '2px solid var(--text-h)',
     borderRadius: '50%',
     position: 'absolute',
     boxSizing: 'border-box'
@@ -280,15 +280,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'var(--accent-bg)',
     padding: '6px 14px',
     borderRadius: '999px',
-    border: '1px solid #E5E7EB'
+    border: '1px solid var(--border)'
   },
   pulseLight: {
     width: '8px',
     height: '8px',
-    backgroundColor: '#10B981',
+    backgroundColor: 'var(--accent)',
     borderRadius: '50%',
     boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)'
   },
@@ -296,7 +296,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontFamily: 'ui-monospace, Consolas, monospace',
     fontWeight: 600,
-    color: '#4B5563'
+    color: 'var(--text)'
   },
   main: {
     display: 'flex',
@@ -321,7 +321,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '8px',
     padding: '6px 12px',
     backgroundColor: 'white',
-    border: '1px solid #E5E7EB',
+    border: '1px solid var(--border)',
     borderRadius: '999px',
     boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
   },
@@ -329,7 +329,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '16px',
     height: '16px',
     borderRadius: '50%',
-    backgroundColor: '#EBF0FF',
+    backgroundColor: 'var(--accent-bg)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -338,7 +338,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     fontWeight: 600,
     letterSpacing: '0.5px',
-    color: '#4B5563'
+    color: 'var(--text)'
   },
   heroTitle: {
     fontFamily: 'Playfair Display, serif',
@@ -346,18 +346,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     lineHeight: 1.1,
     letterSpacing: '-1px',
-    color: '#111827',
+    color: 'var(--text-h)',
     margin: 0
   },
   heroSubtitle: {
     fontSize: '18px',
     lineHeight: 1.5,
-    color: '#6B7280',
+    color: 'var(--text)',
     maxWidth: '650px',
     margin: 0
   },
   primaryBtn: {
-    backgroundColor: '#000',
+    backgroundColor: 'var(--brand-ink)',
     color: '#fff',
     border: 'none',
     borderRadius: '999px',
@@ -399,7 +399,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '32px',
     height: '32px',
     borderRadius: '50%',
-    backgroundColor: '#0044FF',
+    backgroundColor: 'var(--accent)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -413,12 +413,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '10px',
     fontWeight: 700,
     letterSpacing: '1px',
-    color: '#6B7280'
+    color: 'var(--text)'
   },
   trustRatioValue: {
     fontSize: '16px',
     fontWeight: 600,
-    color: '#111827'
+    color: 'var(--text-h)'
   },
   marqueeContainer: {
     width: '100%',
@@ -427,14 +427,14 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    borderBottom: '1px solid #E5E7EB',
+    borderBottom: '1px solid var(--border)',
     backgroundColor: 'white'
   },
   marqueeLabel: {
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '1px',
-    color: '#9CA3AF',
+    color: 'var(--text)',
     marginBottom: '32px'
   },
   marqueeOverlay: {
@@ -454,7 +454,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'Playfair Display, serif',
     fontStyle: 'italic',
     fontWeight: 600,
-    color: '#D1D5DB',
+    color: 'var(--text)',
     margin: '0 64px'
   },
 
@@ -464,7 +464,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '80px 24px',
     display: 'flex',
     justifyContent: 'center',
-    backgroundColor: '#FAF9F6' // Match warm cream
+    backgroundColor: 'var(--bg)'
   },
   bentoGrid: {
     display: 'flex',
@@ -480,25 +480,25 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     boxShadow: '0 10px 40px rgba(0,0,0,0.03)',
-    border: '1px solid #F0F0F0',
+    border: '1px solid var(--border)',
     position: 'relative',
     overflow: 'hidden'
   },
   bentoRoiCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--bg)',
     justifyContent: 'space-between'
   },
   bentoRoiTitle: {
     fontFamily: 'Playfair Display, serif',
     fontSize: '44px',
     fontWeight: 500,
-    color: '#111827',
+    color: 'var(--text-h)',
     margin: '0 0 12px',
     lineHeight: 1.1
   },
   bentoRoiSubtitle: {
     fontSize: '16px',
-    color: '#6B7280',
+    color: 'var(--text)',
     marginBottom: '32px'
   },
   bentoCalcTop: {
@@ -508,12 +508,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: '40px',
     paddingTop: '32px',
-    borderTop: '1px solid #F3F4F6'
+    borderTop: '1px solid var(--border)'
   },
   calcLabel: {
     fontSize: '13px',
     fontWeight: 600,
-    color: '#6B7280',
+    color: 'var(--text)',
     textTransform: 'uppercase',
     letterSpacing: '1px',
     marginBottom: '12px'
@@ -522,7 +522,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'Playfair Display, serif',
     fontSize: '72px',
     fontWeight: 500,
-    color: '#111827',
+    color: 'var(--text-h)',
     lineHeight: 1
   },
   calcResultBlock: {
@@ -532,7 +532,7 @@ const styles: Record<string, React.CSSProperties> = {
   calcResultLabel: {
     fontSize: '12px',
     fontWeight: 600,
-    color: '#9CA3AF',
+    color: 'var(--text)',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     marginBottom: '8px'
@@ -541,23 +541,23 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '28px',
     fontFamily: 'Playfair Display, serif',
     fontWeight: 600,
-    color: '#111827'
+    color: 'var(--text-h)'
   },
 
   bentoStepCard1: {
     gridColumn: 'span 1',
     gridRow: 'span 1',
-    backgroundColor: '#F8F9FA'
+    backgroundColor: 'var(--accent-bg)'
   },
   bentoStepCard2: {
     gridColumn: 'span 1',
     gridRow: 'span 1',
-    backgroundColor: '#F8F9FA'
+    backgroundColor: 'var(--accent-bg)'
   },
   bentoStepCard3: {
     gridColumn: 'span 2',
     gridRow: 'span 1',
-    backgroundColor: '#0F1115', 
+    backgroundColor: 'var(--brand-ink)', 
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
@@ -566,30 +566,30 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'ui-monospace, Consolas, monospace',
     fontSize: '12px',
     fontWeight: 700,
-    color: '#0044FF',
+    color: 'var(--accent)',
     marginBottom: '20px'
   },
   bentoCardTitle: {
     fontSize: '18px',
     fontWeight: 600,
-    color: '#111827',
+    color: 'var(--text-h)',
     marginBottom: '12px'
   },
   bentoCardBody: {
     fontSize: '14px',
-    color: '#6B7280',
+    color: 'var(--text)',
     lineHeight: 1.6
   },
   bentoDecorativeCircle: {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
-    backgroundColor: '#0044FF',
+    backgroundColor: 'var(--accent)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    boxShadow: '0 10px 20px rgba(0, 68, 255, 0.3)'
+    boxShadow: '0 10px 20px rgba(116, 183, 181, 0.35)'
   },
 
   // STANDARDS
@@ -609,12 +609,12 @@ const styles: Record<string, React.CSSProperties> = {
   sectionTitle: {
     fontSize: '48px',
     fontWeight: 500,
-    color: '#111827',
+    color: 'var(--text-h)',
     margin: '0 0 16px'
   },
   sectionSubtitle: {
     fontSize: '18px',
-    color: '#6B7280',
+    color: 'var(--text)',
     margin: 0
   },
   cardsGrid: {
@@ -624,7 +624,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%'
   },
   lightCard: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'var(--accent-bg)',
     borderRadius: '24px',
     padding: '40px',
     display: 'flex',
@@ -640,7 +640,7 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: 'none'
   },
   darkCard: {
-    backgroundColor: '#0F1115',
+    backgroundColor: 'var(--brand-ink)',
     borderRadius: '24px',
     padding: '40px',
     display: 'flex',
@@ -668,7 +668,7 @@ const styles: Record<string, React.CSSProperties> = {
   iconCircleDark: {
     width: '40px',
     height: '40px',
-    backgroundColor: '#1F2937',
+    backgroundColor: 'var(--ink-75)',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
@@ -684,13 +684,13 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '999px',
     fontSize: '10px',
     fontWeight: 700,
-    color: '#111827',
+    color: 'var(--text-h)',
     letterSpacing: '0.5px'
   },
   cardTitle: {
     fontSize: '24px',
     fontWeight: 600,
-    color: '#111827',
+    color: 'var(--text-h)',
     margin: '0 0 16px',
     position: 'relative',
     zIndex: 2
@@ -698,7 +698,7 @@ const styles: Record<string, React.CSSProperties> = {
   cardBody: {
     fontSize: '15px',
     lineHeight: 1.6,
-    color: '#4B5563',
+    color: 'var(--text)',
     margin: '0 0 40px',
     flex: 1,
     position: 'relative',
@@ -708,7 +708,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '10px',
     fontWeight: 700,
     letterSpacing: '1px',
-    color: '#0044FF',
+    color: 'var(--accent)',
     position: 'relative',
     zIndex: 2
   },
@@ -716,7 +716,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '10px',
     fontWeight: 700,
     letterSpacing: '1px',
-    color: '#9CA3AF'
+    color: 'rgba(255,255,255,0.65)'
   },
   wideCard: {
     gridColumn: '1 / -1',
@@ -726,7 +726,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: '40px',
-    border: '1px solid #E5E7EB',
+    border: '1px solid var(--border)',
     boxShadow: '0 10px 30px rgba(0,0,0,0.02)'
   },
   wideCardLeft: {
@@ -736,7 +736,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '120px',
     height: '120px',
     borderRadius: '50%',
-    border: '4px solid #0044FF',
+    border: '4px solid var(--accent)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -745,13 +745,13 @@ const styles: Record<string, React.CSSProperties> = {
   reliabilityValue: {
     fontSize: '32px',
     fontWeight: 700,
-    color: '#0044FF',
+    color: 'var(--accent)',
     lineHeight: 1.1
   },
   reliabilityLabel: {
     fontSize: '10px',
     fontWeight: 700,
-    color: '#0044FF',
+    color: 'var(--accent)',
     letterSpacing: '1px'
   },
   wideCardRight: {
@@ -759,7 +759,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   darkSplitSection: {
     width: '100%',
-    backgroundColor: '#1E293B',
+    backgroundColor: 'var(--brand-ink)',
     padding: '120px 24px',
     display: 'flex',
     justifyContent: 'center',
@@ -786,7 +786,7 @@ const styles: Record<string, React.CSSProperties> = {
   darkSplitBody: {
     fontSize: '18px',
     lineHeight: 1.6,
-    color: '#9CA3AF',
+    color: 'rgba(255,255,255,0.72)',
     margin: '0 0 40px',
     maxWidth: '500px'
   },
@@ -833,7 +833,7 @@ const styles: Record<string, React.CSSProperties> = {
   ctaCard: {
     width: '100%',
     maxWidth: '1200px',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'var(--accent-bg)',
     borderRadius: '32px',
     padding: '80px 40px',
     display: 'flex',
@@ -844,12 +844,12 @@ const styles: Record<string, React.CSSProperties> = {
   ctaTitle: {
     fontSize: '48px',
     fontWeight: 500,
-    color: '#111827',
+    color: 'var(--text-h)',
     margin: '0 0 20px'
   },
   ctaSubtitle: {
     fontSize: '18px',
-    color: '#6B7280',
+    color: 'var(--text)',
     margin: '0 0 40px',
     maxWidth: '600px'
   },
@@ -857,7 +857,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '32px',
     fontSize: '11px',
     fontWeight: 700,
-    color: '#9CA3AF',
+    color: 'var(--text)',
     letterSpacing: '1px'
   },
   footer: {
@@ -866,13 +866,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTop: '1px solid #E5E7EB',
+    borderTop: '1px solid var(--border)',
     boxSizing: 'border-box'
   },
   footerBrand: {
     fontWeight: 600,
     fontSize: '14px',
-    color: '#111827'
+    color: 'var(--text-h)'
   },
   footerLinks: {
     display: 'flex',
@@ -880,11 +880,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   footerLink: {
     fontSize: '14px',
-    color: '#6B7280',
+    color: 'var(--text)',
     cursor: 'pointer'
   },
   footerCopyright: {
     fontSize: '13px',
-    color: '#9CA3AF'
+    color: 'var(--text)'
   }
 };
