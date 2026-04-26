@@ -259,8 +259,13 @@ async function runStreamingModelTurn(negotiationId, turn, sender, systemInstruct
   return acc.trim() || '(no response)';
 }
 
-function applicantOfferPrompt({ initialTerms, counterTerms }) {
+function applicantOfferPrompt({ initialTerms, counterTerms, candidateName }) {
+  const nameLine = candidateName
+    ? `The candidate's name is ${candidateName}. Refer to them by this name when natural; never use placeholders like "[applicant name]" or "the candidate" as a stand-in for a real name.`
+    : `The candidate's name is not available; refer to them as "the candidate" rather than any bracketed placeholder.`;
   return `You are APPLICANT_AGENT representing a job candidate in a compensation and terms negotiation.
+
+${nameLine}
 
 **What the company first proposed (recruiter's written offer):**
 ---
@@ -278,14 +283,20 @@ Rules:
 - Hard 80 words per turn maximum.
 - No markdown headers. Plain prose, one or two short paragraphs.
 - Do not fabricate new numbers that contradict the two texts above; you may suggest compromises that blend them.
+- Never emit bracketed placeholders such as "[applicant name]", "[name]", or "[candidate]" — write the real name above, or use "the candidate".
 - Stay focused: each turn should move the negotiation one step toward a deal that honors both sides' priorities.
 
 Output only the message the recruiter's agent will read.`;
 }
 
-function recruiterOfferPrompt({ initialTerms, counterTerms, jobContext }) {
+function recruiterOfferPrompt({ initialTerms, counterTerms, jobContext, candidateName }) {
   const job = jobContext ? JSON.stringify(jobContext, null, 2) : '(no extra job context)';
+  const nameLine = candidateName
+    ? `The candidate's name is ${candidateName}. Address them by this name when natural; never use placeholders like "[applicant name]".`
+    : `The candidate's name is not available; refer to them as "the candidate" rather than any bracketed placeholder.`;
   return `You are RECRUITER_AGENT representing the employer in a compensation and terms negotiation.
+
+${nameLine}
 
 **The formal package the company already put on record:**
 ---
@@ -306,13 +317,19 @@ Rules:
 - Hard 80 words per turn maximum.
 - No markdown headers. Plain prose.
 - Do not invent policies or budgets not implied by the materials above; stay plausible.
+- Never emit bracketed placeholders such as "[applicant name]", "[name]", or "[candidate]" — write the real name above, or use "the candidate".
 - One focused move per turn (trade, concession, or clarifying ask).
 
 Output only the message the applicant's agent will read.`;
 }
 
-function settlementPrompt({ initialTerms, counterTerms, transcriptText }) {
+function settlementPrompt({ initialTerms, counterTerms, transcriptText, candidateName }) {
+  const nameLine = candidateName
+    ? `Candidate name: ${candidateName}. Use this real name where appropriate; never write bracketed placeholders like "[applicant name]".`
+    : `Candidate name unknown; refer to them as "the candidate" — never use bracketed placeholders.`;
   return `The following is a 5-message negotiation between APPLICANT_AGENT and RECRUITER_AGENT about a job offer.
+
+${nameLine}
 
 **Company's opening written offer:**
 ${initialTerms}
@@ -326,6 +343,21 @@ ${transcriptText}
 Task: produce a final, balanced employment package that both sides are likely to accept. The final numbers must be realistic and fall between or reconcile the two written positions. If something was left open in the messages, use reasonable defaults and say so in key_points.
 
 Return JSON only, matching the schema.`;
+}
+
+function loadCandidateName(applicantUserId) {
+  if (!applicantUserId) return null;
+  const row = db
+    .prepare(
+      `SELECT first_name, middle_initial, last_name, preferred_name
+         FROM user_profiles WHERE user_id = ?`,
+    )
+    .get(applicantUserId);
+  if (!row) return null;
+  const first = (row.preferred_name || row.first_name || '').trim();
+  const last = (row.last_name || '').trim();
+  const full = [first, last].filter(Boolean).join(' ').trim();
+  return full || null;
 }
 
 function persistTurn(negotiationId, turnIndex, sender, content) {
@@ -411,6 +443,7 @@ async function runOfferNegotiation(negotiationId) {
   const initialTerms = String(row.initial_terms);
   const counterTerms = String(row.applicant_counter);
   const job = loadJobPosting(row.job_posting_id);
+  const candidateName = loadCandidateName(row.applicant_user_id);
 
   let interventionTopics = [];
   try {
@@ -435,8 +468,8 @@ async function runOfferNegotiation(negotiationId) {
   }
 
   const sysPrompts = {
-    applicant_agent: applicantOfferPrompt({ initialTerms, counterTerms }),
-    recruiter_agent: recruiterOfferPrompt({ initialTerms, counterTerms, jobContext: job }),
+    applicant_agent: applicantOfferPrompt({ initialTerms, counterTerms, candidateName }),
+    recruiter_agent: recruiterOfferPrompt({ initialTerms, counterTerms, jobContext: job, candidateName }),
   };
 
   const transcript = [];
@@ -551,7 +584,7 @@ async function runOfferNegotiation(negotiationId) {
           {
             role: 'user',
             parts: [
-              { text: settlementPrompt({ initialTerms, counterTerms, transcriptText }) },
+              { text: settlementPrompt({ initialTerms, counterTerms, transcriptText, candidateName }) },
             ],
           },
         ],
