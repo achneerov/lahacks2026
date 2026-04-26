@@ -5,7 +5,7 @@ PRAGMA foreign_keys = ON;
 -- Users: 3 applicants, 2 recruiters, 1 agent
 INSERT INTO users (id, role, worldu_id, email, username, password_hash, verification_level, trust_score) VALUES
   (1, 'Applicant', 'wu_alice_001',  'applicant@gmail.com',   'applicant',   '$2b$10$x2iS5NjBj/JUgPB630EwKO0RL/Hk66DJetWJ2e2iOdRRnMoWOBtPC', 'orb',    96),
-  (2, 'Applicant', 'wu_bob_002',    'bob@example.com',     'bob',     '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'passport', 88),
+  (2, 'Applicant', 'wu_bob_002',    'bob@example.com',     'bob',     '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'document', 88),
   (3, 'Applicant', 'wu_carol_003',  'carol@example.com',   'carol',   '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'device', 72),
   (4, 'Recruiter', 'wu_recruiter_01', 'recruiter@gmail.com', 'recruiter', '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'orb', 90),
   (5, 'Agent',     'wu_frank_006',  'frank@agentcorp.com', 'frank_a', '$2b$10$.VsfQUmExIa0pHfkkAy5UOJWgptKjeQPa8Ti.MrkdeZTd4E3HkVVm', 'device', 85),
